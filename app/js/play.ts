@@ -26,7 +26,7 @@ import type { MatchState } from './sim/state.ts';
 import { step } from './sim/step.ts';
 import { applyStrike, strikeFor } from './sim/strike.ts';
 import { nextControlled } from './sim/switching.ts';
-import { decideKick, steerAll, think, type Skills } from './ai/brain.ts';
+import { challenger, decideKick, steerAll, think, type Skills } from './ai/brain.ts';
 import { PITCH } from './sim/units.ts';
 
 /**
@@ -169,6 +169,19 @@ export function playTick(
     applyStrike(state, strike);
     struck = true;
     break; // one ball
+  }
+
+  // ⚠️ AND THE MACHINE IS JUDGED BY THE SAME FUNCTION. Until this ran, a foul was only ever judged for
+  //    a command from a SEAT - so a child could be booked and sent off, and the eleven players she was
+  //    playing against could not. A law that applies to one side of the pitch, and the side it applied to
+  //    was hers.
+  if (skills !== undefined) {
+    for (const team of [0, 1] as const) {
+      const who = challenger(state, team);
+      if (who === null) continue;
+      const foul = judgeTackle(state, who, profile);
+      if (foul !== null) fouls.push(...foulEvents(state, foul));
+    }
   }
 
   if (skills !== undefined && !struck) {

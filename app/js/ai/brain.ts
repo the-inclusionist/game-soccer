@@ -22,6 +22,7 @@ import { homeSpot, type TeamPlan } from './formation.ts';
 import type { Ratings } from './ratings.ts';
 import { teamPlan } from './plan.ts';
 import { thinksThisTick } from './schedule.ts';
+import { RECKLESS_SPEED } from '../rules/foul.ts';
 
 /** Metres. A supporting player runs this far ahead of the shape when his side has the ball. */
 const SUPPORT_AHEAD = 9;
@@ -225,6 +226,64 @@ const SHOT_LIFT = 1.6;
  * Passing and shooting belong here too and are the next thing to add. The shape is already right: a
  * decision that returns a struck ball, applied by the match tick, never by the AI itself.
  */
+/**
+ * Which CPU player is making a challenge this tick, or `null`.
+ *
+ * ⚠️ THIS EXISTS TO REMOVE AN ASYMMETRY, not to make the AI cleverer. A foul was judged for commands
+ * from a SEAT and for nothing else, so a child could be booked and sent off and the eleven players she was
+ * playing against could not. That is a law that applies to one side of the pitch, and the side it applies
+ * to is hers.
+ *
+ * ⚠️ ONLY THE DESIGNATED PRESSER, which is the anti-swarm rule doing a second job. Ten players hold
+ * their shape and one chases; if every body near the carrier could commit a foul, a crowded box would
+ * whistle every tick and the match would be nothing but free kicks.
+ *
+ * ⚠️ AND IT ANSWERS ONLY "who is challenging", never "was it a foul". `rules/foul.judgeTackle` decides
+ * that, for her and for the machine, out of the same function - which is the only version of fair that
+ * survives somebody reading the code.
+ */
+export function challenger(state: MatchState, team: TeamId): PlayerId | null {
+  const holder = state.possession.holder;
+  if (holder === NOBODY || teamOf(holder) === team) return null;
+
+  const plan = teamPlan(state, team);
+  if (plan.presserId < 0) return null;
+
+  const id = firstOf(team) + plan.presserId;
+  if (!onPitch(state, id)) return null;
+
+  const me = state.players[id];
+  const them = state.players[holder];
+  if (dist2(me.p, them.p) > CHALLENGE_RANGE * CHALLENGE_RANGE) return null;
+
+  // ⚠️ AND HE HAS TO HAVE GONE IN, which is the whole of what this extra condition is. A presser is
+  //    beside the carrier on almost every tick of a match; if being there were a challenge, the machine
+  //    would concede a free kick every tick and the game would be nothing but restarts.
+  //
+  // ⚠️ THIS IS AN INTENT TEST AND NOT A SEVERITY ONE, and the difference is why it lives here rather
+  //    than in `rules/foul`. The LAW is identical for both sides - `judgeTackle` decides what a challenge
+  //    was worth, for her and for the machine, out of the same function. What differs is when each side
+  //    is deemed to have MADE one: she pressed the button, and the machine has no button. The only
+  //    evidence of deliberateness a body can offer is the speed it arrived at.
+  //
+  //    The asymmetry that survives is that the machine does not give away CARELESS fouls, because it
+  //    cannot express carelessness. It is written down rather than hidden, and it is the smallest gap
+  //    that keeps a match from being a series of free kicks.
+  const dx = me.v.x - them.v.x;
+  const dy = me.v.y - them.v.y;
+  return dx * dx + dy * dy >= WENT_IN * WENT_IN ? id : null;
+}
+
+/**
+ * Closing speed at which the machine is deemed to have made a challenge rather than to be running beside
+ * somebody. It is `rules/foul`'s own reckless threshold, imported rather than repeated - two numbers that
+ * had to agree would eventually not.
+ */
+const WENT_IN = RECKLESS_SPEED;
+
+/** Metres. How close the presser has to be to the carrier to count as having gone in at all. */
+const CHALLENGE_RANGE = 2.0;
+
 export function decideKick(state: MatchState, playable: Playable = PITCH): Kick | null {
   const holder = state.possession.holder;
   if (holder === NOBODY) return null;
