@@ -83,6 +83,11 @@ function bodyTexture(app: PIXI.Application, kit: number): PIXI.Texture {
   g.beginFill(kit).drawRect(1, 1, 4, 6).endFill();
   g.beginFill(0x2a1c12).drawRect(1, 7, 4, 4).endFill();
   g.beginFill(0xe3b08a).drawRect(1, 0, 4, 2).endFill();
+  // ⚠️ AND A `region` OPTION IS THE OBVIOUS FIX AND IT IS NOT THIS ONE. `generateTexture(g, { region })`
+  //    states the rectangle instead of inferring it, which is right in principle - and measured here it
+  //    left every BODY on the pitch drawn as a two-pixel dash. Whatever it changes reaches further than
+  //    this texture. It was tried, measured, and reverted; the next person should not spend the evening
+  //    rediscovering that it looks like the answer.
   return app.renderer.generateTexture(g);
 }
 
