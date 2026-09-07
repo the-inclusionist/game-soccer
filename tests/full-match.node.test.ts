@@ -26,9 +26,39 @@
 //
 // ⚠️ FOOTBALL'S PER-MATCH COUNTS ARE NOT THIS MATCH'S TARGET, and reading them as one cost days. Forty
 // throw-ins and 2.7 goals belong to ninety minutes of football; seven minutes of arcade is a different
-// thing on purpose. What this mode owes is a match that STARTS, FINISHES, and contains each kind of event
-// often enough for a child to meet it - and on that reading the open ones are corners and cards, which a
-// child would meet about once every two matches and never.
+// thing on purpose.
+//
+// ========================= THE BANDS, GIVEN BY THE DEV ON 2026-09-07 =========================
+// What an arcade match of each length should contain. These are the ruler now - not football's ninety
+// minutes, and not a scaling of it:
+//
+//     event            3 min      7 min      12 min
+//     goals            1 to 3     2 to 4     2 to 5
+//     throw-ins        2 to 4     5 to 8     10 to 14
+//     corners          1 to 2     2 to 4     4 to 7
+//     fouls            1 to 2     3 to 5     6 to 10
+//     yellow cards     0 to 1     1 to 2     2 to 4
+//     red cards        rare (0)   0 to 1     0 to 1
+//     goal kicks       2 to 3     4 to 6     6 to 10
+//     offsides         0 to 1     1 to 2     2 to 3
+//     penalties        rare (0)   0 to 1     0 to 1
+//
+// ⚠️ AND THE SEVEN-MINUTE MATCH MISSES EIGHT OF THE NINE IN THE SAME DIRECTION. Measured above: one
+// count is OVER its band and seven are UNDER it -
+//
+//     goals 0.83 (want 2-4)      throw-ins 16.83 (want 5-8)     corners 0.50 (want 2-4)
+//     fouls 1.50 (want 3-5)      yellows 0.00 (want 1-2)        goal kicks 0.67 (want 4-6)
+//     offsides 0.50 (want 1-2)   reds 0.00 and penalties 0.00 are both inside their bands
+//
+// That shape says ONE problem and not eight. The ball leaves down the touchline two to three times more
+// often than it should, and everything that happens further up the pitch - corners, goal kicks, shots,
+// goals, the fouls and cards a contested attack produces - is starved of the ball that went out. Measured
+// in the ninety-minute mode when it still mattered: 279 of 281 crossings were the CARRIER walking his own
+// ball over the line, where football's throw-in comes off a deflection or a ball played too hard.
+//
+// ⚠️ SO THE NEXT WORK IS THE MECHANISM, NOT NINE CONSTANTS. Tuning seven counts upward one at a time
+// would be seven levers fighting one cause, which is how this repository spent days on a mode nobody
+// could select.
 //
 // ⚠️ AND A NINETY-MINUTE MODE WAS TUNED FOR DAYS BEFORE ANYBODY NOTICED IT WAS NOT IN THE GAME.
 // `FULL_MATCH` is referenced by one test and two comments; no composition root has ever selected it, so
