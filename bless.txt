@@ -1,0 +1,2 @@
+4042207160, 424680150, 1637744995, 884872227, 4028134250, 4196696841, 4061274777, 308352597, 3372563740
+phase=fullTime goals=0-0 counts={"crossedTouchline":5,"restartTaken":7,"periodExpired":1,"ballMoved":1,"offsideGiven":1,"secondPeriodExpired":1}

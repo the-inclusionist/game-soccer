@@ -29,6 +29,7 @@ import { step } from './sim/step.ts';
 import { applyStrike, strikeFor } from './sim/strike.ts';
 import { nextControlled } from './sim/switching.ts';
 import { challenger, decideKick, steerAll, think, type Skills } from './ai/brain.ts';
+import { tackleFor } from './sim/tackle.ts';
 import { AVERAGE, capsBySide } from './ai/ratings.ts';
 import { PITCH } from './sim/units.ts';
 
@@ -251,7 +252,32 @@ export function playTick(
       const who = challenger(state, team, capsOf(skills, profile.pace)[team].body.maxSpeed);
       if (who === null) continue;
       const foul = judgeTackle(state, who, profile, topOf(who, skills, profile.pace));
-      if (foul !== null) fouls.push(...foulEvents(state, foul));
+      if (foul !== null) {
+        fouls.push(...foulEvents(state, foul));
+        continue;
+      }
+
+      // ⚠️ AND IF IT WAS FAIR, HE TAKES THE BALL - which never happened until this line. `challenger`
+      //    and `judgeTackle` between them covered the ILLEGAL half of defending completely, and a fair
+      //    challenge did nothing at all: the defender arrived, the referee said nothing, and the carrier
+      //    kept the ball. Possession changed hands only when a dribbling touch strayed far enough for
+      //    somebody to collect it, which is one route where football has three.
+      //
+      //    ⚠️ IT IS WHY EIGHT COUNTS MISSED AT ONCE. Against the Dev's seven-minute bands the match was
+      //    short of goals, corners, goal kicks, fouls, yellows and offsides and long on throw-ins, and
+      //    100 of 101 crossings had a body within a metre of the ball closing at 6 m/s. Football's
+      //    throw-in comes off a DEFLECTION, and a deflection is what a tackle makes.
+      //
+      //    ⚠️ AND IT IS NOT MARKED OFFSIDE. Law 11 turns on a ball played by a TEAM-MATE; a ball
+      //    knocked away by an opponent is the opposite of that, and arming the snapshot here would flag
+      //    an attacker for a pass his own side never made.
+      const knock = tackleFor(state, who, skills[team === 0 ? 1 : 0]?.defending ?? 0.5);
+      if (knock === null) continue;
+      state.ball.v = { x: knock.vx, y: knock.vy, z: knock.vz };
+      state.ball.grounded = false;
+      state.possession.holder = NOBODY;
+      state.possession.lastTouch = knock.id;
+      state.lastStruck = knock.id;
     }
   }
 

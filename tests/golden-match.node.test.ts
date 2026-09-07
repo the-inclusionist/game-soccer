@@ -60,16 +60,27 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  3704578240, 2413161894, 3526890513, 2176295003, 3973463713, 72353084, 1541576081, 2862575029, 3218309391,
+  4042207160, 424680150, 1637744995, 884872227, 4028134250, 4196696841, 4061274777, 308352597, 3372563740,
 ];
+
+// ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
+// Each line is a change that was MEANT to move the match, with what it moved. A trail updated without one
+// of these sentences is this gate turning into a rubber stamp.
+//
+//   2026-09-07  A fair challenge takes the ball. `ai/brain.challenger` and `rules/foul.judgeTackle`
+//               covered only the ILLEGAL half of defending: a challenge that was not a foul did nothing
+//               at all, so this game had no tackle that won anything and no deflections. In the
+//               seven-minute match it moved fouls 1.50 to 2.67, yellows 0.00 to 0.50, throw-ins 16.83
+//               down to 13.17, goal kicks 0.67 to 1.17 and offsides 0.50 to 0.83; goals fell 0.83 to
+//               0.50, which is a defence that can now take the ball off an attack that could not finish
+//               anyway. In these ninety seconds: throw-ins 1 to 5, and an offside that was not there.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
   phase: 'fullTime',
   goals: [0, 0],
-  crossedTouchline: 1,
-  foulGiven: 1,
-  bookingGiven: 1,
+  crossedTouchline: 5,
+  offsideGiven: 1,
 };
 
 function play() {
@@ -119,8 +130,7 @@ describe('ninety seconds that must stay the same ninety seconds', () => {
     expect(state.phase, 'the match no longer reaches full time in ninety seconds').toBe(SUMMARY.phase);
     expect([...state.goals]).toEqual(SUMMARY.goals);
     expect(seen.crossedTouchline ?? 0).toBe(SUMMARY.crossedTouchline);
-    expect(seen.foulGiven ?? 0).toBe(SUMMARY.foulGiven);
-    expect(seen.bookingGiven ?? 0).toBe(SUMMARY.bookingGiven);
+    expect(seen.offsideGiven ?? 0).toBe(SUMMARY.offsideGiven);
   });
 
   // ⚠️ AND THE GOLDEN IS ONLY WORTH THE FIXTURE IT PLAYS. One pairing is one observation - the whole-match
