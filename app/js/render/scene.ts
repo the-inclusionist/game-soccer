@@ -33,6 +33,7 @@ import { onPitch } from '../sim/squads.ts';
 import type { MatchState } from '../sim/state.ts';
 import { GOAL, PITCH } from '../sim/units.ts';
 import { MARKER, markerCells } from './marker-pixels.ts';
+import { centreCircle, penaltySpotAt, pitchLines } from './pitch-marks.ts';
 import { SX, SY, SZ, WORLD_PX, project } from '../project.ts';
 
 /** The engine's logical screen. Never anything else: ADR-0001, integer scale only. */
@@ -172,24 +173,36 @@ function pitchTexture(app: PIXI.Application): PIXI.Texture {
     g.beginFill(0xe8f0e8, 0.75).drawRect(Math.round(x), Math.round(y), Math.max(1, w), Math.max(1, h)).endFill();
   };
 
-  line(m.x, m.top, PITCH.length * SX, 1);
-  line(m.x, m.top + PITCH.width * SY - 1, PITCH.length * SX, 1);
-  line(m.x, m.top, 1, PITCH.width * SY);
-  line(m.x + PITCH.length * SX - 1, m.top, 1, PITCH.width * SY);
-  line(m.x + (PITCH.length / 2) * SX, m.top, 1, PITCH.width * SY);
+  // ⚠️ EVERY LINE COMES FROM `render/pitch-marks`, IN METRES, and none of them is a number typed here.
+  //    This block used to draw the penalty area at 16.5 by 40.3 - the real laws' numbers - while the
+  //    referee gave penalties inside 14 by 32, because this pitch is 90 by 56 and not 105 by 68. The
+  //    painted box and the refereed box were different rectangles: a child standing inside the line she
+  //    could see got a free kick, and one standing outside it got a penalty. There is no learning a rule
+  //    whose picture is wrong, and nothing reported it, because the drawing was correct code producing a
+  //    box that looked like a box.
+  for (const l of pitchLines()) {
+    line(
+      m.x + Math.min(l.x0, l.x1) * SX,
+      m.top + Math.min(l.y0, l.y1) * SY,
+      Math.abs(l.x1 - l.x0) * SX,
+      Math.abs(l.y1 - l.y0) * SY,
+    );
+  }
 
+  const circle = centreCircle();
   g.lineStyle(1, 0xe8f0e8, 0.75);
-  g.drawEllipse(m.x + (PITCH.length / 2) * SX, m.top + (PITCH.width / 2) * SY, 9.15 * SX, 9.15 * SY);
+  g.drawEllipse(m.x + circle.x * SX, m.top + circle.y * SY, circle.r * SX, circle.r * SY);
   g.lineStyle(0);
 
+  // The spot, which had never been drawn at all - and a penalty is now taken from it.
+  for (const end of [0, 1] as const) {
+    const spot = penaltySpotAt(end);
+    g.beginFill(0xe8f0e8, 0.85)
+      .drawRect(Math.round(m.x + spot.x * SX) - 1, Math.round(m.top + spot.y * SY), 2, 1)
+      .endFill();
+  }
+
   for (const end of [0, 1]) {
-    const boxDepth = 16.5 * SX;
-    const boxWidth = 40.3 * SY;
-    const x = end === 0 ? m.x : m.x + PITCH.length * SX - boxDepth;
-    const y = m.top + (PITCH.width * SY - boxWidth) / 2;
-    line(x, y, boxDepth, 1);
-    line(x, y + boxWidth - 1, boxDepth, 1);
-    line(end === 0 ? x + boxDepth - 1 : x, y, 1, boxWidth);
 
     // The goal itself, drawn as posts on the line so the mouth is visibly a gap and not a colour.
     const mouth = GOAL.width * SY;

@@ -584,4 +584,21 @@ describe('what a child sees', () => {
 
     expect(document.querySelectorAll('#pitch canvas')).toHaveLength(1);
   });
+
+  // ⚠️ A SECOND PICTURE, AT THE GOAL, because the first one can never show the thing that most needs
+  //    looking at. The camera follows the ball and the ball starts on the halfway line, so every
+  //    screenshot this repository has taken shows the centre circle and no penalty area at all - which is
+  //    exactly where the drawn box and the refereed box disagreed for the whole life of the game, unseen.
+  it('[Right] and so does the goalmouth, which the halfway-line picture can never show', async () => {
+    booted = bootar(document, window);
+    booted!.state.phase = 'live';
+    booted!.state.ball.p = { x: 12, y: 28, z: 0 };
+    booted!.state.ball.v = { x: 0, y: 0, z: 0 };
+
+    await new Promise((r) => setTimeout(r, 1500));
+    await page.screenshot({ path: 'goalmouth.png' });
+
+    // The camera is smoothed, so this asks that it ARRIVED rather than that it was told to go.
+    expect(booted!.state.ball.p.x).toBeLessThan(20);
+  });
 });
