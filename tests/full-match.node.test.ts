@@ -20,15 +20,23 @@
 // considered and dropped - pairing with them is pairing with a different game. Six fixtures, measured
 // once, all six reaching full time:
 //
-//                     throw-ins   goals   corners   goal kicks   offsides   fouls   yellows   pens
-//     nobody playing         3.17    1.83      1.00         2.00       0.50    3.67      0.33   0.67
-//     a child playing        3.50    2.67      0.67         2.50       0.67    4.00      1.83   0.83
-//     the band (mine)       3.5-6     2-3     1.5-3        3-4.5    0.5-1.5   2-3.5   0.5-1.5   rare
+// TWELVE fixtures - every pairing both ways round - and all twelve reach full time. The mean, with the
+// per-match spread beside it, because the spread is half the finding:
 //
-//     scores, nobody playing    3-0   1-0   0-0   0-3   3-1   0-0
-//     scores, a child playing   4-0   3-0   1-0   2-0   3-0   2-1
+//                     throw-ins    goals   corners   goal kicks   offsides    fouls   yellows
+//     nobody playing        1.92     1.75      1.00         1.92       0.58     3.33      0.67
+//     a child playing       3.25     2.67      0.50         1.92       0.33     4.00      1.58
+//     spread, a child     [0-5]    [0-5]     [0-2]        [0-5]      [0-2]    [2-8]     [0-3]
+//     the band (mine)      3.5-6      2-3     1.5-3        3-4.5    0.5-1.5    2-3.5   0.5-1.5
 //
-//     balls into the box: 8.50 a match with nobody playing, 10.00 with a child
+//     scores, a child playing   4-0  3-0  1-0  2-0  3-0  2-1  1-0  5-0  3-0  4-0  0-0  2-1
+//
+// ⚠️ AND SIX FIXTURES WAS TOO FEW FOR THE MARGINAL CALLS, which doubling the slate showed by moving
+// three of them. Yellows read 1.83 over six and 1.58 over twelve - the band's edge, not clearly past it.
+// Offsides read 0.67 (inside) over six and 0.33 (under) over twelve. Throw-ins read 3.50 (inside) and
+// 3.25 (under). With fouls ranging from 2 to 8 in a single match, half a foul of difference over six
+// fixtures is three fouls in the whole slate, and tuning against that would be tuning against noise.
+// Only the goals held exactly - 2.67 in both - which is what makes them the number to trust.
 //
 // ⚠️ AND HER SHOT WAS NOT JUDGED BY THE SAME FUNCTION UNTIL 2026-09-07. The machine's shot is scattered
 // by its club's `shooting`; hers went dead centre from any distance, and she scored fourteen goals from a
@@ -38,7 +46,16 @@
 // corners went 0.50 to 1.17, goal kicks 1.00 to 1.83, balls into the box 7.00 to 9.17, and her scorelines
 // stopped being 5-0 and 8-0.
 //
-// ⚠️ WHAT IS STILL SHORT is corners and goal kicks in the played match, and offsides in both.
+// ========================= THE DEV'S DECISIONS ON THESE, 2026-09-07 =========================
+//   - The shot error stays at 0.40. Corners and goal kicks are bought with goals one for one - see the
+//     sweep in `ai/ratings` - and a children's game keeps the goals.
+//   - The offside band is confirmed as written, above football's own rate, which is an arcade choice.
+//   - The tackle stays as it is, aggressive. ⚠️ With the note that the fouls above the band come from
+//     the MACHINE and not from a child choosing to use it: `ai/brain.challenger` sends the designated
+//     presser in automatically, so nobody at the keyboard opted into them.
+//
+// So what is left out of band is settled rather than owed: corners and goal kicks are the far side of a
+// trade that was taken deliberately, and the fouls are a feature working.
 //
 // ⚠️ FOOTBALL'S PER-MATCH COUNTS ARE NOT THIS MATCH'S TARGET, and reading them as one cost days. Forty
 // throw-ins and 2.7 goals belong to ninety minutes of football; seven minutes of arcade is a different
