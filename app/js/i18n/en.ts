@@ -142,4 +142,5 @@ export const en = {
   'say.booking.theirs': 'One of theirs is booked',
   'say.sentOff.ours': 'One of ours is sent off - we are a player down',
   'say.sentOff.theirs': 'One of theirs is sent off - they are a player down',
+  'libras.open': 'Libras',
 } as const;

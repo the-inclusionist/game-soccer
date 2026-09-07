@@ -93,6 +93,7 @@
       <select id="away-club" aria-labelledby="away-club-label"></select>
       <button id="open-controls" type="button">Teclado</button>
       <button id="open-assists" type="button">Ajudas</button>
+      <button id="open-libras" type="button" aria-pressed="false">Libras</button>
     </div>
 
     <!-- THE KEYBOARD, AS A SCREEN. The engine draws the rows; this game tells it what its keyboard IS,
@@ -147,6 +148,38 @@
   <meta name="theme-color" content="#10160f">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <!-- THE VLIBRAS INTERPRETER.
+       ⚠️ THE MODE IS NOT THIS. `ui/vlibras` keeps the deaf-mode state itself, persisted, as the child's
+       CHOICE - so the Libras button works with no widget, no network and no gov.br, and every gate for it
+       runs with none of them. This subtree is one possible translator for a mode that already exists.
+
+       ⚠️ AND IT IS THE ONE THING HERE THAT NEEDS THE NETWORK. It is cross-origin, so the service worker
+       does not cache it: offline, the mode still turns on and the sentences are still offered, and no
+       interpreter appears. That is the cost, it is written here rather than discovered, and it is the
+       only part of this game that does not work with the wifi down.
+
+       ⚠️ IT ALSO COSTS THE AXE GATE ITS "not one exclusion". The engine excludes this same widget for the
+       same reason - it is third-party markup nobody here controls - and `docs/ENGINE-AUDIT.md` and the
+       README now say so instead of claiming a clean sheet this page no longer has. -->
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js" defer></script>
+  <script>
+    // Best effort, exactly like the engine's own wake-up call: a widget that fails to load must not stop
+    // the page, the game, or the mode.
+    window.addEventListener('load', () => {
+      try {
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+      } catch (e) {
+        /* no interpreter today; the mode and the sentences are unaffected */
+      }
+    });
+  </script>
+
   <script type="module" src="./js/boot/boot.ts"></script>
 </body>
 </html>

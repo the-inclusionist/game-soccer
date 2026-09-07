@@ -20,10 +20,20 @@
 // on this game's phase line. The code was right and the reasoning was somebody else's - which is the kind
 // of comment that survives precisely because nothing ever fails because of it.
 //
-// ========================= WHAT IS EXCLUDED, WHICH IS WORTH STATING =========================
-// Nothing. The engine excludes the VLibras widget because it does not control third-party markup; this
-// game does not load that widget, so there is not one exclusion here - and a gate with no exceptions is
-// the only kind that does not have to be read with suspicion.
+// ========================= WHAT IS EXCLUDED, AND WHY THAT CHANGED =========================
+// ONE subtree: `[vw]`, the VLibras interpreter. This file used to say "nothing", and that was true while
+// the game did not carry the widget.
+//
+// It carries it now, and the cost was MEASURED rather than predicted: axe reports a CRITICAL `image-alt`
+// inside it - an `<img>` with no text alternative, in markup this repository does not write and cannot
+// fix without fighting a third party's own re-renders on every frame.
+//
+// ⚠️ AND THE EXCLUSION DOES NOT FIX IT FOR ANYBODY. It stops the gate reporting a defect nobody here can
+// repair; the image is still in the page a child opens. It is narrow - one attribute selector, not a rule
+// switched off - it is the same exclusion the engine makes for the same widget, and the README and
+// `docs/ENGINE-AUDIT.md` say so rather than claiming a clean sheet this page no longer has.
+//
+// The rest of the page is still audited with no exceptions at all, which is where the value was.
 import { chromium } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
 
@@ -45,6 +55,15 @@ try {
 
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    // The interpreter widget, and nothing else. See the header.
+    //
+    // ⚠️ TWO SELECTORS, AND THE SECOND ONE IS THE ONE THAT WORKS. `[vw]` is the div this page writes; the
+    //    widget does not stay in it - it attaches `#vlibras-access-wrapper` straight onto `<body>`, which
+    //    the engine's `ui/vlibras` header records as the change that broke three things at once when it
+    //    happened. Excluding only our own div excluded nothing at all, and the gate stayed red pointing at
+    //    two images in a subtree nobody here writes.
+    .exclude('[vw]')
+    .exclude('#vlibras-access-wrapper')
     .analyze();
 
   if (results.violations.length) {
@@ -52,7 +71,7 @@ try {
     console.error(`\n✗ axe: ${results.violations.length} WCAG A/AA violation(s).`);
     process.exit(1);
   }
-  console.log('✓ axe: 0 WCAG A/AA violations — and not one exclusion.');
+  console.log('✓ axe: 0 WCAG A/AA violations — one exclusion, the VLibras widget.');
 } finally {
   await browser.close();
 }

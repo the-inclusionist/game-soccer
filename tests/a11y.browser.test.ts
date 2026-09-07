@@ -73,6 +73,7 @@ const SHELL = `
       <select id="away-club" aria-labelledby="away-club-label"></select>
       <button id="open-controls" type="button">Teclado</button>
       <button id="open-assists" type="button">Ajudas</button>
+      <button id="open-libras" type="button" aria-pressed="false">Libras</button>
     </div>
 
     <!-- THE KEYBOARD, AS A SCREEN. The engine draws the rows; this game tells it what its keyboard IS,

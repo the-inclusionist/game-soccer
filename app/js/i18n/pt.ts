@@ -139,4 +139,5 @@ export const pt = {
   'say.booking.theirs': 'Um deles levou amarelo',
   'say.sentOff.ours': 'Um dos nossos foi expulso - ficamos com um a menos',
   'say.sentOff.theirs': 'Um deles foi expulso - eles ficam com um a menos',
+  'libras.open': 'Libras',
 } as const;

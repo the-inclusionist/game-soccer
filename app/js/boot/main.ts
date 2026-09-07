@@ -41,6 +41,7 @@ import { padCur } from '@the-inclusionist/engine/input/state.js';
 import { buildPreset } from '../input/preset.ts';
 import * as mixer from '@the-inclusionist/engine/platform/audio.js';
 import * as engineState from '@the-inclusionist/engine/core/state.js';
+import { toggleLibras, vlibrasOpen, vlibrasSay, vlTick } from '@the-inclusionist/engine/ui/vlibras.js';
 import { createSound } from '../audio/sound.ts';
 import * as store from '@the-inclusionist/engine/platform/storage.js';
 import { indexOf, loadKeymap, saveKeymap, type Keymap, type Seating } from '../input/keymap.ts';
@@ -66,6 +67,16 @@ export interface Booted {
    * and asserting on the SCREEN would not tell them apart. This is the object the sampler reads.
    */
   readonly keymap: (seat?: number) => Keymap;
+  /**
+   * Watch what is handed to the sign-language interpreter.
+   *
+   * ⚠️ IT EXISTS BECAUSE THE WIDGET CANNOT BE IN A TEST. VLibras is a remote script from gov.br, and a
+   * gate that needed it would need the network - so what is measurable is that the game OFFERS the
+   * sentence, which is the half this repository is responsible for. Whether an interpreter signs it is
+   * the widget's business, and the engine's own module says so: the mode is the person's choice and the
+   * widget is only one possible translator for her.
+   */
+  readonly onSigned: (fn: (text: string) => void) => void;
   readonly stop: () => void;
 }
 
@@ -414,6 +425,30 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   };
   doc.addEventListener('keydown', routeToPanel, true);
 
+  // ⚠️ LIBRAS IS A MODE, NOT A WIDGET, and that distinction is the engine's and it is right. `toggleLibras`
+  //    flips a state that is the CHILD'S CHOICE and persists it, then makes a best-effort attempt to wake
+  //    the VLibras widget if one happens to be loaded - and its own comment says failing there must not
+  //    stop the mode turning on. So this control works with no widget, no network and no gov.br, which is
+  //    also why it can be gated at all.
+  //
+  // ⚠️ AND THE STATE IS OURS RATHER THAN READ FROM THE WIDGET'S GEOMETRY, which the engine records as a
+  //    defect it already had: the widget moved itself out of the game's markup, the detector answered
+  //    "open" for ever, the layout reserved 380px for an interpreter that was not there, and the toggle
+  //    could not turn it off.
+  const librasBtn = doc.querySelector<HTMLButtonElement>('#open-libras');
+  const paintLibras = (): void => {
+    if (librasBtn === null) return;
+    librasBtn.textContent = t('libras.open');
+    librasBtn.setAttribute('aria-pressed', vlibrasOpen() ? 'true' : 'false');
+  };
+  librasBtn?.addEventListener('click', () => {
+    toggleLibras();
+    paintLibras();
+  });
+  paintLibras();
+
+  let signed: ((text: string) => void) | null = null;
+
   // ⚠️ THE NARRATION IS WIRED TO THE TICK, NOT TO THE RENDERER. A sentence a child hears must not depend
   //    on a frame being drawn: at a low frame rate, or with the tab in the background, the events would
   //    pile up and arrive as a burst or not at all.
@@ -453,6 +488,15 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    game that captioned its sounds and ignored the preference for its sentences would hand a child
       //    a control that half works.
       if (engineState.captionsOn) showCaption(sentence);
+
+      // ⚠️ THE SAME SENTENCE AGAIN, for a child who reads neither a live region nor a caption line. Three
+      //    channels carrying ONE sentence is the point: the reader for a blind child, the caption for a
+      //    deaf one who reads Portuguese, and the interpreter for a deaf one whose first language is
+      //    Libras - which is a different person, and the one this game reached last.
+      if (vlibrasOpen()) {
+        vlibrasSay(sentence);
+        signed?.(sentence);
+      }
     }
   };
 
@@ -673,6 +717,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       // On the PRESS edge, not while held: a sonar that repeats sixty times a second is a siren.
       // Polled once per frame, before anything reads it - the engine writes into `padCur` from here.
       gamepad.pollPads();
+      // The engine's loop hook. It decides nothing any more - the mode is our state - but the widget's
+      // own bookkeeping still expects to be ticked.
+      vlTick();
 
       // ⚠️ THE POSITION, AND FROM EVERY SEATED KEYBOARD. `select` is where ADR-0085 puts session functions,
       //    so hard-coding `KeyF` meant a child who moved the key lost the sonar with no way back to it -
@@ -716,6 +763,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     motor,
     state,
     keymap: (seat = 0) => keymaps[seat] ?? keymaps[0],
+    onSigned: (fn) => {
+      signed = fn;
+    },
     stop: () => {
       scene.app.ticker.stop();
       scene.destroy();

@@ -139,4 +139,5 @@ export const es = {
   'say.booking.theirs': 'Uno de ellos vio la amarilla',
   'say.sentOff.ours': 'Expulsaron a uno de los nuestros - quedamos con uno menos',
   'say.sentOff.theirs': 'Expulsaron a uno de ellos - quedan con uno menos',
+  'libras.open': 'Libras',
 } as const;
