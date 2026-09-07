@@ -16,6 +16,7 @@ import { SQUAD_SIZE, firstOf, isKeeper, teamOf, type PlayerId, type TeamId } fro
 import { NOBODY } from '../sim/possession.ts';
 import { DEFAULT_CAPS } from '../sim/body.ts';
 import { onPitch } from '../sim/squads.ts';
+import { attackDirOf } from '../sim/ends.ts';
 import type { Body, MatchState } from '../sim/state.ts';
 import { BALL, BOX, PITCH } from '../sim/units.ts';
 import { clamp, dist2, type Vec2 } from '../sim/vec.ts';
@@ -47,22 +48,15 @@ const ARRIVE_RADIUS = 0.8;
 /** The area in play. A practice session is half a pitch, and every position below is laid out on it. */
 export type Playable = { readonly length: number; readonly width: number };
 
-/** Which way this team attacks, given the period. Derived, so half time costs nothing to handle. */
-function dirOf(team: TeamId, period: number): 1 | -1 {
-  const home = team === 0;
-  const firstPeriod = period === 1;
-  return home === firstPeriod ? 1 : -1;
-}
-
 /** The middle of the goal this team is attacking, on the area IN PLAY. */
 function goalMouthOf(team: TeamId, period: number, playable: Playable): Vec2 {
-  const dir = dirOf(team, period);
+  const dir = attackDirOf(team, period);
   return { x: dir === 1 ? playable.length : 0, y: playable.width / 2 };
 }
 
 /** The point on this keeper's line he should be covering: between the ball and the middle of his goal. */
 function keeperSpot(state: MatchState, team: TeamId, playable: Playable): Vec2 {
-  const dir = dirOf(team, state.period);
+  const dir = attackDirOf(team, state.period);
   const lineX = dir === 1 ? 1.5 : playable.length - 1.5;
   const ball = state.ball.p;
 
@@ -109,7 +103,7 @@ export function decide(
     return dist2(spot, ball) < KEEPER_RANGE * KEEPER_RANGE ? ball : spot;
   }
 
-  const home = homeSpot(squadIndex, plan, dirOf(team, state.period), ball, playable);
+  const home = homeSpot(squadIndex, plan, attackDirOf(team, state.period), ball, playable);
 
   // 2 - I have the ball: run onto it, a step further up the pitch than it is.
   //
@@ -146,11 +140,11 @@ export function decide(
   //
   //     ⚠️ AND THEY DO NOT STAND ON EACH OTHER. Two bodies on one spot is one target for a defender and
   //     one body's worth of chance, so the near man takes the near post and the other the far.
-  if (weHaveIt && holder !== NOBODY && wideAndHigh(state, holder, dirOf(team, state.period), playable)) {
+  if (weHaveIt && holder !== NOBODY && wideAndHigh(state, holder, attackDirOf(team, state.period), playable)) {
     const near = squadIndex === FORWARDS[0];
     if (near || squadIndex === FORWARDS[1]) {
       const mouth = goalMouthOf(team, state.period, playable);
-      const dir = dirOf(team, state.period);
+      const dir = attackDirOf(team, state.period);
       return {
         x: clamp(mouth.x - dir * CROSS_DEPTH, 0, playable.length),
         y: clamp(playable.width / 2 + (near ? -POST_SPLIT : POST_SPLIT), 0, playable.width),
@@ -159,7 +153,7 @@ export function decide(
   }
 
   if (weHaveIt) {
-    const dir = dirOf(team, state.period);
+    const dir = attackDirOf(team, state.period);
     return { x: clamp(home.x + dir * SUPPORT_AHEAD, 0, playable.length), y: home.y };
   }
 
@@ -612,7 +606,7 @@ const PASS_RANGE = 26;
  */
 function receiverFor(state: MatchState, carrier: PlayerId, playable: Playable): PlayerId | null {
   const team = teamOf(carrier);
-  const dir = dirOf(team, state.period);
+  const dir = attackDirOf(team, state.period);
   const me = state.players[carrier].p;
 
   let best: PlayerId | null = null;
@@ -657,7 +651,7 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   if (holder === NOBODY) return null;
 
   const team = teamOf(holder);
-  const dir = dirOf(team, state.period);
+  const dir = attackDirOf(team, state.period);
 
   if (isKeeper(holder)) {
     const across = clamp(playable.width / 2 - state.players[holder].p.y, -12, 12) / 40;

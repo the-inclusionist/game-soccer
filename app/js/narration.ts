@@ -16,6 +16,7 @@ import type { Speakable } from '@the-inclusionist/engine/core/contract.js';
 import type { RuleEvent } from './rules/events.ts';
 import { URGENT } from './rules/events.ts';
 import type { TeamId } from './sim/ids.ts';
+import { attackDirOf } from './sim/ends.ts';
 import { PITCH } from './sim/units.ts';
 
 export interface NarrationCtx {
@@ -23,11 +24,6 @@ export interface NarrationCtx {
   /** The side the child is playing for. Everything is told from here. */
   readonly us: TeamId;
   readonly t: (key: string, params?: Record<string, string | number>) => string;
-}
-
-/** Which way `team` attacks. Derived from the period, so half time costs one function and no memory. */
-function dirOf(team: TeamId, period: number): 1 | -1 {
-  return (team === 0) === (period === 1) ? 1 : -1;
 }
 
 /**
@@ -38,7 +34,7 @@ function dirOf(team: TeamId, period: number): 1 | -1 {
  */
 function isTheirEnd(x: number, ctx: NarrationCtx): boolean {
   const end = x > PITCH.length / 2 ? 1 : -1;
-  return end === dirOf(ctx.us, ctx.period);
+  return end === attackDirOf(ctx.us, ctx.period);
 }
 
 const ours = (team: TeamId | undefined, ctx: NarrationCtx): boolean => team === ctx.us;

@@ -27,6 +27,7 @@ import type {
   Topology,
   WorldScope,
 } from '@the-inclusionist/engine/core/contract.js';
+import { attackDirOf } from './sim/ends.ts';
 import { offsideMask } from './rules/offside.ts';
 import type { RulesProfile } from './rules/profile.ts';
 import { firstOf, shirtOf, teamOf, type PlayerId, type TeamId } from './sim/ids.ts';
@@ -65,11 +66,7 @@ const spotOf = (p: { x: number; y: number }): Spot => ({ x: p.x, y: p.y });
 
 export function createDeclaration(o: Observed): GameDeclaration {
   /** +1 if our side attacks increasing `x`. Ends swap at half time, so it is derived and never stored. */
-  const ourDir = (): 1 | -1 => {
-    const home = o.ourTeam() === 0;
-    const firstPeriod = o.state().period === 1;
-    return home === firstPeriod ? 1 : -1;
-  };
+  const ourDir = (): 1 | -1 => attackDirOf(o.ourTeam(), o.state().period);
 
   const goalMouth = (dir: 1 | -1): Spot => ({
     x: dir === 1 ? PITCH.length : 0,

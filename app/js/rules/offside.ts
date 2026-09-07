@@ -5,7 +5,8 @@
 // offside". The flag is RAISED elsewhere, by the touch - which is what stops a striker loitering behind
 // the defence from being penalised while the ball is at the other end.
 
-import { SQUAD_SIZE, firstOf, teamOf, type PlayerId, type TeamId } from '../sim/ids.ts';
+import { attackDirOf } from '../sim/ends.ts';
+import { SQUAD_SIZE, firstOf, teamOf, type PlayerId } from '../sim/ids.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { MatchState } from '../sim/state.ts';
 import { PITCH } from '../sim/units.ts';
@@ -79,18 +80,6 @@ export function offsideMask(q: OffsideQuery): number {
 // ever called it. These two functions are the wire, and they live here rather than in `play.ts` because
 // they are offside knowledge: the seam should know that a ball was played and that a ball was touched,
 // and nothing else about the law.
-
-/**
- * Which way `team` attacks: `+1` along increasing `x`, `-1` the other way.
- *
- * ⚠️ IT IS A FACT ABOUT THE PERIOD, because the ends swap at half time. Reading a fixed direction off the
- * team id gives every second-half offside to the wrong side, and there is nothing on the screen that
- * would say why.
- */
-function attackDirOf(team: TeamId, period: number): 1 | -1 {
-  const defendsFar = (team === 0) === (period === 2);
-  return defendsFar ? -1 : 1;
-}
 
 /**
  * The moment the ball is played: freeze who was offside.

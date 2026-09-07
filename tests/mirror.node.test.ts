@@ -15,7 +15,7 @@
 // test could only ever assert that a function was called; this asserts what it says. The same split the
 // earcon captions use, and for the same reason.
 import { describe, expect, it } from 'vitest';
-import { youLine } from '../app/js/ui/mirror.ts';
+import { spotLines, youLine } from '../app/js/ui/mirror.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
 import { RED } from '../app/js/rules/cards.ts';
@@ -82,5 +82,91 @@ describe('the line that says who you are', () => {
     for (const line of [...every, youLine(live(6), 6, echo)]) {
       expect(line).toMatch(/^hud\.you\./);
     }
+  });
+});
+
+// ========================= AND WHERE THE BALL COULD GO NEXT =========================
+// The declaration answers that already - `targetsOf` is the half of the contract the SONAR uses, and it
+// is the highest-leverage decision in the game: at most four spots, each actionable this instant, never
+// the ten team-mates that would make the sonar beep ten times and say nothing.
+//
+// ⚠️ SO THIS DOES NOT WORK IT OUT AGAIN. It is handed the spots the sonar was handed, and turns them into
+// words. A second copy of "who is free and legal" would be the same defect as a count written into two
+// files: the two drift, and the one nobody is looking at is the one that goes wrong.
+//
+// ⚠️ AND IT IS FOR A CHILD THE SONAR CANNOT REACH. Spatial audio needs ears. A deaf-blind child on a
+// braille display has the DOM and nothing else, and until this line existed the single most useful thing
+// the game knew - where she could put the ball - was available only as sound.
+describe('where the ball could go next', () => {
+  // Attacking +x, so `dir` is 1: ahead is greater x, and the player's left hand points at smaller y.
+  const from = { x: 45, y: 28 };
+
+  it('[Zero] with nothing on, it SAYS nothing is on rather than going quiet', () => {
+    expect(spotLines(from, [], 1, echo)).toEqual(['hud.spot.none']);
+  });
+
+  it('[Right] a spot toward their goal is ahead, counted in paces', () => {
+    expect(spotLines(from, [{ x: 45 + 9, y: 28 }], 1, echo)).toEqual(['hud.spot.ahead {"paces":6}']);
+  });
+
+  it('[Right] and one toward our own goal is back', () => {
+    expect(spotLines(from, [{ x: 45 - 9, y: 28 }], 1, echo)).toEqual(['hud.spot.back {"paces":6}']);
+  });
+
+  // ⚠️ THE SIDES ARE THE CHILD'S, NOT THE SCREEN'S, and this is the gate that matters. Ends swap at half
+  //    time, so a spot at a fixed `y` is on her left in one half and on her right in the other - and a
+  //    compass, or a raw coordinate, would send her the wrong way for forty-five minutes with nothing on
+  //    screen looking wrong. `narration` has carried that rule since it existed; this obeys the same one.
+  it('[Right] her left and right come from the way she is attacking, not from the screen', () => {
+    const wide = [{ x: 45, y: 28 - 9 }];
+
+    expect(spotLines(from, wide, 1, echo)).toEqual(['hud.spot.left {"paces":6}']);
+    expect(spotLines(from, wide, -1, echo)).toEqual(['hud.spot.right {"paces":6}']);
+  });
+
+  it('[Right] and so does ahead, which is the same rule on the other axis', () => {
+    const up = [{ x: 45 + 9, y: 28 }];
+
+    expect(spotLines(from, up, 1, echo)).toEqual(['hud.spot.ahead {"paces":6}']);
+    expect(spotLines(from, up, -1, echo)).toEqual(['hud.spot.back {"paces":6}']);
+  });
+
+  // ⚠️ ONE PACE IS A DIFFERENT WORD. "1 paces" is the kind of sentence that tells a child the machine is
+  //    not really speaking to her, and no dictionary can repair it from the outside.
+  it('[Boundary] one pace has its own sentence', () => {
+    expect(spotLines(from, [{ x: 46.5, y: 28 }], 1, echo)).toEqual(['hud.spot.aheadOne']);
+  });
+
+  // ⚠️ AND NOTHING IS EVER NOUGHT PACES AWAY. A spot under her own feet still has to be reachable as a
+  //    sentence, and "0 paces ahead" is not one.
+  it('[Boundary] a spot on top of her rounds up to one, never to none', () => {
+    expect(spotLines(from, [{ x: 45.2, y: 28 }], 1, echo)).toEqual(['hud.spot.aheadOne']);
+  });
+
+  it('[Many] one line per spot, in the order the declaration ranked them', () => {
+    const three = [
+      { x: 45 + 3, y: 28 },
+      { x: 45, y: 28 + 9 },
+      { x: 45 - 15, y: 28 },
+    ];
+
+    expect(spotLines(from, three, 1, echo)).toEqual([
+      'hud.spot.ahead {"paces":2}',
+      'hud.spot.right {"paces":6}',
+      'hud.spot.back {"paces":10}',
+    ]);
+  });
+
+  // ⚠️ THE DOMINANT AXIS AND NOT BOTH. "Six paces ahead and one to your left" is two facts where one is
+  //    wanted; a child scanning four of these on a braille line is reading, not listening, and every
+  //    extra clause is a line she has to get past to reach the next option.
+  it('[Right] a spot that is both takes the bigger of the two', () => {
+    expect(spotLines(from, [{ x: 45 + 9, y: 28 + 3 }], 1, echo)[0]).toMatch(/^hud\.spot\.ahead /);
+  });
+
+  it('[Interface] every line it can produce is a dictionary key', () => {
+    const many = spotLines(from, [{ x: 60, y: 20 }, { x: 30, y: 40 }], 1, echo);
+
+    for (const line of [...many, ...spotLines(from, [], 1, echo)]) expect(line).toMatch(/^hud\.spot\./);
   });
 });
