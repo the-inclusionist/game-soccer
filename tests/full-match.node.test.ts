@@ -26,8 +26,22 @@
 //
 // ⚠️ SO THE LONG MODE DOES NOT WANT MORE RULES. Every rule fixed today moved both columns together, because
 // a rule is a fact about a tick and both modes run the same ticks. What differs between fifteen minutes of
-// football and ninety is how much WORLD there is per player, and that is a decision about the game - a
-// bigger pitch for the same bodies, or fewer bodies, or slower play - rather than a defect in it.
+// football and ninety is how much WORLD there is per player.
+//
+// ⚠️ AND "IT IS ALL DENSITY" WAS TOO BROAD, which a spike settled. `PITCH` was widened in a throwaway
+// experiment and six ninety-minute matches measured at each size:
+//
+//     pitch      throw-ins   goals   corners        target: 40, 2.7, 10
+//     90x56          206.0    17.3       5.0
+//     112x70         250.0     5.3       0.3
+//     135x84         338.7     0.3       1.3
+//     158x98         418.0     2.3       1.3
+//
+// A bigger world takes the goals down towards the target and pushes the throw-ins UP, away from it. They
+// move in opposite directions, so they are not one phenomenon: the goal rate is density and the throw-in
+// rate is something else with its own cause. Nothing was kept from the spike - `PITCH` is a module
+// constant and making it a profile value touches the rules, the projection and the renderer - but the
+// measurement is here so the next person does not conclude what this file concluded first.
 
 import { describe, expect, it } from 'vitest';
 import { createMatchState } from '../app/js/sim/state.ts';
