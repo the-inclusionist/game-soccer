@@ -48,6 +48,17 @@ export function capsFor(r: Ratings): BodyCaps {
   return { maxSpeed: 6.2 + 1.4 * r.pace, accel: 18 + 8 * r.pace };
 }
 
+/**
+ * The two sides' caps, ready for `sim/step`.
+ *
+ * ⚠️ TWO OBJECTS AND NOT TWENTY-TWO. Pace is a fact about a CLUB, so a per-player array would be twenty
+ * allocations a tick to say the same two things - and pillar 1 names the hardware this runs on. It also
+ * says the shape of the rule out loud: every player of a side is as quick as his side.
+ */
+export function capsBySide(home: Ratings, away: Ratings): readonly [BodyCaps, BodyCaps] {
+  return [capsFor(home), capsFor(away)];
+}
+
 /** Radians of error a pass may carry. A perfect passer has none, which is the honest end of the scale. */
 export function passErrorOf(passing: number): number {
   return (1 - passing) * 0.2;

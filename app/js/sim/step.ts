@@ -13,7 +13,7 @@
 import { stepBall } from './ball.ts';
 import { stepBody } from './body.ts';
 import { FLAG_JOCKEY, FLAG_SPRINT, type TickFrame } from './command.ts';
-import { DEFAULT_CAPS } from './body.ts';
+import { DEFAULT_CAPS, type BodyCaps } from './body.ts';
 import { containDirection } from './contain.ts';
 import { NOBODY, resolvePossession } from './possession.ts';
 import { teamOf } from './ids.ts';
@@ -29,12 +29,21 @@ const STILL: Vec2 = Object.freeze({ x: 0, y: 0 });
 const SPRINT_FREE = 1.18;
 const SPRINT_WITH_BALL = 1.04;
 
+/**
+ * One tick.
+ *
+ * ⚠️ `sides` IS CAPS AND NOT RATINGS, and the distinction is the whole reason the simulation can be tested
+ * with no clubs in it. `capsFor` turns a club's `pace` into a top speed and an acceleration; this function
+ * receives the ANSWER, so `sim/` never learns that clubs exist and the seam stays the only place that
+ * knows both. Omitted, everybody gets `DEFAULT_CAPS`, which is exactly a side of all-average players.
+ */
 export function step(
   state: MatchState,
   frame: TickFrame,
   dt: number,
   base?: readonly Vec2[],
   moveBall = true,
+  sides?: readonly [BodyCaps, BodyCaps],
 ): void {
   // 1 - INTENT. A desired direction per body, defaulting to standing still. Built as a dense array rather
   //     than a map so the iteration below is by index, which is what keeps ties deterministic.
@@ -47,7 +56,9 @@ export function step(
   // ⚠️ SPRINT IS PER BODY, NOT GLOBAL, so the caps are an array rather than one value. It was a flag no
   //     module read at all until this line existed: it travelled from the keyboard into the command and
   //     stopped there, and every test still passed because they all asserted on the COMMAND.
-  const caps = state.players.map(() => DEFAULT_CAPS);
+  // ⚠️ SEEDED PER SIDE, WHICH IS WHERE PACE ENTERS THE MATCH. It was `DEFAULT_CAPS` for all twenty-two, so
+  //     `capsFor` was imported by nobody and the clubs ran at identical speeds while a card said otherwise.
+  const caps = state.players.map((_, i) => (sides === undefined ? DEFAULT_CAPS : sides[teamOf(i)]));
 
   for (const cmd of frame.cmds) {
     const who = state.controlled[cmd.seat];
@@ -69,7 +80,11 @@ export function step(
       // down for ninety minutes.
       const carrying = state.possession.holder === who;
       const gain = carrying ? SPRINT_WITH_BALL : SPRINT_FREE;
-      caps[who] = { maxSpeed: DEFAULT_CAPS.maxSpeed * gain, accel: DEFAULT_CAPS.accel };
+      // ⚠️ AGAINST HIS OWN CAP AND NOT AGAINST THE DEFAULT. Multiplying the default would make every club
+      //    sprint at exactly the same speed - and a match is mostly spent sprinting, so pace would be a
+      //    rating a child could never see, which reads as the rating not working rather than as one
+      //    multiplication against the wrong base.
+      caps[who] = { maxSpeed: caps[who].maxSpeed * gain, accel: caps[who].accel };
     }
   }
 
