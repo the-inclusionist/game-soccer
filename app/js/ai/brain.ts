@@ -732,6 +732,17 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   //    out, and conceding the corner is the point of doing it - which is also the only thing in this
   //    cascade that sends the ball over a goal line on purpose. The keeper's tip round the post was the
   //    other source, and shots stopped reaching him once a body could block one.
+  // ⚠️ AND IT STILL DOES NOT FIRE, RE-MEASURED ON 2026-09-07 AFTER FOUR CHANGES TO THE MATCH. Counting
+  //    the SITUATION rather than the rule - a defender holding the ball within eight metres of his own
+  //    line with a rival inside three - six five-minute matches produced it 0.00 times. Not rarely:
+  //    never. The rule is right and unreachable, which is a shape this repository has now found three
+  //    times and is worth naming: a rule that is right, gated, and waiting on a situation the game does
+  //    not produce.
+  //
+  //    So the corners this game has are the KEEPER'S: 1.00 a match, of which 0.67 come off him and 0.33
+  //    off an outfielder, against a band of 1.5 to 3. Getting there is a matter of more shots reaching
+  //    him, not of any threshold here - and raising the shot error to make shots miss (which the goal
+  //    kicks needed) pulls the other way. That tension is the next thing to measure, not to guess at.
   const deep = dir === 1 ? me.x : playable.length - me.x;
   if (deep <= GOAL_AREA) {
     const out = CLEARANCE_SPEED * (playable.length / PITCH.length);
