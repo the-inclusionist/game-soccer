@@ -1,0 +1,116 @@
+# Soccer
+
+Association football for Brazilian public schools, built on
+[The Inclusionist engine](https://github.com/the-inclusionist/the-inclusionist-engine) - accessible
+first, at the engine's 320x180 pixel grid, offline as a PWA.
+
+> **Playable, and not finished.** A match plays itself, a child can play it with a keyboard or through a
+> panel of buttons, and the rules are refereed. What is missing is listed under *Still owed*.
+>
+> The sentence that stood here first said the repository held no product code at all, and removing it was
+> part of the commit that made it false (ADR-0067 section 3).
+
+## State
+
+| | |
+|---|---|
+| Done - the simulation | `app/js/sim/` - a fixed 60Hz step in metres and seconds, a ball with a third axis, dribbling by touches rather than glue, and a digest that stands for the whole world at a tick. |
+| Done - replay | `app/js/sim/recorder.ts` - a match is `(version, setup, commands)`. A recording from another simulation version is REFUSED, not run into a different match in silence. |
+| Done - the assistances | `app/js/ui/assists-panel.ts` - the shot-power route (**hold**, press-twice, or **one press one step**, which has no timing in it at all), the assisted pace, and the length of a half **including none**. All three were implemented, gated and **unreachable**: the composition root passed no charge mode, hard-coded the tempo at 0.5 and froze the half at ten minutes. WCAG 2.2.1 is paid twice here - every limit is an option, and one option in each list is that there is no limit. |
+| Done - three clocks, one simulation | `app/js/drivers/` - real time, real time at reduced tempo, and turn based. **The same command stream through any of them produces the same digest trail**, which is the gate that makes them one game rather than three. |
+| Done - the referee | `app/js/rules/` - kickoff, throw-in, corner, goal kick, offside, half and full time, as a transition table that is DATA. Practice is the same referee with the out-of-play rows switched off. |
+| Done - the declaration | `app/js/declaration.ts` - the eight fields of `core/contract` for a `continuous` topology in METRES with a PACE as the unit. **The engine's third preset ever**, after `hotspots` (quiz) and `grid` (2048). |
+| Done - the AI | `app/js/ai/` - 22 agents on a staggered budget of about four decisions per tick, one designated presser per side, and six skill ratings applied at the point of ACTION so a weak side and a strong one run the same code. |
+| Done - choosing the clubs | `app/js/teams/roster.ts` - twelve clubs a child picks between, replacing one hard-coded seed. **The luma rule survived the choice by moving**: a club keeps its name, crest and first-choice kit, and the visitor changes kit when the home side's does not read against it - which is what football does. All **132 ordered pairings** are walked, not sampled. The opponent's own entry is disabled rather than silently swapped. |
+| Done - the screen | `app/js/render/` - PixiJS at 320x180, a pseudo-3D broadcast camera, shadows, procedural kits from generated club palettes, and integer pixels in both the camera and every sprite. |
+| Done - two seats | `app/js/input/keymap.ts` + `app/js/render/marker-pixels.ts` - two children on one keyboard, **co-operative by default**, with a contest as the option after it. The two halves of the keyboard share **not one key** (gated). Player one is the letters (`WASD` + `UIJK` + `7 Y 8 O`); **player two is the arrows and the numpad** (`8 5 6 9`, `/ 7 * +`, `1` and `0`) - the Dev's scheme, and the same layout `docs/ENGINE-AUDIT.md` finding 3 criticises as an engine DEFAULT: the difference is that a child here can rebind it, and the first seat keeps the session keys on letters every keyboard has. And the two markers differ in **shape** as well as colour - a gate rejects "the same wedge, one pixel lower". The remap screen offers **both keyboards**, one toggle each, and restoring the defaults restores only the one being edited - resetting the child who did not ask would be taking her keys away for somebody else's mistake. Both markers **have now been seen together in a captured frame**, on the two central players: a yellow wedge and a white double bar. |
+| Done - remapping | `app/js/input/keymap.ts` + `app/js/ui/controls-panel.ts` - the engine's remap screen, opened by this game and wired to a keyboard it can actually change. The engine has **two** keyboard tables and they were never reconciled: the fourteen positions are FROZEN and the changeable one has eight rows. This game supplies the live map, and repairs three defects from the outside - see the audit. |
+| Done - controls | `app/js/input/` - the engine's fourteen positions, the `R1+R2` chord with its latched one-switch equivalent, and three charge routes the assistances screen can actually select. ⚠️ Until that screen existed this row claimed the stepped route as done while nothing could choose it - true of the module, false of the game. |
+| Done - sound | `app/js/audio/` - seven earcons through the engine's own mixer, told from the seat the child is in: scoring and conceding are different tones, and every one of them carries a **caption**, which the engine shows BEFORE it checks whether sound is on. The decisions live in a pure module so they are measured in the node project - a browser test could only ever assert that a function was called. |
+| Done - i18n | pt-BR, en and neutral es through the engine's `registerDict()`, with a gate that the codes are exactly the ones the engine asks for. Every control on the page - both shell selects included - is compared against `t()` by a gate, because "it says something" is not the claim and "it says what the dictionary says" is. |
+| Done - a11y gate | `tests/a11y.browser.test.ts` runs axe-core against the RUNNING game with the stylesheet loaded and **zero exclusions**, including the end-of-match panel with the panel actually SHOWN - axe skips a `hidden` subtree, so a panel audited while hidden is a panel not audited. `tests/shell-drift.browser.test.ts` is what keeps the audited markup level with `app/index.html`: three copies of the shell had already drifted, and the gate reported zero violations for a page that did not contain the end panel. Proven able to fail. |
+| Partly done - the stadium | `app/js/render/stadium-layers.ts` - three parallax layers with real vertical drift, because the engine's own table carries `fy: 0` on all three (right for a platformer, wrong for a broadcast camera). Gated on the layer maths and on reduced motion. ⚠️ **Not yet seen in a captured frame**: the band is 36 pixels above the far touchline, so it enters the view only when play reaches that side, and no screenshot taken so far has caught it. |
+| Done - the CI a11y flag | `.github/workflows/ci.yml` carries `a11y: true`. It was `false` because nobody had watched it pass; the condition written in that file was met in this order - build, the exact sequence `game-ci.yml` runs, `0 violations`, and then **proof it can fail**. The first attempt at that proof did NOT fail, correctly: emptying a button stayed green because the game fills that text from the dictionary at boot. Stripping `lang` from `<html>` is a defect the runtime cannot repair, and it came back red. |
+| **Still owed - offline (pillar 8)** | ⚠️ **There is no PWA at all**: no manifest, no service worker, no precache budget. Pillar 8 names offline as non-negotiable and this row did not exist until somebody asked whether the game was finished - which is worse than the gap itself, because every other row here was written to be checked. |
+| Still owed | Fouls, cards and penalties (out of scope by decision, not by omission). Libras. A run on real school hardware. |
+
+**Verified**: `npm run validate` green - typecheck clean, **550 assertions** across the node and browser
+projects, and the build passing. Every gate was born red with a confirmed mutation before its green
+counted.
+
+## Which record declares it
+
+The address `the-inclusionist/game-soccer` follows ADR-0082 (a game repository is named `game-<slug>` and
+mirrors its package) and ADR-0083 (a game is born in its own repository and consumes the engine as a
+package - no game is built inside the engine to be extracted later).
+
+WARNING: **A game repository holds no `adr/` folder and never will** (ADR-0068 section 5). The records -
+the ten non-negotiable pillars, the accessibility contract, the licence posture - live in the engine and
+are inherited. This repository states only what is its own.
+
+## What this game gave back to the engine
+
+A consumer is worth more than its own screen: it is the only thing that measures what an engine actually
+delivers. This one is the **third topology preset** ADR-0030 was waiting for - the quiz gave `hotspots`, a
+list with no space at all; the 2048 gave `grid`, where distance is counted in cells; this gives
+`continuous`, where distance is metres and the narration counts in paces. Eight things were found by
+building against it:
+
+| Found here | What it means |
+|---|---|
+| `platform/audio-sonar`'s `panFor` divides by `LOGICAL_W * 0.55`. That constant assumes the topology's x-axis is in logical PIXELS - true for the platformer, vacuous for `grid` and `hotspots`. On a 90-metre pitch a team-mate ten metres to the right pans to 0.057, which is mono. | The sonar would have been *correct and inaudible* - the same class of failure the quiz recorded as "correct and useless". The pan denominator wants to come from `topology()`. |
+| `oneButton` is honoured only on the keyboard path; `pollPads` has no equivalent. | A child in one-button mode with a pad plugged in is not in one-button mode. A silent hole in pillar 2. |
+| `KB_DEFAULTS.p2[1]` binds `Numpad8/5/9/6`. | Unusable on a Chromebook, which is the hardware pillar 1 names. |
+| `PADWIZ_STEPS` held hard-coded pt-BR string literals inside the engine. | Against pillar 3, and against the rule `input/devices.ts` states in its own header. |
+| An earcon is ONE oscillator held at ONE frequency: `SfxDef` is `{t, f, d}` with no ramp. | "A goal rises and a concession falls" cannot be written at all, so the only contrast a cue can carry is high-against-low. It is enough to tell apart and it is less than the information the moment holds. The earcon wants an optional target frequency. |
+| **Two keyboard tables, never reconciled.** The fourteen positions live in a FROZEN `KEYBOARD_SOLO` that nothing inside the engine imports; the loaded, saved and remapped `kb` has rows for eight. | "Remapping comes free from the engine" is true of a game with eight positions. Every consumer with more will write this game's `input/keymap.ts` again. The biggest of the eight. |
+| The remap screen's `aria-label` is built from `ACT_LABEL`, the platformer's eight words. | **Measured**: six of twelve buttons announced `Alterar tecla de undefined do Jogador 1` while showing "Conter" on the screen. An `aria-label` overrides the visible text, so this is worse than none. Issue #106 fixed the visible label and not this one. |
+| A key can be bound to two positions in ONE scheme - `keyUsedByOther` excludes the scheme being edited by reference, so in a one-player game it can never fire. | The intermittent double action `default-bindings` says its conformance check exists to catch. The checker exists; the screen does not call it. |
+
+Five records are drafted and await the Dev: the address, the line ADR-0006 needs between a compulsion loop
+and a contest, chords as derived slots, holding as a magnitude, and a slot with a range.
+
+Nothing in the engine was changed to build this game - not a line, not a record, not a workflow. What was
+read, what was measured, and what the engine is owed are in [docs/ENGINE-AUDIT.md](docs/ENGINE-AUDIT.md).
+
+## Origin, and what is deliberately not inherited
+
+The feature set is measured against [modelence/open-soccer](https://github.com/modelence/open-soccer), a
+browser football game. **That repository carries no licence at all**, which means all rights reserved.
+
+WARNING: **No line of its code and no item of its data is inherited.** The features were read from its
+README and from the list of file names in its tree; its source is not read by anyone writing this game.
+The rules of a game are not protected by copyright; an implementation is. A clean reimplementation is the
+only way the Municipio holds title to the whole of what it owns (`docs/LICENSES.md`), and it is the same
+move the 2048 made with the MIT descendants of Threes! and the chess made with `3D-Hartwig-chess-set` -
+with the difference that here there was no permissive licence to decline, only one to respect.
+
+Credit is due and given regardless - see [docs/CREDITS.md](docs/CREDITS.md).
+
+Three things of the reference game are deliberately **absent**:
+
+| Not here | Why |
+|---|---|
+| The 48 World Cup nations, with their kits and crests | Federation crests and World Cup marks are third-party trademarks. The clubs here are fictional school and municipio sides, generated from a seed, with palettes whose luma separation is guaranteed by construction rather than by a lucky seed. |
+| A persisted best score, a career, progression between matches | ADR-0037: there is no save, and the Inclusionist stores nothing about a child. A match lives and dies with the session. |
+| Fouls, cards and penalties | Not in the reference feature list either. Written down as a decision rather than left as an omission. |
+
+## Deviations, written down rather than buried
+
+- **Two seats share one screen, and pillar 7 permits it.** The pillar forbids *splitting* the screen - at
+  320x180 that halves the usable resolution - and requires N viewports for multiplayer. Two children
+  watching the *same whole pitch* is the opposite of a split screen. The default two-seat mode is
+  **co-operative**: both seats on the same side against the CPU.
+  The two seatings keep separate keyboards on disk, because they have different defaults: a child who remaps while a friend plays would otherwise come back alone to a keyboard she never chose.
+- **The clock is three modes, not one.** The 2048 satisfied WCAG 2.2.1 (Timing Adjustable) *by
+  construction* with `tick: 'player'`. Real-time football cannot, so the three modes are how this game
+  pays that criterion: turn-based satisfies it by construction, assisted satisfies it by adjustment, and
+  pure real time exists because an adult can choose it with the other two beside it.
+- **2.5.1 is cited by analogy and says so.** A gamepad chord is not a pointer gesture. What governs
+  literally is 2.1.1, 2.1.2 and 2.2.1, and the difference is marked rather than claimed away.
+
+## Licence
+
+Code: **AGPL-3.0-or-later** ([LICENSE](LICENSE)). All art here is procedural, which is program: no image
+file is under version control, only the function that paints. Economic ownership belongs to the
+**Municipio** - the reasoning is in [docs/LICENSES.md](docs/LICENSES.md).
