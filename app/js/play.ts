@@ -89,9 +89,14 @@ function capsOf(skills: Skills | undefined, pace = 1) {
  * ⚠️ THE REFEREE NEEDS IT AND `rules/` MUST NOT LEARN ABOUT CLUBS, so the seam looks it up - the same
  * division of labour `sim/step` gets its caps by. `rules/foul` receives a number and never finds out that
  * there are six ratings behind it.
+ *
+ * ⚠️ AND IT TAKES THE PROFILE'S PACE, WHICH IT DID NOT FOR AN HOUR. `pace` was added and wired at two of
+ * its four call sites; the two the REFEREE uses were left comparing a halved going-in speed against a
+ * full-pace top speed, so the threshold was twice what it should be and no challenge ever qualified.
+ * Measured: six ninety-minute matches at half pace in which `judgeTackle` was never called ONCE.
  */
-function topOf(who: number, skills: Skills | undefined): number {
-  return capsOf(skills)[teamOf(who)].body.maxSpeed;
+function topOf(who: number, skills: Skills | undefined, pace: number): number {
+  return capsOf(skills, pace)[teamOf(who)].body.maxSpeed;
 }
 
 /**
@@ -222,7 +227,7 @@ export function playTick(
       //    judged HERE, where the act is, and joins the referee's list as an event like any other.
       if (cmd.verb === 'tackle') {
         const who = state.controlled[cmd.seat];
-        const foul = who === undefined ? null : judgeTackle(state, who, profile, topOf(who, skills));
+        const foul = who === undefined ? null : judgeTackle(state, who, profile, topOf(who, skills, profile.pace));
         if (foul !== null) fouls.push(...foulEvents(state, foul));
       }
       continue;
@@ -243,9 +248,9 @@ export function playTick(
   //    was hers.
   if (skills !== undefined) {
     for (const team of [0, 1] as const) {
-      const who = challenger(state, team, capsOf(skills)[team].body.maxSpeed);
+      const who = challenger(state, team, capsOf(skills, profile.pace)[team].body.maxSpeed);
       if (who === null) continue;
-      const foul = judgeTackle(state, who, profile, topOf(who, skills));
+      const foul = judgeTackle(state, who, profile, topOf(who, skills, profile.pace));
       if (foul !== null) fouls.push(...foulEvents(state, foul));
     }
   }
