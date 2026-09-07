@@ -165,9 +165,16 @@ describe('what a match contains', () => {
   //    and one opponent, never a swarm - and 40 of 48 came within one second of a restart. The keep-out
   //    was applied ONCE, when the ball was placed, and the cascade then walked the other side's presser
   //    straight back onto it like any other loose ball. A referee holds the ten yards until it is gone.
-  it('[Right] and at about the rate football has them', () => {
-    // Six ten-minute matches: about 35 at football's forty per ninety minutes, and the ceiling is loose
-    // enough not to fail on one scrappy afternoon while still catching a return to the old loop.
+  it('[Right] and not in the loop it used to be in', () => {
+    // ⚠️ MEASURED AT THIS LENGTH AND NOT EXTRAPOLATED, which is the mistake this file made for a day. Six
+    //    ten-minute matches give 55 throw-ins - 9.2 each - and the ceiling is loose enough not to fail on
+    //    one scrappy afternoon while still catching a return to the loop that produced hundreds.
+    //
+    //    ⚠️ The figure this gate was written against, "about 35 at football's forty per ninety minutes", was
+    //    a ten-minute count multiplied by nine. It was wrong twice: the matches it counted were mostly
+    //    FROZEN - a parried ball marked grounded in mid-air switched gravity off, see `tests/ball` - and a
+    //    rate measured over ten minutes does not survive being stretched to ninety in this game anyway. A
+    //    real ninety-minute match gives 122.
     expect(across('crossedTouchline'), 'the ball is going out constantly again').toBeLessThan(90);
   });
 
@@ -236,6 +243,7 @@ describe('what a match contains', () => {
   //    ceiling is what catches a regression to the thirty-one reds this started at, and it is loose enough
   //    not to fail on one busy afternoon.
   it('[Right] and cards are rare, the way they are in football', () => {
+    // Seven bookings and no sending-off across six ten-minute matches, measured at that length.
     expect(across('bookingGiven'), 'the referee has started booking people again').toBeLessThan(12);
     expect(across('sendingOff'), 'a sending-off every other match is not football').toBeLessThan(4);
   });
