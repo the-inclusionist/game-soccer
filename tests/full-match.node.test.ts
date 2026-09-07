@@ -106,10 +106,30 @@ describe('what a match contains', () => {
     expect(played.seen.crossedTouchline ?? 0, 'the ball never left the pitch').toBeGreaterThan(0);
   });
 
-  // ⚠️ STILL NOT MET, and narrower than it was: no corners, no goal kicks, no offsides. A shot is aimed at
-  //    the exact centre of the mouth, so it is never wide and never earns a goal kick; and offside is
-  //    judged at the moment of a pass, which now exists, so that one should be reachable and is not yet.
-  it.todo('[Right] and corners, goal kicks and offsides, which need a shot that can miss');
+  // ⚠️ MET, AND BY THE SHOT RATHER THAN BY THE RULES. A shot aimed at the exact centre of the mouth can
+  //    only be scored or saved, so the ball never crossed a goal line for any other reason and a whole
+  //    match produced no corners and no goal kicks at all. With `shooting` scattering the aim it produces
+  //    both.
+  //
+  //    The numbers are small - two corners and one goal kick - and the ceiling is deliberately absent:
+  //    this asks that the two restarts are REACHABLE, which is what was actually wrong. How often they
+  //    should happen is a question about the AI, and pinning a number nobody has tuned would turn an
+  //    honest gate into a guess that goes red the next time the shape of play changes.
+  it('[Right] and corners and goal kicks, which needed a shot that can miss', () => {
+    expect(played.seen.crossedGoalLineByDefender ?? 0, 'no corner in a whole match').toBeGreaterThan(0);
+    expect(played.seen.crossedGoalLineByAttacker ?? 0, 'no goal kick in a whole match').toBeGreaterThan(0);
+  });
+
+  // ⚠️ MEASURED AND NOT MET, AND IT IS NOT AN AI SHORTCOMING LIKE THE OTHERS. `rules/offside` is written,
+  //    gated hard by `tests/offside`, and imported by `declaration.ts` - for the `gate` role that tints
+  //    the offside zone - and BY NOTHING THAT PLAYS THE MATCH. No code ever takes the snapshot at the
+  //    moment of a pass, so no flag is ever raised, so `offsideGiven` is an event with a case in
+  //    `takerFor` and no producer anywhere.
+  //
+  //    That is the sixth time in this repository that a module was right, its gate was right, and the
+  //    wire was missing - and the shape is always the same: the unit test proves the arithmetic and
+  //    nothing proves anybody calls it. Only a whole match asks the second question.
+  it.todo('[Right] and offsides, which need the flag to be raised by a touch');
 
   // ⚠️ ALSO MEASURED AND NOT MET: five sendings-off in one ten-minute match, after the presser was taught
   //    to contain rather than dive in - which cut it from what had been a side reduced to six. Real
