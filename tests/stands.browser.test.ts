@@ -60,10 +60,20 @@ const STANDS_TOP = 10;
  * three ticks close a third of whatever gap remains - comfortably more than the half pixel that integer
  * rounding could otherwise hide - so a repeat reading means arrival and cannot mean a stalled page.
  *
+ * ⚠️ AND THERE IS A FLOOR UNDER IT, because tick progress alone still lost the bet once in five full
+ * suites. The camera lerps a fixed fraction PER RENDERED FRAME while `state.tick` counts SIMULATED ones,
+ * and the two are not the same clock - a page that simulates in a burst and renders once can advance the
+ * tick three times between two identical camera readings without the camera having gone anywhere. A lerp
+ * of 0.12 needs about forty frames to close any gap on this world, so nothing is believed before four
+ * seconds of them have passed. When frames are flowing this costs nothing; when they are not, it turns a
+ * silent early return into the throw below.
+ *
  * ⚠️ AND RUNNING OUT OF TIME THROWS rather than returning quietly. A silent timeout is what turned a
  * stalled page into an assertion about pixels; naming it says which of the two actually happened.
  */
-async function pinBallAt(y: number, ms = 6000): Promise<void> {
+const SETTLE_FLOOR = 240;
+
+async function pinBallAt(y: number, ms = 10_000): Promise<void> {
   const pin = window.setInterval(() => {
     if (booted === null) return;
     booted.state.ball.p = { x: 45, y, z: 0 };
@@ -71,19 +81,22 @@ async function pinBallAt(y: number, ms = 6000): Promise<void> {
   }, 8);
   try {
     const until = Date.now() + ms;
+    const start = booted?.state.tick ?? 0;
     let last = Number.NaN;
     let lastTick = -1;
     let still = 0;
     while (Date.now() < until) {
       await new Promise((r) => setTimeout(r, 60));
       const tick = booted?.state.tick ?? -1;
-      // No frames since the last reading: the page is starved, not settled. Say nothing about the camera.
+      // No ticks since the last reading: the page is starved, not settled. Say nothing about the camera.
       if (tick - lastTick < 3) continue;
       lastTick = tick;
       const now = booted?.cameraAt().y ?? Number.NaN;
       still = now === last ? still + 1 : 0;
       last = now;
-      if (still >= 3) return;
+      // Four seconds of ticks is longer than any lerp on this world needs. Below that, "it stopped moving"
+      // is not evidence of anything.
+      if (still >= 3 && tick - start >= SETTLE_FLOOR) return;
     }
   } finally {
     window.clearInterval(pin);
