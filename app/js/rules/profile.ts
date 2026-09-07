@@ -126,6 +126,34 @@ const TICKS_PER_MINUTE = 60 * 60;
  * A whole match at half pace produces 89 throw-ins, 1.0 goals, 9.0 corners and 1.7 bookings against
  * football's 40, 2.7, 10 and 1.7; at full pace it produces 206, 17.3, 5.0 and 1.0.
  */
+/**
+ * The school match: fifteen minutes, and the bodies at the pace this game has always played at.
+ *
+ * ⚠️ IT IS THE GAME AS IT IS, WHICH IS THE FINDING RATHER THAN A SETTING. Measured over six fixtures, a
+ * fifteen-minute match produces 36.8 throw-ins and 2.5 goals against the Dev's targets of 40 and 2.7 - so
+ * the short mode needed no lever at all. The long one is the one that needed a different world.
+ */
+export const SHORT_MATCH: RulesProfile = withPeriod(MATCH_PROFILE, 7.5);
+
+/**
+ * The full match: ninety minutes, with the bodies at half pace.
+ *
+ * ⚠️ HALF, AND SIX FIXTURES PICKED IT. Against targets of 40 throw-ins, 2.7 goals, 10 corners:
+ *
+ *     pace 0.50    82.5    3.5   13.5
+ *     pace 0.60   106.7    9.2   14.7
+ *     pace 0.70   138.8   18.3   11.7
+ *
+ * At half pace the goals and the corners land within a third of football's, and every fixture reaches full
+ * time. The throw-ins are still twice the target, and that is the one deviation with a cause of its own -
+ * see `tests/full-match`, where widening the pitch moved it the WRONG way while moving the goals right.
+ *
+ * ⚠️ AND SLOWING THE BODIES IS THE ONLY LEVER THAT WORKS. A bigger pitch and fewer players were both
+ * measured and both SPLIT the targets: goals down, throw-ins up, because a loose ball travels further
+ * before anybody reaches it.
+ */
+export const FULL_MATCH: RulesProfile = withPeriod(withPace(MATCH_PROFILE, 0.5), 45);
+
 export function withPace(profile: RulesProfile, k: number): RulesProfile {
   return Object.freeze({ ...profile, pace: k });
 }

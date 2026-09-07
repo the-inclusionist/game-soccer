@@ -21,7 +21,7 @@
 // a loose ball travels further before anybody reaches it. Only slowing the bodies moves all four together,
 // and at half pace the corners and the bookings land on football's numbers exactly.
 import { describe, expect, it } from 'vitest';
-import { MATCH_PROFILE, withPace } from '../app/js/rules/profile.ts';
+import { FULL_MATCH, MATCH_PROFILE, SHORT_MATCH, withPace } from '../app/js/rules/profile.ts';
 import { AVERAGE, capsBySide } from '../app/js/ai/ratings.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { playTick } from '../app/js/play.ts';
@@ -82,5 +82,32 @@ describe('the pace of a profile', () => {
     const fast = topSpeed(MATCH_PROFILE);
     expect(slow, 'the profile said half pace and nothing slowed down').toBeLessThan(fast * 0.6);
     expect(slow, 'nothing moved at all').toBeGreaterThan(0);
+  });
+});
+
+// ========================= THE TWO MODES THE DEV ASKED FOR =========================
+describe('the two match lengths', () => {
+  it('[Interface] the short one is fifteen minutes at the pace the game already plays at', () => {
+    expect(SHORT_MATCH.periodTicks).toBe(Math.round(7.5 * 60 * 60));
+    expect(SHORT_MATCH.pace, 'the short mode needed a lever, and it does not').toBe(1);
+  });
+
+  it('[Interface] and the full one is ninety minutes at half pace', () => {
+    expect(FULL_MATCH.periodTicks).toBe(Math.round(45 * 60 * 60));
+    expect(FULL_MATCH.pace).toBe(0.5);
+  });
+
+  // ⚠️ THE NUMBERS BEHIND THEM ARE NOT GATED HERE, and that is deliberate. Six ninety-minute matches is two
+  //    million ticks; asking for them on every `validate` would cost more than it protects. They are
+  //    measured and written into `rules/profile` beside each mode, with the two rejected levers alongside,
+  //    and `tests/full-match` gates the shape of a match on a slate it can afford to run.
+  it('[Zero] and both are the same referee, so neither is a different game', () => {
+    for (const p of [SHORT_MATCH, FULL_MATCH]) {
+      expect(p.fouls).toBe(MATCH_PROFILE.fouls);
+      expect(p.offside).toBe(MATCH_PROFILE.offside);
+      expect(p.outOfPlay).toBe(MATCH_PROFILE.outOfPlay);
+      expect(p.playable).toEqual(MATCH_PROFILE.playable);
+      expect(p.squads).toEqual(MATCH_PROFILE.squads);
+    }
   });
 });
