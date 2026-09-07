@@ -272,6 +272,25 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   // ten minutes later. Each new caption cancels the last one's timer, so a burst does not blank the line
   // early.
   let captionTimer = 0;
+  /**
+   * Write one line for eyes that cannot hear.
+   *
+   * ⚠️ IT IS A NAMED FUNCTION BECAUSE TWO THINGS WRITE TO IT, and the ORDER between them is the feature.
+   * The earcon's caption is a label - "Ball out of play"; the narration is a sentence that names the side
+   * and the spot. Both land in the SAME TASK, so the browser paints once and a child only ever reads the
+   * last value: the earcon's caption is the FALLBACK that shows when nothing narrates, and the sentence
+   * is what she actually reads. Reversed, she would get the label every time and nothing would look wrong
+   * - not in a screenshot, not in a `MutationObserver`, which cannot see the intermediate value either.
+   */
+  const showCaption = (text: string): void => {
+    if (captionHost === null) return;
+    captionHost.textContent = text;
+    win.clearTimeout(captionTimer);
+    captionTimer = win.setTimeout(() => {
+      captionHost.textContent = '';
+    }, 2600);
+  };
+
   const sound = createSound({
     ensureAC: () => mixer.ensureAC(),
     catNode: (cat: string) => mixer.catNode(cat),
@@ -283,14 +302,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     soundOn: () => mixer.soundOn,
     volume: () => mixer.volume,
     captionsOn: () => engineState.captionsOn,
-    caption: (text: string) => {
-      if (captionHost === null) return;
-      captionHost.textContent = text;
-      win.clearTimeout(captionTimer);
-      captionTimer = win.setTimeout(() => {
-        captionHost.textContent = '';
-      }, 2600);
-    },
+    caption: showCaption,
   });
 
   // ⚠️ THE REMAP SCREEN THE ENGINE HAS AND THIS GAME HAD NEVER OPENED. It is the control a child with a
@@ -430,6 +442,17 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       const sentence = narrate(event, { period: st.period, us: HOME, t: (k) => t(k) });
       if (announce(event).urgent) srAlert(sentence);
       else srSay(sentence);
+
+      // ⚠️ AND THE SAME SENTENCE FOR A CHILD WHO CANNOT HEAR IT. `srSay` and `srAlert` are LIVE REGIONS,
+      //    read by a screen reader - which a deaf child does not use. Until this line the whole narration
+      //    reached a blind child and reached nobody else, while the visible line carried only the seven
+      //    earcon words. It is not a second announcement: `#caption` is `aria-hidden`, because a second
+      //    live region would say every goal twice and cut the first announcement in half.
+      //
+      // ⚠️ HONOURING THE SAME SWITCH the engine already owns, and for the same reason the earcons do: a
+      //    game that captioned its sounds and ignored the preference for its sentences would hand a child
+      //    a control that half works.
+      if (engineState.captionsOn) showCaption(sentence);
     }
   };
 
