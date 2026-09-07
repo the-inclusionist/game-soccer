@@ -96,6 +96,23 @@ const TOUCH_LOOKAHEAD = TOUCH_PERIOD / 60;
  * One and a half is the best of the three in the long match and puts the short one on football's goal
  * number exactly. Below it the count goes back UP, because a carrier who is never contested keeps the ball
  * until somebody arrives properly - and then it goes out anyway, from a worse position.
+ *
+ * ⚠️ AND THE COUNT IS CLOSER FOR THE WRONG REASON, which is measured and worth knowing. Of 281 touchline
+ * crossings over three whole matches, 279 were the CARRIER'S OWN SIDE putting it out and 2 were a defender.
+ * Football is close to the other way round: a throw-in mostly comes off a deflected tackle, a misplaced
+ * pass or a clearance, and this game barely produces any of those.
+ *
+ * ⚠️ CLAMPING EVERY TOUCH WAS RE-MEASURED ON THIS BUILD and is still worse, though not for the old
+ * reason. When it was first tried the touch was the only route to a touchline; there are three now - a
+ * block, a clearance and the deliberate corner - and it is STILL 3.0 throw-ins a match against forty:
+ *
+ *                    throw-ins   goals   corners   bookings      target: 40, 2.7, 10, 1.7
+ *     as it is            77.2     2.3      10.8        0.8
+ *     every touch          3.0     2.2      15.0        1.8
+ *
+ * The clamp puts the bookings on football's number exactly and empties the touchlines. Keeping the
+ * contested ball out is the better of the two, and what would be better than either is throw-ins arriving
+ * the way football's do - which is a behaviour this AI has not got rather than a threshold it has wrong.
  */
 const CONTESTED_AT = 1.5;
 
