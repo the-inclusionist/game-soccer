@@ -36,6 +36,8 @@ export interface SideCaps {
   readonly body: BodyCaps;
   /** Metres. How close the ball stays to a dribbler on this side. See `sim/possession`. */
   readonly controlRadius: number;
+  /** Metres. How much closer than the carrier this side has to be to take the ball off him. */
+  readonly tackleMargin: number;
 }
 
 /**

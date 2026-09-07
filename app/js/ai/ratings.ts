@@ -60,7 +60,11 @@ export function capsBySide(home: Ratings, away: Ratings): readonly [SideCaps, Si
 }
 
 function sideOf(r: Ratings): SideCaps {
-  return { body: capsFor(r), controlRadius: controlRadiusOf(r.control) };
+  return {
+    body: capsFor(r),
+    controlRadius: controlRadiusOf(r.control),
+    tackleMargin: tackleMarginOf(r.defending),
+  };
 }
 
 /** Radians of error a pass may carry. A perfect passer has none, which is the honest end of the scale. */
@@ -89,4 +93,44 @@ export function shotErrorOf(shooting: number): number {
 /** Metres. How close the ball stays to a dribbler. */
 export function controlRadiusOf(control: number): number {
   return 0.7 + 0.4 * control;
+}
+
+/**
+ * Metres. How much closer than the carrier a challenger has to be before the carrier stops shielding it.
+ *
+ * ⚠️ THIS IS `defending`, AND THE OBVIOUS WIRE WAS BACKWARDS. `ai/ratings` calls the rating "tackle window,
+ * press trigger, interception reach", and the tempting place to spend it is `ai/brain`'s challenge range -
+ * how close the presser gets before going in. But `challenger` decides who has committed a FOUL; it wins
+ * nobody the ball. A good defender challenging from further out would give away more free kicks and take
+ * possession no more often, so the better a club defended the worse it would play.
+ *
+ * A ball changes hands in `sim/possession`, through this one number, and a good defender needs less of an
+ * advantage to take it. `0.5` is exactly `SHIELD_MARGIN`, so an average club plays the game the constant
+ * described.
+ *
+ * ⚠️ AND IT GOES DOWN AS THE RATING GOES UP, which is the only one of the six that does. A window is a
+ * handicap, so being better at defending means needing LESS of it - and a sign error here would be a
+ * rating that quietly made good defenders worse, with nothing on the screen to say so.
+ */
+export function tackleMarginOf(defending: number): number {
+  return 0.5 - 0.3 * defending;
+}
+
+/**
+ * Metres. How close an opponent has to be before the carrier plays the ball rather than dribbling on.
+ *
+ * ⚠️ THIS IS `composure`, AND "THE SAFE OPTION" HAS EXACTLY ONE MEANING HERE: let the ball go before
+ * somebody takes it off you. A composed side plays it while the defender is still three metres away; a
+ * nervous one holds on until he is on top of it, which is when a tackle is a tackle and a pass is a
+ * hopeful ball. `decideKick` already owns the decision - this is only WHEN.
+ *
+ * `2.6` at the middle of the scale is `PRESSED_AT` exactly, so a match with no clubs in it plays the game
+ * that constant described.
+ *
+ * ⚠️ AND IT MOVES THE TRIGGER RATHER THAN REMOVING IT. Even the calmest side keeps the ball with nobody
+ * near it: a carrier who passed whenever a pass existed would produce a match of nothing but passing, and
+ * dribbling is half of what a child watches for.
+ */
+export function pressedAtOf(composure: number): number {
+  return 2.0 + 1.2 * composure;
 }

@@ -42,7 +42,8 @@ export const TOUCH_PERIOD = 21;
 const TOUCH_GAIN = 1.25;
 
 /**
- * Metres. How much closer a rival must be before he takes the ball off the current carrier.
+ * Metres. How much closer a rival must be before he takes the ball off the current carrier, when nobody
+ * has said otherwise. It is `tackleMarginOf(0.5)` exactly - see `ai/ratings`.
  *
  * ⚠️ WITHOUT THIS THE BALL GOES NOWHERE, and it was measured rather than predicted: two forwards
  * converging on the centre spot swapped possession every tick, each knocking the ball back the way the
@@ -50,7 +51,7 @@ const TOUCH_GAIN = 1.25;
  * is also exactly what shielding is - a carrier with his body between the ball and an opponent keeps it -
  * so the fix and the football turn out to be the same thing.
  */
-const SHIELD_MARGIN = 0.35;
+export const SHIELD_MARGIN = 0.35;
 
 export interface Possession {
   /** Who is dribbling right now, or `NOBODY`. */
@@ -111,7 +112,12 @@ export function resolvePossession(state: MatchState, sides?: readonly [SideCaps,
   if (held !== NOBODY && held !== best) {
     const heldD2 = dist2(players[held].p, ball.p);
     const heldReach = reachOf(held);
-    if (heldD2 < heldReach * heldReach && Math.sqrt(heldD2) - Math.sqrt(bestD2) < SHIELD_MARGIN) {
+    // ⚠️ THE MARGIN IS THE CHALLENGER'S AND NOT THE CARRIER'S. It is what HE has to overcome, so it is his
+    //    side's `defending` that sets it - reading it off the man being robbed would turn the rating into
+    //    a shielding rating and put it on the wrong six numbers entirely.
+    const margin =
+      sides === undefined || best === NOBODY ? SHIELD_MARGIN : sides[teamOf(best)].tackleMargin;
+    if (heldD2 < heldReach * heldReach && Math.sqrt(heldD2) - Math.sqrt(bestD2) < margin) {
       best = held;
     }
   }
