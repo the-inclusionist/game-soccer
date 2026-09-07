@@ -25,8 +25,12 @@ git-ignored and shared by every session on this machine. One entry was **appende
 
 ## What the engine is owed
 
-Building against the engine is the only thing that measures what it actually delivers. Four defects
+Building against the engine is the only thing that measures what it actually delivers. Eight defects
 surfaced, and none of them is this game's to fix.
+
+⚠️ ALL EIGHT ARE FILED, and this section is the evidence rather than the tracker. Six were opened on
+2026-09-08 as `the-inclusionist/the-inclusionist-engine` issues 121-126; two were already there - the
+one-button hole as #120, closed, and the two keyboard tables as #118, open.
 
 ### 1. The sonar goes mono on a pitch measured in metres
 
@@ -184,9 +188,11 @@ So the guard is not broken - it is **unreachable for one player**, which is the 
 one-child game runs in. The fix is a same-scheme check beside the other-scheme one, and
 `default-bindings`'s own conformance function already is that check.
 
-## What is drafted and not written
+## What was drafted here and has since landed
 
-Five records, in this session's scratchpad, awaiting the Dev:
+All five were carried to the engine by the Dev and are now in `docs/2-Architecture/adr/` there -
+**ADR-0097 to ADR-0101**, in this order. Verified on 2026-09-08 by reading that repository; nothing
+here was written into it, which is the standing rule.
 
 1. **The address** — `the-inclusionist/game-soccer`, under ADR-0082, with no exception needed.
 2. **The line ADR-0006 needs** — what it forbids is the compulsion loop, not the contest inside one match.
