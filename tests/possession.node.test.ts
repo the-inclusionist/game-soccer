@@ -258,3 +258,48 @@ describe('the first touch', () => {
     expect(s.ball.v).toEqual({ x: 0, y: 0, z: 0 });
   });
 });
+
+// ========================= A MAN IN THE CLEAR DOES NOT RUN IT OUT =========================
+// Measured: every one of 115 touchline crossings across four whole matches came off a dribbling touch at
+// about 7.8 metres a second - none airborne, none off a clearance. The touch was the game's only route to
+// a touchline, and clamping it outright was tried twice and took the rate from six times football's to
+// ZERO. Football's answer is neither: a player in the clear turns inside, and a player with somebody on
+// him puts it out constantly, which is where throw-ins actually come from.
+describe('a touch near the line', () => {
+  function run(v: { x: number; y: number }, foeAt: { x: number; y: number } | null) {
+    const s = createMatchState();
+    for (let i = 0; i < s.players.length; i++) s.players[i].p = { x: 5, y: 5 };
+    s.players[5].p = { x: 45, y: 0.4 };
+    s.players[5].v = { ...v };
+    // An away body: the squads are eleven each, so the away side starts at index 11.
+    if (foeAt !== null) s.players[11 + 2].p = { ...foeAt };
+    s.ball.p = { x: 45, y: 0.4, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = NOBODY;
+    resolvePossession(s);
+    return s;
+  }
+
+  it('[Right] unopposed, he turns it back onto the pitch', () => {
+    const s = run({ x: 6, y: -5 }, null);
+
+    expect(s.possession.holder).toBe(5);
+    expect(s.ball.v.y, 'he ran his own ball out with nobody near him').toBeGreaterThan(0);
+    expect(s.ball.v.x, 'the touch along the line was thrown away too').toBeGreaterThan(0);
+  });
+
+  // ⚠️ AND A CONTESTED BALL STILL GOES OUT, which is the half that keeps throw-ins in the game at all.
+  it('[Right] but with a man on him it goes out, as football does', () => {
+    const s = run({ x: 6, y: -5 }, { x: 45.5, y: 0.6 });
+
+    expect(s.ball.v.y, 'a contested ball was turned back in').toBeLessThan(0);
+  });
+
+  // ⚠️ IT REFLECTS RATHER THAN ZEROING. Zeroing was measured and it PINNED THE BALL TO THE LINE: it
+  //    stopped going out, never came back in, and six whole matches produced no goals at all.
+  it('[Right] and the turn actually carries it off the line', () => {
+    const s = run({ x: 6, y: -5 }, null);
+
+    expect(s.ball.v.y * (TOUCH_PERIOD / 60), 'the ball was pinned to the line').toBeGreaterThan(0.5);
+  });
+});

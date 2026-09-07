@@ -6,6 +6,8 @@ import type { SideCaps } from './body.ts';
 import type { MatchState } from './state.ts';
 import { onPitch } from './squads.ts';
 import { dist2 } from './vec.ts';
+import { PITCH } from './units.ts';
+import { SQUAD_SIZE } from './ids.ts';
 
 /** No player. `-1` rather than `null` so the field is a number everywhere, including in the digest. */
 export const NOBODY = -1;
@@ -42,6 +44,29 @@ export const TOUCH_PERIOD = 21;
 const TOUCH_GAIN = 1.25;
 
 /**
+ * Seconds a touch is looked ahead by, to ask whether it would put the ball out.
+ *
+ * `TOUCH_PERIOD` is the time until he touches it again, so the question is exactly "will this ball still be
+ * on the pitch when I next reach it" - which is the question a footballer asks.
+ */
+const TOUCH_LOOKAHEAD = TOUCH_PERIOD / 60;
+
+/**
+ * Metres. An opponent this close makes the ball CONTESTED, and a contested ball may go out.
+ *
+ * ⚠️ THIS IS THE WHOLE OF WHY THE THROW-IN RATE IS FIXABLE AT ALL. Measured: every one of 115 touchline
+ * crossings across four whole matches came off a dribbling touch at about 7.8 metres a second, none of
+ * them airborne and none of them off a clearance - so the touch was the game's only route to a touchline.
+ * Clamping it outright was tried twice, and took the rate from six times football's to ZERO.
+ *
+ * Football's answer is neither. A player in the clear keeps the ball in - he turns inside, and running it
+ * out is a mistake he does not make. A player with somebody on him puts it out constantly, and that is
+ * where throw-ins come from. So the clamp asks whether he is alone, and nothing here is a dice: the same
+ * two bodies in the same two places give the same answer for ever.
+ */
+const CONTESTED_AT = 2;
+
+/**
  * Metres. How much closer a rival must be before he takes the ball off the current carrier, when nobody
  * has said otherwise. It is `tackleMarginOf(0.5)` exactly - see `ai/ratings`.
  *
@@ -75,6 +100,17 @@ export function createPossession(): Possession {
  * on a tie. No sort: a comparator's tie-breaking would silently become part of the simulation's
  * determinism, and nothing would say so.
  */
+/** Is anybody from the other side close enough to the ball to make it a contested one? */
+function contested(state: MatchState, carrier: PlayerId): boolean {
+  const them = teamOf(carrier) === 0 ? SQUAD_SIZE : 0;
+  for (let k = 0; k < SQUAD_SIZE; k++) {
+    const id = them + k;
+    if (!onPitch(state, id)) continue;
+    if (dist2(state.players[id].p, state.ball.p) < CONTESTED_AT * CONTESTED_AT) return true;
+  }
+  return false;
+}
+
 export function resolvePossession(state: MatchState, sides?: readonly [SideCaps, SideCaps]): void {
   const { ball, players, possession } = state;
 
@@ -145,4 +181,18 @@ export function resolvePossession(state: MatchState, sides?: readonly [SideCaps,
   ball.v.x = carrier.v.x * TOUCH_GAIN;
   ball.v.y = carrier.v.y * TOUCH_GAIN;
   ball.grounded = true;
+
+  // ⚠️ A MAN IN THE CLEAR DOES NOT RUN THE BALL OUT. Chasing a ball near a touchline means running AT that
+  //    touchline, and the touch is his own velocity - so unopposed carriers were putting it out all match.
+  //    With somebody on him it stays as it is: a contested ball going out is football, and it is the only
+  //    thing left in this game that produces a throw-in at all.
+  //
+  // ⚠️ ACROSS ONLY, NEVER ALONG. A goal line is not a touchline: a shot has to cross it, and turning a
+  //    carrier's touch aside at the mouth would defend the one line the ball is SUPPOSED to leave by.
+  //
+  // ⚠️ AND IT REFLECTS RATHER THAN ZEROING. Setting the across-component to nothing was measured and it
+  //    PINNED THE BALL TO THE LINE - it stopped going out, never came back in, and six whole matches
+  //    produced no goals at all. Turning inside is the move a footballer makes when the line runs out.
+  const ahead = ball.p.y + ball.v.y * TOUCH_LOOKAHEAD;
+  if ((ahead < 0 || ahead > PITCH.width) && !contested(state, best)) ball.v.y = -ball.v.y;
 }
