@@ -88,6 +88,19 @@ export function decide(
   const holder = state.possession.holder;
   const ball = { x: state.ball.p.x, y: state.ball.p.y };
 
+  // 0 - A dead ball that is OURS to take: whoever of us is nearest goes and takes it.
+  //
+  //     ⚠️ WITHOUT THIS THE MATCH STOPS, and it is a different wedge from the two before it. The cascade
+  //     below sends whoever is nearest a LOOSE ball, and at a dead ball that is as likely to be an
+  //     opponent - who is not taking this throw. Measured: two of six whole fixtures ran out of ticks at a
+  //     throw-in with ELEVEN MEN EACH still on the pitch, so it was never about cards. The ball was in the
+  //     corner, the taking side's nearest man was its KEEPER - who will not leave his line for a ball
+  //     fourteen metres away - and every outfielder was holding shape fifteen to twenty metres out.
+  //
+  //     ⚠️ AND IT COMES BEFORE THE KEEPER RULE, which is the half that makes it work. A goal kick IS the
+  //     keeper's to take, and the rule below would send him back to his line instead.
+  if (state.restartTaker === team && takerOf(state, team) === id) return ball;
+
   // 1 - The keeper keeps. He never joins the cascade below, and that alone is why he does not chase the
   //     ball to the halfway line the moment his side is under pressure.
   if (isKeeper(id)) {
@@ -163,6 +176,40 @@ export function think(
     body.target.x = target.x;
     body.target.y = target.y;
   }
+}
+
+/**
+ * Who of `team` goes and takes the dead ball: the nearest, and an outfielder if the side has one.
+ *
+ * ⚠️ THE KEEPER IS THE LAST RESORT AND NOT THE FIRST, and it is football as much as safety. A keeper who
+ * takes throw-ins leaves his goal empty for the twenty seconds it takes him to walk there and back, and a
+ * child watching would learn something false about the position. He takes it only when his side has
+ * nobody else left - which a match with enough red cards in it can reach.
+ *
+ * Ties break on the smallest index, the same rule possession uses, so no two modules can disagree about
+ * who got there first.
+ */
+function takerOf(state: MatchState, team: TeamId): PlayerId {
+  const first = firstOf(team);
+  let best = NOBODY;
+  let bestD2 = Infinity;
+  let keeper = NOBODY;
+
+  for (let k = 0; k < SQUAD_SIZE; k++) {
+    const id = first + k;
+    if (!onPitch(state, id)) continue;
+    if (isKeeper(id)) {
+      keeper = id;
+      continue;
+    }
+    const d2 = dist2(state.players[id].p, { x: state.ball.p.x, y: state.ball.p.y });
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      best = id;
+    }
+  }
+
+  return best === NOBODY ? keeper : best;
 }
 
 /**

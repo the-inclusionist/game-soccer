@@ -17,10 +17,13 @@ import { emptyFrame } from '../app/js/sim/command.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { playTick } from '../app/js/play.ts';
 import { MATCH_PROFILE, PRACTICE_PROFILE } from '../app/js/rules/profile.ts';
-import { AWAY, HOME, SQUAD_SIZE } from '../app/js/sim/ids.ts';
+import { AWAY, HOME, SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
 import { CONTROLLED_BY_SEAT } from '../app/js/sim/command.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
+
+/** Two average clubs. Any gate that needs the AI to run needs skills to hand it. */
+const SIDES = { 0: AVERAGE, 1: AVERAGE };
 import { PITCH } from '../app/js/sim/units.ts';
 import { PHASES } from '../app/js/rules/phase.ts';
 
@@ -174,6 +177,41 @@ describe('a stopped match', () => {
     const events = playTick(s, emptyFrame(1), DT, MATCH_PROFILE);
 
     expect(events.map((e) => e.kind), 'an opponent held the match up').toContain('restartTaken');
+    expect(s.phase).toBe('live');
+  });
+
+  // ⚠️ AND SOMEBODY HAS TO BE SENT TO TAKE IT. The cascade sends whoever is nearest a LOOSE ball, which
+  //    at a dead ball is as likely to be an opponent - and an opponent is not taking this throw. Everybody
+  //    on the taking side held their shape twenty metres away and the match stopped for good: two of six
+  //    fixtures ran out of ticks at a throw-in with ELEVEN MEN EACH still on the pitch, so it was never a
+  //    question about cards.
+  //
+  //    The rule is football's and it is one line of cascade: if my side takes this restart and I am the
+  //    nearest of us to the ball, I go and take it. Nobody else changes what they were doing.
+  it('[Right] the taking side sends somebody, even when its nearest man is the keeper', () => {
+    const s = live();
+    s.ball.p = { x: 89.8, y: 0.2, z: 0 };
+    s.ball.v = { x: 0, y: -30, z: 0 };
+    s.possession.lastTouch = 4; // home put it out in the corner, so away takes it
+    playTick(s, emptyFrame(0), DT, MATCH_PROFILE, SIDES);
+    expect(s.restartTaker).toBe(AWAY);
+
+    // The measured wedge, placed by hand: the away KEEPER is his side's nearest man and will not leave his
+    // line for a ball fourteen metres away, every away outfielder is holding shape further out, and the
+    // home side is standing on the ball. Two of six whole fixtures ended like this, eleven men each.
+    s.players[firstOf(AWAY)].p = { x: 88.5, y: 14 };
+    for (let k = 1; k < SQUAD_SIZE; k++) {
+      s.players[firstOf(AWAY) + k].p = { x: 70, y: 10 + k };
+      s.players[firstOf(HOME) + k].p = { x: s.ball.p.x, y: s.ball.p.y + 0.3 * k };
+    }
+
+    let resumed = false;
+    for (let t = 1; t < 1800 && !resumed; t++) {
+      const events = playTick(s, emptyFrame(t), DT, MATCH_PROFILE, SIDES);
+      resumed = events.some((e) => e.kind === 'restartTaken');
+    }
+
+    expect(resumed, 'nobody on the taking side ever went to the ball').toBe(true);
     expect(s.phase).toBe('live');
   });
 
