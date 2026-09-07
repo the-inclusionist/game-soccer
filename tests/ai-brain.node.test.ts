@@ -17,10 +17,10 @@ import { teamPlan } from '../app/js/ai/plan.ts';
 import { think } from '../app/js/ai/brain.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
 import { CLUBS } from '../app/js/teams/roster.ts';
-import { AWAY, HOME, SQUAD_SIZE } from '../app/js/sim/ids.ts';
+import { AWAY, HOME, SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
-import { PITCH } from '../app/js/sim/units.ts';
+import { BOX, PITCH } from '../app/js/sim/units.ts';
 import { dist2 } from '../app/js/sim/vec.ts';
 import { playTick } from '../app/js/play.ts';
 import { emptyFrame } from '../app/js/sim/command.ts';
@@ -135,6 +135,84 @@ describe('the cascade', () => {
     think(s, skills);
 
     expect(s.players[4].target).toEqual(first);
+  });
+});
+
+// ========================= AND SOMEBODY GOES IN THE BOX =========================
+// The cross was built and never fired ONCE in six fixtures at each match length - measured, and proved by
+// six byte-identical result sets in a deterministic simulation. It asks for somebody arriving in the box,
+// because crossing to an empty one is a giveaway with extra steps, and nobody was ever there.
+//
+// Rule 3 of the cascade sends a supporting player `SUPPORT_AHEAD` past the shape, and the shape is a 4-4-2
+// that slides with the ball - so an attacking third with a WIDE carrier has team-mates level with him and
+// none in front of goal. Football's answer is that when the ball goes wide, the forwards go in.
+describe('the run into the box', () => {
+  // ⚠️ SIX TICKS, BECAUSE `think` IS STAGGERED. Agent `i` decides when `(tick + i) % 6 === 0` - the budget
+  //    rule that keeps twenty-two brains to about four decisions a tick - so ONE call updates a sixth of
+  //    the squad and the forwards are not in it. A gate that called it once reported that nobody went in
+  //    for the cross, which was true of that tick and false of the game.
+  const decideAll = (s: ReturnType<typeof createMatchState>) => {
+    for (let t = 0; t < 6; t++) {
+      s.tick = t;
+      think(s, { 0: AVERAGE, 1: AVERAGE }, MATCH_PROFILE.playable);
+    }
+  };
+
+  function wideAttack() {
+    const s = createMatchState();
+    s.phase = 'live';
+    const carrier = firstOf(HOME) + 7;
+    for (let k = 0; k < SQUAD_SIZE; k++) {
+      s.players[firstOf(HOME) + k].p = { x: 60, y: 28 };
+      s.players[firstOf(AWAY) + k].p = { x: 20, y: 50 };
+    }
+    // Home attacks increasing x in the first period: wide and high.
+    s.players[carrier].p = { x: 78, y: 4 };
+    s.ball.p = { x: 78, y: 4, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = carrier;
+    s.possession.lastTouch = carrier;
+    return { s, carrier };
+  }
+
+  it('[Right] the forwards target the box when the ball is wide and high', () => {
+    const { s } = wideAttack();
+
+    decideAll(s);
+
+    const inTheBox = [9, 10].filter((k) => {
+      const t = s.players[firstOf(HOME) + k].target;
+      return t.x > PITCH.length - BOX.depth && Math.abs(t.y - PITCH.width / 2) < BOX.width / 2;
+    });
+    expect(inTheBox.length, 'nobody went in for the cross').toBeGreaterThan(0);
+  });
+
+  // ⚠️ AND THEY DO NOT STAND ON EACH OTHER. Two bodies on one spot is one target for a defender and one
+  //    body's worth of chance; a box with two men in it is what a cross is played into.
+  it('[Zero] and the two of them do not go to the same spot', () => {
+    const { s } = wideAttack();
+
+    decideAll(s);
+
+    const a = s.players[firstOf(HOME) + 9].target;
+    const b = s.players[firstOf(HOME) + 10].target;
+    expect(Math.abs(a.y - b.y), 'both forwards ran to the same blade of grass').toBeGreaterThan(2);
+  });
+
+  // ⚠️ ONLY WHEN THE BALL IS ACTUALLY WIDE. With it in the middle the shape is the shape, and forwards
+  //    standing in the box all match would be two men permanently offside and nine playing football.
+  it('[Zero] but not when the ball is in the middle', () => {
+    const { s, carrier } = wideAttack();
+    s.players[carrier].p = { x: 78, y: 28 };
+    s.ball.p = { x: 78, y: 28, z: 0 };
+
+    decideAll(s);
+
+    const inTheBox = [9, 10].filter((k) => {
+      const t = s.players[firstOf(HOME) + k].target;
+      return t.x > PITCH.length - BOX.depth && Math.abs(t.y - PITCH.width / 2) < BOX.width / 2;
+    });
+    expect(inTheBox.length).toBe(0);
   });
 });
 

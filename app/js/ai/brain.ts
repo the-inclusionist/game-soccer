@@ -138,6 +138,26 @@ export function decide(
 
   // 3 - We have the ball and I do not: hold the shape, pushed a little forward. Off-the-ball movement is
   //     invisible even to sighted players and it is most of what a team does.
+  //
+  //     ⚠️ EXCEPT WHEN IT IS WIDE AND HIGH, and then the forwards go IN. The cross was built and never
+  //     fired once in six fixtures at each match length - proved by six byte-identical result sets in a
+  //     deterministic simulation - because it asks for somebody arriving in the box, and the 4-4-2 slides
+  //     SIDEWAYS with the ball: a wide carrier had team-mates level with him and nobody in front of goal.
+  //
+  //     ⚠️ AND THEY DO NOT STAND ON EACH OTHER. Two bodies on one spot is one target for a defender and
+  //     one body's worth of chance, so the near man takes the near post and the other the far.
+  if (weHaveIt && holder !== NOBODY && wideAndHigh(state, holder, dirOf(team, state.period), playable)) {
+    const near = squadIndex === FORWARDS[0];
+    if (near || squadIndex === FORWARDS[1]) {
+      const mouth = goalMouthOf(team, state.period, playable);
+      const dir = dirOf(team, state.period);
+      return {
+        x: clamp(mouth.x - dir * CROSS_DEPTH, 0, playable.length),
+        y: clamp(playable.width / 2 + (near ? -POST_SPLIT : POST_SPLIT), 0, playable.width),
+      };
+    }
+  }
+
   if (weHaveIt) {
     const dir = dirOf(team, state.period);
     return { x: clamp(home.x + dir * SUPPORT_AHEAD, 0, playable.length), y: home.y };
@@ -164,6 +184,12 @@ export function decide(
  */
 const CROSS_DEPTH = 9.5;
 
+/** The two squad indices that go in for a cross: the 4-4-2's forwards, per `sim/state`'s kickoff shape. */
+const FORWARDS: readonly [number, number] = [9, 10];
+
+/** Metres either side of the middle the two of them take, so a cross has two men to find and not one. */
+const POST_SPLIT = 3;
+
 /**
  * Upward speed on a cross.
  *
@@ -180,11 +206,23 @@ const CROSS_LIFT = 5;
  * The attacking third and outside the width of the box: from the middle a cross is a pass, and from your
  * own half it is a hopeful ball nobody asked for.
  */
-function crossFrom(state: MatchState, holder: PlayerId, dir: 1 | -1, playable: Playable): boolean {
+function wideAndHigh(state: MatchState, holder: PlayerId, dir: 1 | -1, playable: Playable): boolean {
   const at = state.players[holder].p;
   const along = dir === 1 ? at.x : playable.length - at.x;
   const across = Math.abs(at.y - playable.width / 2);
-  if (along < playable.length * (2 / 3) || across <= BOX.width / 2) return false;
+  return along >= playable.length * (2 / 3) && across > BOX.width / 2;
+}
+
+/**
+ * ...and is there anybody in there to cross to?
+ *
+ * ⚠️ THE TWO ARE SEPARATE BECAUSE REUSING ONE WAS CIRCULAR. The run into the box asked `crossFrom`,
+ * which asks whether somebody is already in the box - and the run is what puts them there. Neither ever
+ * fired, and the gate reported "nobody went in for the cross" while the code was waiting for exactly the
+ * body it was refusing to send. The geometry is one question and the occupancy is another.
+ */
+function crossFrom(state: MatchState, holder: PlayerId, dir: 1 | -1, playable: Playable): boolean {
+  if (!wideAndHigh(state, holder, dir, playable)) return false;
 
   // ⚠️ AND ONLY IF SOMEBODY IS IN THERE. Crossing to an empty box is a giveaway with extra steps, and it
   //    was measured: without this the long match's goals went from 2.3 to 4.2 against a target of 2.7,
