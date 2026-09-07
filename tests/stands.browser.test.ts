@@ -42,15 +42,35 @@ const GRASS_TOP = WORLD_PX.margin.top - 10;
 /** The topmost row any stand layer occupies, in screen space. */
 const STANDS_TOP = 10;
 
-/** Hold the ball at a spot for a while, against twenty-two players who want it back. */
-async function pinBallAt(y: number, ms: number): Promise<void> {
+/**
+ * Hold the ball at a spot until the camera has stopped moving.
+ *
+ * ⚠️ WAITING A FIXED TIME LOST ITS BET UNDER FULL-SUITE LOAD, twice. The camera lerps toward its target
+ * at a fraction per FRAME, so how long it takes to arrive is a question about how many frames the machine
+ * rendered - and with sixty-three other files running beside this one, 2500ms is a different number of
+ * frames than it is alone. Waiting for the camera to SETTLE asks the thing the assertions are about.
+ */
+async function pinBallAt(y: number, ms = 6000): Promise<void> {
   const pin = window.setInterval(() => {
     if (booted === null) return;
     booted.state.ball.p = { x: 45, y, z: 0 };
     booted.state.ball.v = { x: 0, y: 0, z: 0 };
   }, 8);
-  await new Promise((r) => setTimeout(r, ms));
-  window.clearInterval(pin);
+  try {
+    const until = Date.now() + ms;
+    let last = Number.NaN;
+    let still = 0;
+    while (Date.now() < until) {
+      await new Promise((r) => setTimeout(r, 60));
+      const now = booted?.cameraAt().y ?? Number.NaN;
+      still = now === last ? still + 1 : 0;
+      last = now;
+      // Three readings the same: the lerp has converged and the rounding has stopped changing.
+      if (still >= 3) return;
+    }
+  } finally {
+    window.clearInterval(pin);
+  }
 }
 
 describe('where the camera actually goes', () => {
@@ -67,7 +87,7 @@ describe('where the camera actually goes', () => {
     booted = bootar(document, window);
     booted!.state.phase = 'live';
 
-    await pinBallAt(28, 1200);
+    await pinBallAt(28);
 
     expect(booted!.cameraAt().y).toBeGreaterThan(GRASS_TOP);
   });
@@ -78,7 +98,7 @@ describe('where the camera actually goes', () => {
     booted = bootar(document, window);
     booted!.state.phase = 'live';
 
-    await pinBallAt(0.5, 2500);
+    await pinBallAt(0.5);
 
     const camY = booted!.cameraAt().y;
     expect(camY, 'the camera never reached the top of the world').toBeLessThan(GRASS_TOP - STANDS_TOP);
@@ -93,7 +113,7 @@ describe('where the camera actually goes', () => {
     booted = bootar(document, window);
     booted!.state.phase = 'live';
 
-    await pinBallAt(0.5, 2500);
+    await pinBallAt(0.5);
 
     const camY = booted!.cameraAt().y;
     expect(booted!.pitchTopOnScreen(), 'the pitch is drawn at the wrong height').toBeCloseTo(GRASS_TOP - camY, 0);
@@ -103,7 +123,7 @@ describe('where the camera actually goes', () => {
     booted = bootar(document, window);
     booted!.state.phase = 'live';
 
-    await pinBallAt(0.5, 2500);
+    await pinBallAt(0.5);
 
     // The stand band is rows 10..44. Anything the grass does not cover above `STANDS_TOP` is stand.
     expect(booted!.pitchTopOnScreen()).toBeGreaterThan(STANDS_TOP);
@@ -113,9 +133,9 @@ describe('where the camera actually goes', () => {
     booted = bootar(document, window);
     booted!.state.phase = 'live';
 
-    await pinBallAt(55, 1200);
+    await pinBallAt(55);
     const low = booted!.cameraAt().y;
-    await pinBallAt(0.5, 1800);
+    await pinBallAt(0.5);
     const high = booted!.cameraAt().y;
 
     for (const y of [low, high]) {
@@ -136,5 +156,49 @@ describe('the layers themselves', () => {
       expect(STADIUM_LAYERS[i].factor).toBeGreaterThan(STADIUM_LAYERS[i - 1].factor);
       expect(STADIUM_LAYERS[i].fy).toBeGreaterThan(STADIUM_LAYERS[i - 1].fy);
     }
+  });
+});
+
+// ========================= AND SEEN IN A MATCH, NOT ONLY IN A RIGGED FRAME =========================
+// Making the stands visible with the ball pinned against the far touchline proved the pixels were right
+// and proved nothing about the game: no match ever holds the ball there. The camera used to aim twelve
+// pixels above the ball, which puts it at `camY = 84` on the halfway line and covers the band completely.
+//
+// ⚠️ THE FIX IS THE FRAMING, NOT A TRICK TO EXPOSE A BACKGROUND. In a televised match the ball sits LOW in
+// frame and the far stand fills the top of it; a camera centred on the ball shows as much empty grass
+// behind the play as in front of it. The stands becoming visible is the consequence of getting that right.
+describe('the stands in an ordinary match', () => {
+  // ⚠️ THE FAR HALF, AND NOT THE WHOLE PITCH, AND THAT IS GEOMETRY RATHER THAN A SHORTFALL. The viewport
+  //    is 180 rows; the stand band takes 34 of them; the pitch is 280 rows tall. Whatever the camera does,
+  //    it shows about half the width of the pitch at a time - so a frame with stands in it is a frame
+  //    looking ACROSS the pitch at the far side, which is what a televised match looks like. Asking for
+  //    stands with play on the near touchline would be asking for both halves at once.
+  //
+  // ⚠️ AND THE BOUNDARY IS HYSTERETIC, measured: the camera has a dead zone, so where it settles depends
+  //    on where it came from - the same ball position gives a different row arriving from the far side
+  //    than from the middle. The gate therefore asks about the far half from a FRESH boot, which is the
+  //    only version of the question with one answer.
+  it('[Right] and anywhere in the far half of the pitch', async () => {
+    booted = bootar(document, window);
+    booted!.state.phase = 'live';
+
+    for (const y of [4, 14, 24]) {
+      await pinBallAt(y);
+      expect(booted!.pitchTopOnScreen(), `covered with the ball at y=${y}`).toBeGreaterThan(STANDS_TOP);
+    }
+  });
+
+  // ⚠️ AND THE NEAR TOUCHLINE IS STILL REACHABLE, which is the thing a lower camera could have cost. A
+  //    frame that shows the stands and loses a third of the pitch is a worse frame.
+  it('[Boundary] while the near touchline is still in view when play goes there', async () => {
+    booted = bootar(document, window);
+    booted!.state.phase = 'live';
+
+    await pinBallAt(55);
+
+    const camY = booted!.cameraAt().y;
+    const ballRow = WORLD_PX.margin.top + 55 * 5 - camY;
+    expect(ballRow, 'play at the near touchline is off the bottom of the screen').toBeLessThan(180);
+    expect(ballRow, 'play at the near touchline is off the top of the screen').toBeGreaterThan(0);
   });
 });

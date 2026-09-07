@@ -52,6 +52,22 @@ const SMOOTH = 0.12;
 /** Vertical gain, relative to horizontal. Half, and it is what makes it read as broadcast. */
 const VERTICAL_GAIN = 0.5;
 
+/**
+ * How far above the ball the camera aims, in pixels.
+ *
+ * ⚠️ IT WAS TWELVE, AND THAT IS WHY NOBODY EVER SAW THE STANDS. The stand band sits in screen space at
+ * rows 10 to 44, and the grass reaches the screen at `grassTop - camY` - so a stand is only ever visible
+ * while `camY` is under about twenty-six. With a twelve-pixel lift the camera sits at `camY = 84` with the
+ * ball on the halfway line, which covers the band completely: the stands could only be seen with the ball
+ * held against the far touchline, which happens in no match anybody plays.
+ *
+ * ⚠️ AND IT IS WHAT A BROADCAST CAMERA ACTUALLY DOES. The ball sits LOW in a televised frame and the far
+ * stand fills the top of it; a camera that centred on the ball would show as much empty grass behind the
+ * play as in front. So this is not a trick to expose a background - it is the framing, and the background
+ * becoming visible is the consequence of getting the framing right.
+ */
+const BALL_SITS_LOW_BY = 58;
+
 export interface Scene {
   readonly app: PIXI.Application;
   draw(state: MatchState, controlled: readonly number[]): void;
@@ -417,7 +433,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
         z: 0,
       });
       smooth.x += (lead.x - smooth.x) * SMOOTH;
-      smooth.y += (lead.y - 12 - smooth.y) * SMOOTH * VERTICAL_GAIN;
+      smooth.y += (lead.y - BALL_SITS_LOW_BY - smooth.y) * SMOOTH * VERTICAL_GAIN;
 
       const cam = camera.seguir(smooth.x, smooth.y);
       const camX = Math.round(cam.camX);

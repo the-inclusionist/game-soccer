@@ -65,7 +65,7 @@ const seat = (value: string): void => {
  * assertion and drops the guess - and a body that never gets there fails on the timeout, which is the
  * honest answer to "the key did nothing".
  */
-async function holdUntil(code: string, ok: () => boolean, why: string, timeoutMs = 8000): Promise<void> {
+async function holdUntil(code: string, ok: () => boolean, why: string, timeoutMs = 20000): Promise<void> {
   const region = document.querySelector('#game-region') as HTMLElement;
   region.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
   try {

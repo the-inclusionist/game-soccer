@@ -601,14 +601,14 @@ describe('what a child sees', () => {
     //    and the picture is of the halfway line again - which is how this went unseen for months.
     const pin = window.setInterval(() => {
       if (booted === null) return;
-      booted.state.ball.p = { x: 45, y: 0.5, z: 0 };
+      booted.state.ball.p = { x: 45, y: 18, z: 0 };
       booted.state.ball.v = { x: 0, y: 0, z: 0 };
     }, 8);
     await new Promise((r) => setTimeout(r, 2500));
     await page.screenshot({ path: 'stands.png' });
     window.clearInterval(pin);
 
-    expect(booted!.state.ball.p.y).toBeLessThan(4);
+    expect(booted!.state.ball.p.y).toBeLessThan(24);
   });
 
   // ⚠️ A SECOND PICTURE, AT THE GOAL, because the first one can never show the thing that most needs
