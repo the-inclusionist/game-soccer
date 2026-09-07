@@ -100,12 +100,12 @@ export const PRACTICE_PROFILE: RulesProfile = Object.freeze({
 /**
  * The lengths of a half a grown-up can choose, in minutes - and `'none'`.
  *
- * ⚠️ THE LADDER IS THE GENRE'S, NOT ONE I INVENTED, and it spans thirty years of it. International
- * Superstar Soccer on the SNES offered three-, five- and seven-minute matches - halves of 1:30, 2:30 and
- * 3:30 - and the plan asks for ARCADE in as many words. Today's football games sit just above that:
- * Ultimate Team locks its minimum at 4 minutes a half, online competitive play defaults to 6, and an
- * offline match can be set anywhere from 3 to 20. So the list is the ISS three plus the two lengths a
- * modern game actually competes at.
+ * ⚠️ THE LADDER IS INTERNATIONAL SUPERSTAR SOCCER'S, AND ONLY ITS. Three-, five- and seven-minute
+ * matches, halves of 1:30, 2:30 and 3:30, on the SNES - and the plan asks for ARCADE in as many words.
+ *
+ * ⚠️ THE MODERN LENGTHS WERE HERE AND WERE TAKEN OUT, by the Dev on 2026-09-07: today's football games
+ * lock 4 minutes a half in Ultimate Team and default to 6 online, and pairing with them is pairing with a
+ * different game. This is a pixel-art arcade match and it is measured against the arcade.
  *
  * ⚠️ THE LENGTHS THIS FILE USED TO OFFER - 5, 10 and 20 minutes a half - WERE A GUESS, and a guess is
  * what put days of counting into a ninety-minute match nobody could select.
@@ -115,7 +115,7 @@ export const PRACTICE_PROFILE: RulesProfile = Object.freeze({
  * long half is still a limit and still runs out, on the child least able to judge how long she needs -
  * so the accommodation is `'none'`, and it is why shortening the ladder does not take one away.
  */
-export const PERIOD_CHOICES: readonly (number | 'none')[] = Object.freeze([1.5, 2.5, 3.5, 4, 6, 'none']);
+export const PERIOD_CHOICES: readonly (number | 'none')[] = Object.freeze([1.5, 2.5, 3.5, 'none']);
 
 const TICKS_PER_MINUTE = 60 * 60;
 
@@ -144,19 +144,20 @@ const TICKS_PER_MINUTE = 60 * 60;
  * drifted before this line was written.
  */
 /**
- * The school match: SEVEN minutes, two halves of three and a half, at the pace this game already plays at.
+ * The school match: FIVE minutes, two halves of two and a half, at the pace this game already plays at.
  *
- * ⚠️ SEVEN BECAUSE THE GENRE SAYS SEVEN. International Superstar Soccer offered three, five and seven
- * minutes; the plan asks for arcade; and this is the longest of the three. Modern football games sit just
- * above it - 8 minutes in Ultimate Team, 12 online - so seven is the short end of a live tradition rather
- * than a museum piece. It was fifteen until 2026-09-07, and fifteen was a number nobody had a reason for.
+ * ⚠️ FIVE BECAUSE THE GENRE SAYS FIVE, and the genre here is International Superstar Soccer - three,
+ * five and seven minutes - not a modern football game. The Dev settled it on 2026-09-07: this is the
+ * pixel-art arcade match, paired with the SNES and deliberately not with the online lengths, which are a
+ * different game. It was fifteen for a while and seven for an afternoon, and only the last of the three
+ * came from anywhere.
  *
  * ⚠️ AND FOOTBALL'S PER-MATCH COUNTS ARE NOT THIS MATCH'S TARGET. Forty throw-ins and 2.7 goals belong
- * to ninety minutes of football. Seven minutes of arcade is a different thing on purpose - it is the
+ * to ninety minutes of football. Five minutes of arcade is a different thing on purpose - it is the
  * shape that has to read, not the rate - so what this mode owes is a match that starts, finishes, and
  * contains each kind of event often enough for a child to meet it. `tests/full-match` measures it.
  */
-export const SHORT_MATCH: RulesProfile = withPeriod(MATCH_PROFILE, 3.5);
+export const SHORT_MATCH: RulesProfile = withPeriod(MATCH_PROFILE, 2.5);
 
 /**
  * The full match: ninety minutes, with the bodies at half pace.

@@ -15,14 +15,15 @@
 // Measured per match at the length stated, never extrapolated, against football's 40 throw-ins, 2.7 goals,
 // 10 corners, 1.7 bookings and 0.07 sendings-off:
 //
-// ⚠️ THE GAME IS THE SEVEN-MINUTE SCHOOL MATCH, scoped by the Dev on 2026-09-07: two halves of three and
-// a half, the longest length International Superstar Soccer offered, with modern football games sitting
-// just above it at 8 and 12 minutes. Six fixtures, measured once, all six reaching full time:
+// ⚠️ THE GAME IS THE FIVE-MINUTE SCHOOL MATCH, settled by the Dev on 2026-09-07: two halves of two and
+// a half, the middle of the three International Superstar Soccer offered. Modern football games were
+// considered and dropped - pairing with them is pairing with a different game. Six fixtures, measured
+// once, all six reaching full time:
 //
-//     throw-ins   goals   corners   goal kicks   offsides   fouls   bookings   reds
-//          16.8    0.83      0.50         0.67       0.50    1.50          0      0
+//     throw-ins   goals   corners   goal kicks   offsides   fouls   yellows   reds   pens
+//          14.3    0.67      0.00         0.17       0.50    0.83      0.17      0   0.33
 //
-//     scores      0-0   1-0   1-0   1-0   0-0   2-0
+//     scores      2-0   0-0   1-0   0-0   0-0   1-0        balls into the box: 1.67 a match
 //
 // ⚠️ FOOTBALL'S PER-MATCH COUNTS ARE NOT THIS MATCH'S TARGET, and reading them as one cost days. Forty
 // throw-ins and 2.7 goals belong to ninety minutes of football; seven minutes of arcade is a different
@@ -43,22 +44,26 @@
 //     offsides         0 to 1     1 to 2     2 to 3
 //     penalties        rare (0)   0 to 1     0 to 1
 //
-// ⚠️ AND THE SEVEN-MINUTE MATCH MISSES EIGHT OF THE NINE IN THE SAME DIRECTION. Measured above: one
-// count is OVER its band and seven are UNDER it -
+// ⚠️ THE FIVE-MINUTE BAND IS INTERPOLATED BY ME, and is marked so. The Dev gave 3, 7 and 12; five sits
+// between the first two, and these are the midpoints - correct them rather than trusting them:
 //
-//     goals 0.83 (want 2-4)      throw-ins 16.83 (want 5-8)     corners 0.50 (want 2-4)
-//     fouls 1.50 (want 3-5)      yellows 0.00 (want 1-2)        goal kicks 0.67 (want 4-6)
-//     offsides 0.50 (want 1-2)   reds 0.00 and penalties 0.00 are both inside their bands
+//     goals 2-3    throw-ins 3.5-6    corners 1.5-3    fouls 2-3.5    yellows 0.5-1.5
+//     goal kicks 3-4.5              offsides 0.5-1.5   reds and penalties: rare
 //
-// That shape says ONE problem and not eight. The ball leaves down the touchline two to three times more
-// often than it should, and everything that happens further up the pitch - corners, goal kicks, shots,
-// goals, the fouls and cards a contested attack produces - is starved of the ball that went out. Measured
-// in the ninety-minute mode when it still mattered: 279 of 281 crossings were the CARRIER walking his own
-// ball over the line, where football's throw-in comes off a deflection or a ball played too hard.
+// Against that, one count is far OVER and five are UNDER: throw-ins 14.3, goals 0.67, corners 0.00, goal
+// kicks 0.17, fouls 0.83, yellows 0.17. Offsides, reds and penalties are inside.
 //
-// ⚠️ SO THE NEXT WORK IS THE MECHANISM, NOT NINE CONSTANTS. Tuning seven counts upward one at a time
-// would be seven levers fighting one cause, which is how this repository spent days on a mode nobody
-// could select.
+// ⚠️ AND THE ONE NUMBER UNDERNEATH ALL OF THEM IS 1.67 - the times a ball reaches the penalty area in a
+// whole match. Corners, goal kicks and goals are all things that happen at the END of a pitch, and the
+// ball gets there under twice a match. It is not a finishing problem: measured over the seven-minute
+// build, 0.50 goals came from 5.00 box entries, which is a tenth - better conversion than football's
+// (about 1.35 goals from 35 entries). The attack ARRIVES rarely, and converts well when it does.
+//
+// ⚠️ SO THE NEXT WORK IS THE MECHANISM, NOT NINE CONSTANTS. Tuning six counts upward one at a time
+// would be six levers fighting one cause, which is how this repository spent days on a mode nobody could
+// select. The measurements that ruled out the obvious causes are recorded where each lever lives:
+// `sim/possession` for the contested threshold, `ai/brain` for the mis-weighted pass, `sim/step` for
+// body contact.
 //
 // ⚠️ AND A NINETY-MINUTE MODE WAS TUNED FOR DAYS BEFORE ANYBODY NOTICED IT WAS NOT IN THE GAME.
 // `FULL_MATCH` is referenced by one test and two comments; no composition root has ever selected it, so

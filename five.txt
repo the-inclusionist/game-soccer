@@ -1,0 +1,12 @@
+finished 6/6, ticks 18000 18000 18000 18000 18008 18056
+throwIns 14.33
+goals 0.67
+corners 0.00
+goalKicks 0.17
+offsides 0.50
+fouls 0.83
+yellows 0.17
+reds 0.00
+pens 0.33
+boxEntries 1.67
+scores 2-0 0-0 1-0 0-0 0-0 1-0

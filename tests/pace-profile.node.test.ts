@@ -87,10 +87,11 @@ describe('the pace of a profile', () => {
 
 // ========================= THE TWO MODES THE DEV ASKED FOR =========================
 describe('the two match lengths', () => {
-  // ⚠️ SEVEN MINUTES, FROM THE GENRE. International Superstar Soccer offered three, five and seven, and
-  //    the plan asks for arcade. It was fifteen until 2026-09-07, which was a number with no reason.
-  it('[Interface] the school match is seven minutes at the pace the game already plays at', () => {
-    expect(SHORT_MATCH.periodTicks).toBe(Math.round(3.5 * 60 * 60));
+  // ⚠️ FIVE MINUTES, FROM THE GENRE. International Superstar Soccer offered three, five and seven, and
+  //    the plan asks for arcade; the Dev settled on the middle one. It was fifteen until 2026-09-07 and
+  //    seven for an afternoon, and only the arcade ladder came from anywhere.
+  it('[Interface] the school match is five minutes at the pace the game already plays at', () => {
+    expect(SHORT_MATCH.periodTicks).toBe(Math.round(2.5 * 60 * 60));
     expect(SHORT_MATCH.pace, 'the short mode needed a lever, and it does not').toBe(1);
   });
 
