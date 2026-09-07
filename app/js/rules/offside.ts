@@ -6,7 +6,7 @@
 // the defence from being penalised while the ball is at the other end.
 
 import { attackDirOf } from '../sim/ends.ts';
-import { SQUAD_SIZE, firstOf, teamOf, type PlayerId } from '../sim/ids.ts';
+import { SQUAD_SIZE, firstOf, teamOf, type PlayerId, type TeamId } from '../sim/ids.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { MatchState } from '../sim/state.ts';
 import { PITCH } from '../sim/units.ts';
@@ -32,7 +32,7 @@ export interface OffsideQuery {
  * worse, would need a comparator whose tie-breaking becomes part of the simulation's determinism. Two
  * running extremes have neither problem: equal values simply both survive, which is what "level" means.
  */
-function secondLastOpponent(defenders: readonly number[], dir: number): number {
+export function secondLastOpponent(defenders: readonly number[], dir: number): number {
   let last = -Infinity;
   let second = -Infinity;
 
@@ -154,4 +154,22 @@ export function judgeOffside(state: MatchState, profile: RulesProfile): RuleEven
   if ((mask & (1 << (who - firstOf(team)))) === 0) return null;
 
   return { kind: 'offsideGiven', team, at: { x: state.players[who].p.x, y: state.players[who].p.y } };
+}
+
+/**
+ * How far up the pitch `team` may run before it is offside, in metres along x.
+ *
+ * ⚠️ IT EXISTS SO THE AI DOES NOT COPY THE LINE. A forward timing his run has to know where the line
+ * is, and working it out again in `ai/brain` would be one fact in two files - which is how they drift,
+ * and this one drifting means a striker who is offside every time or never.
+ */
+export function offsideLineOf(state: MatchState, team: TeamId): number {
+  const dir = attackDirOf(team, state.period);
+  const them = team === 0 ? 1 : 0;
+  const defenders: number[] = [];
+  for (let k = 0; k < SQUAD_SIZE; k++) {
+    const id = firstOf(them) + k;
+    if (onPitch(state, id)) defenders.push(state.players[id].p.x);
+  }
+  return secondLastOpponent(defenders, dir) * dir;
 }

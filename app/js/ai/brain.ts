@@ -25,6 +25,7 @@ import { passErrorOf, pressedAtOf, shotErrorOf, type Ratings } from './ratings.t
 import { teamPlan } from './plan.ts';
 import { thinksThisTick } from './schedule.ts';
 import { wentIn } from '../rules/foul.ts';
+import { offsideLineOf } from '../rules/offside.ts';
 
 /** Metres. A supporting player runs this far ahead of the shape when his side has the ball. */
 const SUPPORT_AHEAD = 9;
@@ -154,6 +155,38 @@ export function decide(
 
   if (weHaveIt) {
     const dir = attackDirOf(team, state.period);
+
+    // ⚠️ A FORWARD RUNS BEYOND THE BALL, and until this line nobody in this game ever did. The rule
+    //    below aims a supporting player at his SHAPE SPOT plus nine metres, and the 4-4-2 slides only a
+    //    quarter of the way toward the ball - so with a carrier at seventy-five a forward was aimed at
+    //    sixty-nine, BEHIND him. Measured on the gate that found it: the ball on seventy and the forward
+    //    aimed at 40.5.
+    //
+    //    It is why three things could not work at once. The cross waits for a body in the box; the ball
+    //    played into a runner's path has nobody running; and a corner and a goal kick are events at the
+    //    end of a pitch the attack stopped short of - which is why every lever tried on those two counts
+    //    made one of the three worse.
+    //
+    //    ⚠️ AND HE STOPS AT THE LAST DEFENDER, which is what makes it football rather than two men
+    //    camped in the six-yard box - the objection that kept this out of the game until now. A striker
+    //    times his run to stay onside, and the line comes from `rules/offside`, so the AI reads the same
+    //    line the referee does instead of working out a second one.
+    //
+    //    ⚠️ THE NINE METRES ARE THE SAME NINE, moved from his shape spot to the BALL. No new number was
+    //    chosen: what changed is what he runs ahead OF.
+    const along = dir === 1 ? ball.x : playable.length - ball.x;
+    const isForward = squadIndex === FORWARDS[0] || squadIndex === FORWARDS[1];
+    if (isForward && along >= playable.length / 2) {
+      const near = squadIndex === FORWARDS[0];
+      const line = offsideLineOf(state, team);
+      const want = ball.x + dir * SUPPORT_AHEAD;
+      const onside = dir === 1 ? Math.min(want, line) : Math.max(want, line);
+      return {
+        x: clamp(onside, 0, playable.length),
+        y: clamp(playable.width / 2 + (near ? -POST_SPLIT : POST_SPLIT), 0, playable.width),
+      };
+    }
+
     return { x: clamp(home.x + dir * SUPPORT_AHEAD, 0, playable.length), y: home.y };
   }
 

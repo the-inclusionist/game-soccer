@@ -24,10 +24,16 @@
 // per-match spread beside it, because the spread is half the finding:
 //
 //                     throw-ins    goals   corners   goal kicks   offsides    fouls   yellows
-//     nobody playing        1.92     1.75      1.00         1.92       0.58     3.33      0.67
-//     a child playing       3.25     2.67      0.50         1.92       0.33     4.00      1.58
-//     spread, a child     [0-5]    [0-5]     [0-2]        [0-5]      [0-2]    [2-8]     [0-3]
+//     nobody playing        2.00     1.50      1.75         2.17       0.25     2.83      0.58
+//     a child playing       3.92     2.50      0.83         2.00       0.00     4.00      1.50
 //     the band (mine)      3.5-6      2-3     1.5-3        3-4.5    0.5-1.5    2-3.5   0.5-1.5
+//
+// ⚠️ FIVE OF THE NINE LAND WITH A CHILD PLAYING - throw-ins, goals, yellows, reds and penalties - and
+// the empty chair lands corners, fouls and yellows. What is left under is corners and goal kicks in the
+// played match, and the OFFSIDES, which went to nought the day a forward learned to stop at the last
+// defender: a striker who times his run correctly is never caught by the line. Getting them back means a
+// run that is sometimes MISTIMED, which is a skill applied at the point of action like every other - the
+// same shape as the pass error and the shot error, and not yet built.
 //
 //     scores, a child playing   4-0  3-0  1-0  2-0  3-0  2-1  1-0  5-0  3-0  4-0  0-0  2-1
 //

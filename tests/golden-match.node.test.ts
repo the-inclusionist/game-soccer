@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  2974871658, 1199836416, 3945314587, 1630000645, 2950232398, 3148195389, 300279425, 2853174283, 1985462486,
-  1985462486,
+  419974381, 1602172179, 3014074223, 3347260423, 3268414972, 461152861, 2578459204, 3523803320, 3581948453,
+  3581948453,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -113,14 +113,25 @@ const GOLDEN: readonly number[] = [
 //               3.17 to 3.50 and offsides 0.33 to 0.67 - both INSIDE their bands, offsides for the first
 //               time - goals 2.00 to 2.67, goal kicks 1.83 to 2.50, balls into the box 9.17 to 10.00.
 //               In these ninety seconds: two throw-ins and a foul, where there had been a corner.
+//
+//   2026-09-07  A forward runs beyond the ball. Rule 3 aimed a supporting player at his SHAPE spot plus
+//               nine metres and the 4-4-2 slides only a quarter of the way, so with the ball on seventy a
+//               forward was aimed at 40.5 - thirty metres behind the play, and nobody in this game had
+//               ever run past the ball. He stops at the last defender, read from `rules/offside` rather
+//               than worked out again. Twelve fixtures, a child playing: throw-ins 3.25 to 3.92 and
+//               yellows 1.58 to 1.50, both into band, corners 0.50 to 0.83, goals 2.67 to 2.50 and still
+//               in band - five of the nine counts land, against three before. Nobody playing: corners
+//               1.00 to 1.75, into band. ⚠️ And offsides fell 0.33 to 0.00, because a forward who
+//               times his run to stay onside is never caught by the line. In these ninety seconds: a
+//               goal, where there had been two throw-ins and a foul.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
   phase: 'fullTime',
-  goals: [0, 0],
-  goalScored: 0,
-  crossedTouchline: 2,
-  foulGiven: 1,
+  goals: [1, 0],
+  goalScored: 1,
+  crossedTouchline: 0,
+  foulGiven: 0,
 };
 
 function play() {

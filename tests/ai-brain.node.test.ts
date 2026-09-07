@@ -248,6 +248,80 @@ describe('the run into the box', () => {
   });
 });
 
+
+// ========================= AND A FORWARD RUNS BEYOND THE BALL =========================
+// Rule 3 sends a supporting player to his SHAPE SPOT plus nine metres, and the 4-4-2 slides only a quarter
+// of the way toward the ball - so with a carrier at seventy-five metres a forward is aimed at sixty-nine,
+// BEHIND him. Nobody in this game has ever run past the ball.
+//
+// It is why three things could not work at once. The cross waits for a body in the box; the ball played
+// into a runner's path has nobody running; and corners and goal kicks are events at the end of a pitch
+// the attack stopped short of. Measured: 1.67 to 10 balls into the box a match, and corners at 0.50
+// against a band of 1.5 to 3, with every lever tried on them making one of the three worse.
+//
+// ⚠️ AND HE STOPS AT THE LAST DEFENDER, which is the whole of what makes it football rather than two men
+// camped in the six-yard box. A striker times his run to stay onside; the line comes from
+// `rules/offside.offsideLineOf`, so the AI reads the same line the referee does rather than copying it.
+describe('the run beyond the ball', () => {
+  function attacking(ballAt: number, backLine: number) {
+    const s = createMatchState();
+    s.phase = 'live';
+    const carrier = firstOf(HOME) + 7;
+    for (let k = 0; k < SQUAD_SIZE; k++) {
+      s.players[firstOf(HOME) + k].p = { x: ballAt - 12, y: 28 };
+      s.players[firstOf(AWAY) + k].p = { x: backLine, y: 20 + k };
+    }
+    s.players[carrier].p = { x: ballAt, y: 28 };
+    s.ball.p = { x: ballAt, y: 28, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = carrier;
+    s.possession.lastTouch = carrier;
+    return s;
+  }
+
+  // ⚠️ THE TICK HAS TO MOVE, and this gate was written without moving it - so `think` asked
+  //    `thinksThisTick(9, state.tick)` the same question six times and the forward never decided at all.
+  //    It is the same mistake the run-into-the-box gate in this file records making, which is what a
+  //    written-down defect is for.
+  const forwardTarget = (s: ReturnType<typeof createMatchState>) => {
+    for (let t = 0; t < 6; t++) {
+      think(s, { 0: AVERAGE, 1: AVERAGE }, MATCH_PROFILE.playable);
+      s.tick += 1;
+    }
+    return s.players[firstOf(HOME) + 9].target;
+  };
+
+  it('[Right] with the ball high, a forward is aimed past it', () => {
+    const s = attacking(70, 84);
+
+    expect(forwardTarget(s).x, 'he was aimed behind the man on the ball').toBeGreaterThan(70);
+  });
+
+  // ⚠️ NOT PAST THE LAST DEFENDER. Two men camped beyond the line are two men permanently offside and
+  //    nine playing football, which is the objection that kept this rule out of the game until now.
+  it('[Boundary] but never past the defence', () => {
+    const s = attacking(70, 76);
+
+    expect(forwardTarget(s).x, 'he ran himself offside').toBeLessThanOrEqual(76.001);
+  });
+
+  // ⚠️ "HOLDS THE SHAPE" IS NOT "STAYS DEEP", which the first version of this gate got wrong: it asked
+  //    for a target behind fifty metres and a centre forward with the ball on twenty is legitimately
+  //    aimed at fifty-five, because a striker stays high. What holding the shape means here is that he is
+  //    NOT in the box - the run beyond the ball puts him there and the shape does not.
+  it('[Zero] and he holds the shape while the ball is in our own half', () => {
+    const deep = attacking(20, 84);
+    const high = attacking(70, 84);
+
+    expect(forwardTarget(deep).x, 'he ran into the box off a ball in our own half').toBeLessThan(
+      PITCH.length - BOX.depth,
+    );
+    expect(forwardTarget(high).x, 'the run beyond does not reach the box even when it should').toBeGreaterThan(
+      PITCH.length - BOX.depth,
+    );
+  });
+});
+
 describe('a match that plays itself', () => {
   // ⚠️ THE GATE THAT SAYS WHETHER ANY OF THIS IS FOOTBALL. Twenty-two agents, no human input, and the
   //    only two questions worth asking: does the ball ever leave play, and does anybody ever score. An AI
