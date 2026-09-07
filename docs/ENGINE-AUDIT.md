@@ -118,21 +118,22 @@ vocabulary for ten of the things it does. `ui/settings-controls` renders its row
 which lands in the eight-row scheme - so ten rows would render with no key beside them and a remap would
 write into a scheme nothing reads.
 
-⚠️ RE-CHECKED AGAINST ENGINE 7.0.1 ON 2026-09-07, because the engine shipped ADR-0096 - *"the two-player
-keyboard is the same geometry twice"* - which lands on exactly this ground. The finding **stands in full**:
+⚠️ RE-CHECKED AGAINST THE PUBLISHED 7.0.1, AND MY OWN PREVIOUS NOTE WAS WRONG. I read ADR-0096 and the
+engine's WORKING TREE, found `KEYBOARD_DUO` there, and wrote here that a consumer on 7.0.1 could delete
+this game's second-seat table. The published package has **zero occurrences of `KEYBOARD_DUO`**: it is
+unreleased. `input/keyboard.js` in 7.0.1 still carries schemes of EIGHT positions.
 
-| | |
-|---|---|
-| `KEYBOARD_DUO` was added to `input/default-bindings` | Two schemes of FOURTEEN, with a cross-table check. Good, and it is `Object.freeze`d and read by **nothing inside the engine** - the same shape as `KEYBOARD_SOLO`. |
-| `input/keyboard.ts` | Still carries schemes of EIGHT: `left/right/up/down/action1..4`, no shoulder, no trigger. It is still the only table that is loaded, saved and remapped. |
+That is the second time in this repository that a working tree was treated as a premise for a decision
+about a package. A package is only proved from the outside, by installing it.
 
-So the engine now has *two* frozen fourteen-position tables and one remappable eight-position one. That is
-a better answer to "what should two children's keyboards be" and not yet an answer to "how does a child
-change fourteen of them". A consumer on 7.0.1 can delete this game's second-seat TABLE and still needs the
-module around it.
+So the finding stands **unchanged** at 7.0.1: the fourteen positions live in a frozen `KEYBOARD_SOLO` that
+nothing inside the engine imports, and the table that is loaded, saved and remapped has rows for eight.
+`app/js/input/keymap.ts` is needed exactly as much as it was.
 
-⚠️ AND THIS GAME IS PINNED TO `^6.36.1` WHILE NPM SERVES 7.0.1 - a caret does not cross a major, so the
-upgrade is a decision and not a `npm update`. Written here rather than taken.
+⚠️ AND THE UPGRADE ITSELF WAS CLEAN. 6.36.1 to 7.0.1 is a major, and it broke nothing: typecheck clean,
+714 assertions green, the build and the precache budget passing, without a line changed. That is worth
+recording as a fact about the engine's surface rather than as luck - this game consumes a narrow, declared
+API and a major bump found nothing to break.
 
 What this game did about it, and why it is not a fix: `app/js/input/keymap.ts` is a live fourteen-position
 map, born from `KEYBOARD_SOLO` and persisted under `kJogo('soccer', 'keymap')`, handed to the engine's
