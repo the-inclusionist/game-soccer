@@ -108,3 +108,45 @@ describe('the finisher', () => {
     }
   });
 });
+
+// ========================= A SHOT IS STRUCK ONCE =========================
+// Measured on a real ninety-minute match: **8,352 shots**. Football has about twenty-five.
+//
+// The carrier strikes the ball, it leaves at 26 metres a second - and covers 0.43m in a tick, which is
+// still inside his control radius. So `resolvePossession` gives it straight back to him and he strikes it
+// again, and a "shot" is a burst of dozens of them. It is the same defect that made goals 45 a match, and
+// it feeds the corners and goal kicks too, because every one of those strikes can go behind.
+//
+// ⚠️ THE RULE WAS TRIED ONCE AND REVERTED WITH THE WRONG NUMBER. "Nobody can control a ball leaving them
+// faster than they can run" was set at a footballer's top speed, 7.6 - which is BELOW the dribbling touch,
+// since a dribble knocks the ball ahead at 1.25 times the carrier's speed. It dispossessed every sprinting
+// dribbler and broke four gates, and the conclusion drawn was that the rule was wrong. The rule was right
+// and the threshold was inside the thing it had to leave alone.
+import { playTick } from '../app/js/play.ts';
+import { DT } from '../app/js/sim/ball.ts';
+import { emptyFrame } from '../app/js/sim/command.ts';
+
+describe('a shot in a running match', () => {
+  it('[Right] is struck once, not on every tick until the ball is gone', () => {
+    const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });
+
+    // ⚠️ TWENTY TICKS, AND THE FIRST VERSION USED SIXTY. At 26 metres a second the ball is over the goal
+    //    line in twenty-eight, and the kickoff that follows is itself a step change in the ball's velocity
+    //    - so a sixty-tick window counted the restart as a second strike and reported three. The claim is
+    //    about the ball not being re-struck AS IT LEAVES HIM, so the window has to end before it arrives.
+    let strikes = 0;
+    let last = 0;
+    for (let t = 0; t < 20; t++) {
+      playTick(s, emptyFrame(t), DT, MATCH_PROFILE, skills);
+      const now = Math.sqrt(s.ball.v.x * s.ball.v.x + s.ball.v.y * s.ball.v.y);
+      // ⚠️ A STRIKE ADDS ENERGY, and drag and landing only remove it - so the test is a RISE in speed and
+      //    not a change in it. The first version measured any step change and counted the ball landing as
+      //    a second shot: `land` turns an airborne ball into a rolling one and the horizontal velocity
+      //    moves by more than five metres a second when it does.
+      if (now > last + 5) strikes += 1;
+      last = now;
+    }
+
+    expect(strikes, 'the ball was hammered over and over as it left him').toBe(1);
+  });
+});

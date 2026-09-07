@@ -6,6 +6,7 @@ import type { SideCaps } from './body.ts';
 import type { MatchState } from './state.ts';
 import { onPitch } from './squads.ts';
 import { dist2 } from './vec.ts';
+import type { Ball } from './ball.ts';
 import { PITCH } from './units.ts';
 import { SQUAD_SIZE } from './ids.ts';
 
@@ -28,6 +29,25 @@ export const CONTROL_R = 0.9;
 
 /** Metres. Above this the ball is in the air and nobody is dribbling it - it can only be headed. */
 export const MAX_CONTROL_HEIGHT = 1.2;
+
+/**
+ * Metres per second. How fast a ball can be running AWAY from a body and still be taken by it.
+ *
+ * ⚠️ WITHOUT IT, A SHOT WAS STRUCK ON EVERY TICK. The ball leaves the foot at 26 metres a second and covers
+ * 0.43m in a tick - still inside the control radius - so possession went straight back to the man who had
+ * just hit it, and he hit it again. Measured on a real ninety-minute match: 8,352 shots, where football
+ * has about twenty-five. Goals, corners and goal kicks all rode on it.
+ *
+ * ⚠️ AND IT IS ABOVE THE DRIBBLING TOUCH ON PURPOSE, which is the whole reason this rule failed the first
+ * time it was tried. A dribble knocks the ball ahead at `TOUCH_GAIN` times the carrier's speed - about
+ * 11.2 at a full sprint - so a threshold at a footballer's top speed of 7.6 dispossessed every sprinting
+ * dribbler and broke four gates. Twelve is clear of the fastest legal touch and far below a struck ball.
+ *
+ * ⚠️ ONLY THE AWAY COMPONENT. A ball ARRIVING at any speed can be taken: blocking a shot, or standing in
+ * the way of a pass, is what a body is for. Plain speed would stop a keeper holding a shot, which is the
+ * one save football is most sure about.
+ */
+export const MAX_CONTROL_AWAY = 12;
 
 /**
  * Ticks between touches while dribbling. About a third of a second, which is a footballer's stride.
@@ -111,6 +131,20 @@ function contested(state: MatchState, carrier: PlayerId): boolean {
   return false;
 }
 
+/**
+ * How fast the ball is leaving `at`, in metres a second. Negative when it is coming towards it.
+ *
+ * A ball sitting exactly on somebody has no direction to leave in, so it is not leaving: zero, rather than
+ * a division every caller would have to guard.
+ */
+function runningAway(at: { x: number; y: number }, ball: Ball): number {
+  const dx = ball.p.x - at.x;
+  const dy = ball.p.y - at.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d === 0) return 0;
+  return (ball.v.x * dx + ball.v.y * dy) / d;
+}
+
 export function resolvePossession(state: MatchState, sides?: readonly [SideCaps, SideCaps]): void {
   const { ball, players, possession } = state;
 
@@ -136,6 +170,7 @@ export function resolvePossession(state: MatchState, sides?: readonly [SideCaps,
     const d2 = dist2(players[i].p, ball.p);
     const r = reachOf(i);
     if (d2 >= r * r) continue;
+    if (runningAway(players[i].p, ball) > MAX_CONTROL_AWAY) continue;
     // Strictly nearer, so an exact tie leaves `best` on the LOWER index that got there first.
     if (d2 < bestD2) {
       bestD2 = d2;
