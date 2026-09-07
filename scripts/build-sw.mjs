@@ -16,7 +16,26 @@
 import { readdir, stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { join, relative, sep } from 'node:path';
-import { precachePlan, PRECACHE_BUDGET_BYTES } from '../app/js/pwa/precache.ts';
+
+/**
+ * ⚠️ THIS IMPORT IS A TYPESCRIPT FILE, AND THAT IS A HARD REQUIREMENT ON THE RUNTIME. Node 24 strips types
+ * natively; Node 22 does not, and what it says is a module-resolution error that names neither TypeScript
+ * nor the version - on a build step that used to work. Dynamic, wrapped, and explained, so the failure
+ * arrives as a sentence instead of as a puzzle.
+ *
+ * The alternative was a second copy of the precache rules living in this file, which is the one thing
+ * this feature must not have.
+ */
+let precachePlan, PRECACHE_BUDGET_BYTES;
+try {
+  ({ precachePlan, PRECACHE_BUDGET_BYTES } = await import('../app/js/pwa/precache.ts'));
+} catch (err) {
+  console.error('✗ sw: could not load the precache rules from TypeScript source.');
+  console.error(`  Node ${process.versions.node} is running; this needs Node 24 or newer, which strips`);
+  console.error('  types natively. See "engines" in package.json and node-version in .github/workflows/ci.yml.');
+  console.error(`  ${err instanceof Error ? err.message : String(err)}`);
+  process.exit(1);
+}
 
 const DIST = join(import.meta.dirname, '..', 'dist');
 

@@ -42,3 +42,13 @@ jobs:
     uses: the-inclusionist/the-inclusionist-engine/.github/workflows/game-ci.yml@main
     with:
       a11y: true
+      # ⚠️ STATED HERE RATHER THAN INHERITED, and the difference is a real failure. The shared workflow
+      # DEFAULTS to whatever the engine's `.node-version` says, and this game's build has a hard floor
+      # underneath it: `scripts/build-sw.mjs` imports the precache rules from TypeScript source rather
+      # than keeping a second copy of them, which needs Node 24's native type stripping.
+      #
+      # Inheriting a default means the day the engine moves it, this build breaks in another repository's
+      # commit - and the message would name neither TypeScript nor the version. Checked against the
+      # engine's `.node-version` at the time of writing: 24.14.0, the same. When that moves, move this,
+      # and read the floor above before choosing.
+      node-version: "24.14.0"
