@@ -118,6 +118,22 @@ vocabulary for ten of the things it does. `ui/settings-controls` renders its row
 which lands in the eight-row scheme - so ten rows would render with no key beside them and a remap would
 write into a scheme nothing reads.
 
+⚠️ RE-CHECKED AGAINST ENGINE 7.0.1 ON 2026-09-07, because the engine shipped ADR-0096 - *"the two-player
+keyboard is the same geometry twice"* - which lands on exactly this ground. The finding **stands in full**:
+
+| | |
+|---|---|
+| `KEYBOARD_DUO` was added to `input/default-bindings` | Two schemes of FOURTEEN, with a cross-table check. Good, and it is `Object.freeze`d and read by **nothing inside the engine** - the same shape as `KEYBOARD_SOLO`. |
+| `input/keyboard.ts` | Still carries schemes of EIGHT: `left/right/up/down/action1..4`, no shoulder, no trigger. It is still the only table that is loaded, saved and remapped. |
+
+So the engine now has *two* frozen fourteen-position tables and one remappable eight-position one. That is
+a better answer to "what should two children's keyboards be" and not yet an answer to "how does a child
+change fourteen of them". A consumer on 7.0.1 can delete this game's second-seat TABLE and still needs the
+module around it.
+
+⚠️ AND THIS GAME IS PINNED TO `^6.36.1` WHILE NPM SERVES 7.0.1 - a caret does not cross a major, so the
+upgrade is a decision and not a `npm update`. Written here rather than taken.
+
 What this game did about it, and why it is not a fix: `app/js/input/keymap.ts` is a live fourteen-position
 map, born from `KEYBOARD_SOLO` and persisted under `kJogo('soccer', 'keymap')`, handed to the engine's
 panel through the ports it already exposes. The panel is genuinely reusable - its header says the map must
