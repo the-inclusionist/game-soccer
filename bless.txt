@@ -1,2 +1,2 @@
-4042207160, 424680150, 1637744995, 884872227, 4028134250, 4196696841, 4061274777, 308352597, 3372563740
-phase=fullTime goals=0-0 counts={"crossedTouchline":5,"restartTaken":7,"periodExpired":1,"ballMoved":1,"offsideGiven":1,"secondPeriodExpired":1}
+718792295, 1473486568, 379641673, 564188432, 500720738, 2595970656, 2101373545, 967020269, 3368125197, 1519792296
+phase=fullTime goals=1-0 counts={"goalScored":1,"restartTaken":4,"ballMoved":2,"periodExpired":1,"crossedGoalLineByDefender":1,"crossedGoalLineByAttacker":1,"secondPeriodExpired":1}

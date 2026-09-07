@@ -94,3 +94,73 @@ describe('a ball at arm-and-a-half length', () => {
     expect(loose(0.95).s.possession.holder).toBe(NOBODY);
   });
 });
+
+// ========================= AND THE SHIELD FOLLOWS THE MAN, NOT THE RADIUS =========================
+// A dribbler knocks the ball ahead of himself; that is what a dribble IS. The touch puts it a shade
+// outside his own control radius, and until this was fixed the shield stopped applying at exactly that
+// moment - so any opponent a hand's breadth nearer took the ball off him without doing anything.
+//
+// ⚠️ THE NUMBERS ARE THE MECHANISM, NOT AN ILLUSTRATION. Measured over six five-minute matches, at the
+// tick an opponent took the ball: the man who lost it was a median of 0.96 m from it and the man who took
+// it 0.86 m - TEN CENTIMETRES apart - and the control radius is 0.90 m. Ninety-six against ninety is not
+// a coincidence; it is the ball sitting just past the edge of his reach because he had just touched it.
+// Only 9% of steals had the loser genuinely beaten, more than three metres away.
+//
+// The result was a match with 227 changes of possession, a median possession of SEVEN TICKS, and a ball
+// that was under somebody's control 20.7% of the time and never left the middle two sixths of the pitch.
+// Nothing was attacking; nobody could hold the ball long enough to try.
+//
+// ⚠️ AND THE FOOTBALL AND THE FIX ARE THE SAME SENTENCE: you take the ball off a man by TACKLING him,
+// not by standing ten centimetres nearer to it. `sim/tackle` is the other half - a fair challenge knocks
+// it loose - so defending still works, and it works by doing something.
+describe('a dribbler keeps his own knocked-on ball', () => {
+  function duel(carrierAt: number, rivalAt: number) {
+    const s = createMatchState();
+    s.phase = 'live';
+    for (let k = 0; k < SQUAD_SIZE; k++) {
+      s.players[firstOf(HOME) + k].p = { x: 5, y: 5 };
+      s.players[firstOf(AWAY) + k].p = { x: 85, y: 50 };
+    }
+    const carrier = firstOf(HOME) + 7;
+    const rival = firstOf(AWAY) + 4;
+    s.ball.p = { x: 45, y: 28, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.players[carrier].p = { x: 45 - carrierAt, y: 28 };
+    s.players[rival].p = { x: 45 + rivalAt, y: 28 };
+    s.possession.holder = carrier;
+    s.possession.lastTouch = carrier;
+    return { s, carrier, rival };
+  }
+
+  // The ball has just been knocked to 0.96m - past the 0.90m radius - and the rival is at 0.86m. These
+  // are the medians measured in a real match, so this is the case that was happening 1362 times.
+  it('[Right] the ball he has just touched is still his, though it is past his reach', () => {
+    const { s, carrier } = duel(0.96, 0.86);
+
+    playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+
+    expect(s.possession.holder, 'a rival ten centimetres nearer took it off him').toBe(carrier);
+  });
+
+  // ⚠️ AND IT IS A MARGIN, NOT A LOCK. A rival who is CLEARLY nearer has beaten him, and if that were
+  //    not true the ball could never change hands at all - which is the failure this repository already
+  //    measured from the other side, when a carrier who was never contested turned the game into a
+  //    dribble in the middle third.
+  it('[Boundary] but a rival who is clearly nearer has won it', () => {
+    const { s, rival } = duel(1.2, 0.2);
+
+    playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+
+    expect(s.possession.holder).toBe(rival);
+  });
+
+  // ⚠️ AND A BALL HE HAS REALLY LOST IS REALLY LOST. The shield reaches a stride past his radius, not
+  //    across the pitch: a ball three metres away belongs to whoever gets to it.
+  it('[Zero] and a ball far past his reach is anybody\'s', () => {
+    const { s, carrier } = duel(3.5, 0.4);
+
+    playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+
+    expect(s.possession.holder).not.toBe(carrier);
+  });
+});

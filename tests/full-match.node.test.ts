@@ -20,10 +20,15 @@
 // considered and dropped - pairing with them is pairing with a different game. Six fixtures, measured
 // once, all six reaching full time:
 //
-//     throw-ins   goals   corners   goal kicks   offsides   fouls   yellows   reds   pens
-//          14.3    0.67      0.00         0.17       0.50    0.83      0.17      0   0.33
+//                     throw-ins   goals   corners   goal kicks   offsides   fouls   yellows   pens
+//     nobody playing         1.33    2.50      0.67         0.67       0.33    1.50      0.33   0.67
+//     a child playing        2.83    3.50      0.00         0.00       0.83    3.33      1.33   0.83
+//     the band (mine)       3.5-6     2-3     1.5-3        3-4.5    0.5-1.5   2-3.5   0.5-1.5   rare
 //
-//     scores      2-0   0-0   1-0   0-0   0-0   1-0        balls into the box: 1.67 a match
+//     scores, nobody playing    2-1   0-1   2-0   3-2   0-1   2-1
+//     scores, a child playing   2-0   3-0   1-0   8-0   2-0   5-0
+//
+//     balls into the box 7.33 a match, the ball controlled 39.2% of ticks, possession changing 140 times
 //
 // ⚠️ FOOTBALL'S PER-MATCH COUNTS ARE NOT THIS MATCH'S TARGET, and reading them as one cost days. Forty
 // throw-ins and 2.7 goals belong to ninety minutes of football; seven minutes of arcade is a different

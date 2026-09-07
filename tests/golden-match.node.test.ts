@@ -48,7 +48,17 @@ import { emptyFrame } from '../app/js/sim/command.ts';
  * `sim/ends`. A golden that stopped at forty-four seconds would be blind to every second-half defect.
  */
 const PROFILE = withPeriod(MATCH_PROFILE, 0.75);
-const TICKS = 5400;
+
+/**
+ * A hundred seconds of ticks for a ninety-second match, because STOPPAGES COST TICKS AND NOT CLOCK.
+ *
+ * ⚠️ IT WAS 5400 - exactly two halves - and that was a match finishing on its last tick with nothing to
+ * spare. The shield change gave the sides the ball for twice as long, which brought a goal, a corner and
+ * a goal kick into these ninety seconds; every restart spends ticks while the clock is stopped, and full
+ * time moved to 5406. The gate went red for a reason that was not a defect and not the change either -
+ * it was the margin having been nought all along.
+ */
+const TICKS = 6000;
 
 /** Ten seconds. Nine checkpoints, so a red names the ten-second window the two builds parted company in. */
 const CHECK_EVERY = 600;
@@ -60,7 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  4042207160, 424680150, 1637744995, 884872227, 4028134250, 4196696841, 4061274777, 308352597, 3372563740,
+  718792295, 1473486568, 379641673, 564188432, 500720738, 2595970656, 2101373545, 967020269, 3368125197,
+  1519792296,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -74,13 +85,23 @@ const GOLDEN: readonly number[] = [
 //               down to 13.17, goal kicks 0.67 to 1.17 and offsides 0.50 to 0.83; goals fell 0.83 to
 //               0.50, which is a defence that can now take the ball off an attack that could not finish
 //               anyway. In these ninety seconds: throw-ins 1 to 5, and an offside that was not there.
+//
+//   2026-09-07  The shield follows the man, not the radius. A dribbler's own touch put the ball just
+//               outside his control radius - 0.96 m against 0.90 - and the shield switched off at that
+//               exact moment, so an opponent ten centimetres nearer took it without doing anything. In
+//               the five-minute match, with nobody playing: balls into the box 1.67 to 7.33, possession
+//               20.7% to 39.2%, changes of possession 227 to 140 a match, goals 0.67 to 2.50, throw-ins
+//               14.33 down to 1.33. Scorelines went from 1-0 and 0-0 to 2-1, 3-2, 0-1. In these ninety
+//               seconds: a goal, a corner and a goal kick where there had been none, and full time moved
+//               from tick 5400 to 5406 - which is why the window above is 6000 now.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
   phase: 'fullTime',
-  goals: [0, 0],
-  crossedTouchline: 5,
-  offsideGiven: 1,
+  goals: [1, 0],
+  goalScored: 1,
+  crossedGoalLineByDefender: 1,
+  crossedGoalLineByAttacker: 1,
 };
 
 function play() {
@@ -129,8 +150,9 @@ describe('ninety seconds that must stay the same ninety seconds', () => {
 
     expect(state.phase, 'the match no longer reaches full time in ninety seconds').toBe(SUMMARY.phase);
     expect([...state.goals]).toEqual(SUMMARY.goals);
-    expect(seen.crossedTouchline ?? 0).toBe(SUMMARY.crossedTouchline);
-    expect(seen.offsideGiven ?? 0).toBe(SUMMARY.offsideGiven);
+    expect(seen.goalScored ?? 0).toBe(SUMMARY.goalScored);
+    expect(seen.crossedGoalLineByDefender ?? 0).toBe(SUMMARY.crossedGoalLineByDefender);
+    expect(seen.crossedGoalLineByAttacker ?? 0).toBe(SUMMARY.crossedGoalLineByAttacker);
   });
 
   // ⚠️ AND THE GOLDEN IS ONLY WORTH THE FIXTURE IT PLAYS. One pairing is one observation - the whole-match
