@@ -193,10 +193,23 @@ describe('a choice reaching the game', () => {
 // keyboard this was written on.
 describe('the charge, in a running match', () => {
   /** Put the ball at the feet of the body seat one is driving, and hand him possession. */
+  // ⚠️ AND IT EMPTIES THE PITCH AROUND HIM, which is what makes two strikes comparable at all. The
+  //    first version left the other twenty-one where they were, so the first strike of a test got a still
+  //    world and the second inherited bodies that had already run at the ball: tap-then-hold said the hold
+  //    was WEAKER and hold-then-tap passed, on the same code. The reading was about the order.
+  //
+  //    Parking them at the far corner is not pretending the match is empty - it is removing the one thing
+  //    that differs between the two measurements, so that what is left is the charge.
   function atHisFeet(b: NonNullable<typeof booted>) {
     const who = b.state.controlled[0];
     b.state.phase = 'live';
+    for (let i = 0; i < b.state.players.length; i++) {
+      if (i === who) continue;
+      b.state.players[i].p = { x: 2, y: 2 };
+      b.state.players[i].v = { x: 0, y: 0 };
+    }
     b.state.players[who].p = { x: 45, y: 28 };
+    b.state.players[who].v = { x: 0, y: 0 };
     b.state.ball.p = { x: 45, y: 28, z: 0 };
     b.state.ball.v = { x: 0, y: 0, z: 0 };
     b.state.possession.holder = who;
@@ -253,16 +266,27 @@ describe('the charge, in a running match', () => {
     expect(await strike(40), 'a tap did nothing at all').toBeGreaterThan(0);
   });
 
-  // ⚠️ AND "HOLDING IT LONGER SENDS IT HARDER" IS NOT GATED HERE, DELIBERATELY. It was written, and it
-  //    was a COIN: two strikes in one match, tap then hold, said the hold was weaker; the same two with
-  //    the order swapped passed. The first strike of a test gets a still world and the second inherits
-  //    twenty-one bodies that have already run at the ball, so the reading is about the ORDER and not
-  //    about the charge. A gate that passes because of the sequence it is written in is worse than no
-  //    gate, because it reports a green about something it never measured.
+  // ⚠️ THE HALF THAT WAS A COIN UNTIL THE PITCH WAS EMPTIED. Written first with the other twenty-one
+  //    left where they stood, this said a hold was WEAKER than a tap - and passed when the two were
+  //    swapped round, on identical code. A gate that turns on the order it is written in reports a green
+  //    about something it never measured, which is worse than having no gate at all.
   //
-  //    ⚠️ WHAT ACTUALLY HOLDS THE CLAIM: `tests/charge` gates that power never falls as the hold grows,
-  //    that every one of the five steps is reachable, and that a charge held past its window fires itself
-  //    rather than trapping the player; `tests/turn-panel` gates the power arriving in a Command. What is
-  //    missing is only the last centimetre - a live match measuring two holds fairly - and doing it
-  //    honestly needs a fresh world per strike, not two strikes in one.
+  //    ⚠️ SO IT IS ASKED IN BOTH ORDERS, and that is the part that cannot be faked. If the world still
+  //    leaked between the two strikes, one of these two would fail.
+  it('[Right] and holding it longer sends the ball harder, whichever is measured first', async () => {
+    booted = bootar(document, window);
+    await new Promise((r) => setTimeout(r, 300));
+
+    const tapFirst = await strike(40);
+    const heldSecond = await strike(400);
+    const heldFirst = await strike(400);
+    const tapSecond = await strike(40);
+
+    expect(heldSecond, `hold ${heldSecond} was no harder than the tap ${tapFirst} before it`).toBeGreaterThan(
+      tapFirst,
+    );
+    expect(heldFirst, `hold ${heldFirst} was no harder than the tap ${tapSecond} after it`).toBeGreaterThan(
+      tapSecond,
+    );
+  });
 });
