@@ -110,6 +110,19 @@ function takerFor(event: RuleEvent, state: MatchState): TeamId | -1 {
     case 'goalScored':
       // The side that conceded kicks off.
       return (1 - (event.team ?? 0)) as TeamId;
+
+    // ⚠️ WITHOUT THIS THE MATCH STOPPED AT HALF TIME AND NEVER STARTED AGAIN. `periodExpired` fell to the
+    //    default below, so no taker was named, `applyRestart` was never called, the ball was never put on
+    //    the centre spot and nobody could touch it - and `halfTime` has exactly one way out, which is
+    //    somebody taking the restart. Measured at sixty-two thousand ticks of a stopped match.
+    //
+    //    It took a WHOLE MATCH to find. Every other gate runs a few thousand ticks and half time is
+    //    eighteen thousand in, so nothing had ever reached it.
+    //
+    //    The away side kicks off the second half, because the home side kicked off the first.
+    case 'periodExpired':
+      return 1 as TeamId;
+
     default:
       return -1;
   }
