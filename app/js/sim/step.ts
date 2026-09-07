@@ -16,6 +16,7 @@ import { FLAG_JOCKEY, FLAG_SPRINT, type TickFrame } from './command.ts';
 import { DEFAULT_CAPS, type SideCaps } from './body.ts';
 import { containDirection } from './contain.ts';
 import { NOBODY, resolvePossession } from './possession.ts';
+import { keeperSave } from './save.ts';
 import { teamOf } from './ids.ts';
 import { onPitch } from './squads.ts';
 import type { MatchState } from './state.ts';
@@ -101,6 +102,11 @@ export function step(
   //     stays on its spot, which is football and is also what stops a restart from being taken by the
   //     ball rolling away from the spot it was just placed on.
   if (moveBall) stepBall(state.ball, dt);
+
+  // 3b - THE KEEPER'S HANDS, after the ball has moved and before possession is resolved. A ball he has
+  //      just pushed away must not then be handed to him as the nearest body, and a ball he can hold must
+  //      still be there to be held. See `sim/save`: it is why this game has corners at all.
+  if (moveBall) keeperSave(state, sides);
 
   // 4 - POSSESSION, after everything has moved. Deciding it before the bodies move would answer "who has
   //     the ball" about a world that no longer exists, and the referee reads this on the same tick.

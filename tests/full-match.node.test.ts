@@ -179,15 +179,18 @@ describe('what a match contains', () => {
     expect(across('offsideGiven'), 'no offside in six whole matches').toBeGreaterThan(0);
   });
 
-  // ⚠️ CORNERS ARE OUT OF THIS GATE, AND NOT BECAUSE THEY WENT RED. They were in it this morning and it
-  //    passed - on five corners across six matches - and over a day of changes to the AI that count walked
-  //    5, 1, 5, 2, 1, 0 without one of those changes being about corners. A `> 0` assertion on a count that
-  //    spends its time near zero is a coin, and it had been flipping heads.
+  // ⚠️ AND CORNERS, WHICH NOW HAVE A CAUSE INSTEAD OF A COINCIDENCE. This was taken out of the gate above
+  //    because the count walked 5, 1, 5, 2, 1, 0 across a day of AI changes, none of them about corners: a
+  //    `> 0` assertion on it was a coin that had been landing heads. Nothing in the game could actually
+  //    produce one - `receiverFor` only passes forward, the keeper's clearance goes forward, and a shot was
+  //    binary because there was no save model at all.
   //
-  //    Football has about ten corners a match; this has none. That is a real and long-standing weakness - a
-  //    defender almost never puts the ball behind his own goal line - and it is stated here rather than
-  //    gated on noise, which is what asserting it was actually doing.
-  it.todo('[Right] and corners, which need a defender who clears the ball behind his own line');
+  //    `sim/save` is that model, and a keeper who can reach a ball but not hold it tips it wider and
+  //    slower. Four corners across six matches, and the difference from the five this gate used to pass on
+  //    is that there is now a mechanism behind them rather than a ricochet.
+  it('[Right] and corners, once a keeper can tip one behind', () => {
+    expect(across('crossedGoalLineByDefender'), 'no corner in six whole matches').toBeGreaterThan(0);
+  });
 
   // ⚠️ OFFSIDE WAS A MISSING WIRE RATHER THAN A MISSING RULE. `rules/offside` was written, gated
   //    hard by `tests/offside`, and imported by `declaration.ts` - for the `gate` role that tints the
