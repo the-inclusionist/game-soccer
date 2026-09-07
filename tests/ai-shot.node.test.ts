@@ -172,6 +172,87 @@ describe('a shot in a running match', () => {
 //
 // Better on four of the Dev's five numbers, and corners go from seven times the target to under two. A
 // conclusion measured on a defective build is not a conclusion, and this file had one for a day.
+// ========================= AND THE BALL FROM WIDE =========================
+// The two deviations left in this match both pointed at the same missing thing. Corners come almost
+// entirely from the KEEPER - 267 parries a match against 1.3 deliberate corners - so a short match, which
+// contains a sixth of the parries, cannot reach the Dev's ten. And 279 of 281 throw-ins are the carrier
+// walking his own ball out, where football's come off a deflection.
+//
+// Both want a ball hit INTO the box from wide, which this cascade had no notion of: `receiverFor` picks
+// the freest man further up the pitch, and a cross is not aimed at a man at all - it is aimed at a place,
+// hopefully, and what happens next is a scramble. A scramble is where corners come from.
+//
+// ⚠️ AND IT IS LOFTED, WHICH IS THE POINT. `MAX_CONTROL_HEIGHT` means nobody controls a ball above 1.2m,
+// so a cross arrives uncontrollable and has to be dealt with rather than received - which is exactly the
+// situation a defender clears and a keeper punches.
+describe('a ball from wide', () => {
+  /** A home carrier `x` metres up the pitch and `y` across it, unmarked. */
+  function wide(x: number, y: number) {
+    const s = createMatchState(MATCH_PROFILE);
+    s.phase = 'live';
+    const who = firstOf(HOME) + 7;
+    for (let k = 0; k < SQUAD_SIZE; k++) {
+      s.players[firstOf(HOME) + k].p = { x: 5, y: 28 };
+      s.players[firstOf(AWAY) + k].p = { x: 5, y: 5 };
+    }
+    s.players[who].p = { x, y };
+    // Somebody arriving in the box, because a cross is played to a man even though it is aimed at a place.
+    s.players[firstOf(HOME) + 9].p = { x: 82, y: 28 };
+    s.ball.p = { x, y, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = who;
+    s.possession.lastTouch = who;
+    return { s, who, skills: { 0: AVERAGE, 1: AVERAGE } };
+  }
+
+  it('[Right] from the byline he crosses it, rather than dribbling into the corner flag', () => {
+    const { s, skills } = wide(80, 4);
+
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills);
+
+    expect(kick, 'he kept it in the corner').not.toBeNull();
+    expect(kick!.vy, 'the cross did not go towards the middle').toBeGreaterThan(0);
+    expect(kick!.vz, 'a cross along the floor is a pass').toBeGreaterThan(0);
+  });
+
+  it('[Right] and from the other touchline it comes back the other way', () => {
+    const { s, skills } = wide(80, 52);
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills)!.vy).toBeLessThan(0);
+  });
+
+  // ⚠️ ONLY FROM WIDE AND ONLY HIGH UP. A cross from the middle is a pass, and one from your own half is a
+  //    hopeful ball nobody asked for.
+  // ⚠️ SIXTY-FIVE METRES AND NOT EIGHTY, and the first version measured the wrong kick. Central at eighty
+  //    he is inside shooting range with a clear lane, so he SHOOTS - and a shot is lofted too, so the gate
+  //    read `vz > 0` and reported a cross. Out of range and central, a cross is the only lofted ball he
+  //    could play, so `null` is the whole answer.
+  it('[Zero] but from the middle of the attacking third he does not', () => {
+    const { s, skills } = wide(65, 28);
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills), 'he crossed it from the middle').toBeNull();
+  });
+
+  // ⚠️ AND NOT TO AN EMPTY BOX, which is a giveaway with extra steps. Measured: without this the long
+  //    match's goals went from 2.3 to 4.2 against a target of 2.7, because a ball hung up in front of an
+  //    unguarded goal falls to whoever is nearest and that is as often an attacker as a defender.
+  it('[Zero] and not when there is nobody in the box to cross to', () => {
+    const { s, skills } = wide(80, 4);
+    s.players[firstOf(HOME) + 9].p = { x: 5, y: 28 };
+
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills);
+
+    expect(kick === null || kick.vz === 0, 'he crossed it to nobody').toBe(true);
+  });
+
+  it('[Zero] and not from his own half, however wide he is', () => {
+    const { s, skills } = wide(30, 4);
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills);
+
+    expect(kick === null || kick.vz === 0, 'he crossed it from his own half').toBe(true);
+  });
+});
+
 describe('a sight of goal', () => {
   it('[Right] with the lane clear he shoots, as he always did', () => {
     const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });

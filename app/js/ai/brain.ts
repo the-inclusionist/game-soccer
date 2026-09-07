@@ -17,7 +17,7 @@ import { NOBODY } from '../sim/possession.ts';
 import { DEFAULT_CAPS } from '../sim/body.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { Body, MatchState } from '../sim/state.ts';
-import { BALL, PITCH } from '../sim/units.ts';
+import { BALL, BOX, PITCH } from '../sim/units.ts';
 import { clamp, dist2, type Vec2 } from '../sim/vec.ts';
 import { homeSpot, type TeamPlan } from './formation.ts';
 import { passErrorOf, pressedAtOf, shotErrorOf, type Ratings } from './ratings.ts';
@@ -157,6 +157,64 @@ export function decide(
   // 6, 7 - Mark space by standing in the shape. A dedicated marking rule would be the next thing to add,
   //        and the shape already slides toward the ball, which is most of the effect for none of the cost.
   return home;
+}
+
+/**
+ * Metres in from the goal line a cross is aimed - the penalty spot's depth, where a header is taken.
+ */
+const CROSS_DEPTH = 9.5;
+
+/**
+ * Upward speed on a cross.
+ *
+ * ⚠️ IT HAS TO LEAVE THE FLOOR, and that is the point rather than decoration. `MAX_CONTROL_HEIGHT` means
+ * nobody controls a ball above 1.2 metres, so a lofted ball arrives UNCONTROLLABLE and has to be dealt
+ * with instead of received - which is the situation a defender clears and a keeper punches, and the
+ * situation that produces a corner. A cross along the floor is a pass with a different name.
+ */
+const CROSS_LIFT = 5;
+
+/**
+ * Is he wide enough, and far enough up, for the ball into the box to be the right one?
+ *
+ * The attacking third and outside the width of the box: from the middle a cross is a pass, and from your
+ * own half it is a hopeful ball nobody asked for.
+ */
+function crossFrom(state: MatchState, holder: PlayerId, dir: 1 | -1, playable: Playable): boolean {
+  const at = state.players[holder].p;
+  const along = dir === 1 ? at.x : playable.length - at.x;
+  const across = Math.abs(at.y - playable.width / 2);
+  if (along < playable.length * (2 / 3) || across <= BOX.width / 2) return false;
+
+  // ⚠️ AND ONLY IF SOMEBODY IS IN THERE. Crossing to an empty box is a giveaway with extra steps, and it
+  //    was measured: without this the long match's goals went from 2.3 to 4.2 against a target of 2.7,
+  //    because a ball hung up in front of an unguarded goal falls to whoever is nearest and that is as
+  //    often an attacker as a defender. A cross is aimed at a place, but it is played because somebody is
+  //    arriving at it.
+  //
+  // ⚠️ AND WITH THAT CONDITION IT NEVER FIRES IN A MATCH, which is measured and left standing rather
+  //    than loosened. Six fixtures at each length came back byte-identical to the build with no cross in
+  //    it, and this simulation is deterministic, so identical output is proof that a branch never ran.
+  //    NOBODY RUNS INTO THE BOX: rule 3 of the cascade sends a supporting player `SUPPORT_AHEAD` past the
+  //    shape, and the shape is a 4-4-2 that slides with the ball, so an attacking third with a wide
+  //    carrier has team-mates level with him and none in front of the goal.
+  //
+  //    Third rule today that was right, gated, and unreachable for want of a situation - after the
+  //    defender who puts it behind and the sideways ball. The run into the box is what this one waits
+  //    for, and it is named here so the next person wires the two together rather than widening this
+  //    condition until something fires.
+  const team = teamOf(holder);
+  const first = firstOf(team);
+  for (let k = 0; k < SQUAD_SIZE; k++) {
+    const id = first + k;
+    if (id === holder || !onPitch(state, id)) continue;
+    const p = state.players[id].p;
+    const deep = dir === 1 ? p.x : playable.length - p.x;
+    if (deep >= playable.length - BOX.depth && Math.abs(p.y - playable.width / 2) <= BOX.width / 2) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -567,6 +625,25 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
       vy: (ny + nx * lean) * SHOT_SPEED,
       vz: SHOT_LIFT,
     };
+  }
+
+  // ⚠️ AND FROM WIDE, HIGH UP, HE CROSSES IT - pressure or none, because a cross is not an escape. It
+  //    is the one ball this cascade never had: `receiverFor` picks the freest man further up the pitch,
+  //    and a cross is not aimed at a man at all. It is aimed at a PLACE, hopefully, and the scramble that
+  //    follows is where football's corners come from.
+  //
+  //    Both deviations left in this match asked for it. Corners came almost entirely from the keeper - 267
+  //    parries a ninety-minute match against 1.3 deliberate corners - so a short match, holding a sixth of
+  //    the parries, could not reach ten however deep a defender was told to put it out. And 279 of 281
+  //    throw-ins were the carrier walking his own ball out, where football's come off a deflection.
+  if (crossFrom(state, holder, dir, playable)) {
+    const mouth = goalMouthOf(team, state.period, playable);
+    const to = { x: mouth.x - dir * CROSS_DEPTH, y: playable.width / 2 };
+    const cx = to.x - state.ball.p.x;
+    const cy = to.y - state.ball.p.y;
+    const d = Math.sqrt(cx * cx + cy * cy) || 1;
+    const speed = d * BALL.rollDrag;
+    return { id: holder, vx: (cx / d) * speed, vy: (cy / d) * speed, vz: CROSS_LIFT };
   }
 
   // ⚠️ HE ONLY LETS GO UNDER PRESSURE. A carrier who passed whenever a pass existed would produce a
