@@ -24,6 +24,7 @@ import { MATCH_PROFILE } from '../app/js/rules/profile.ts';
 import { AWAY, HOME, SQUAD_SIZE, firstOf, teamOf } from '../app/js/sim/ids.ts';
 import { decideKick } from '../app/js/ai/brain.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
+import { createBall, stepBall, DT } from '../app/js/sim/ball.ts';
 
 const sharp = { ...AVERAGE, passing: 0.95 };
 const poor = { ...AVERAGE, passing: 0.05 };
@@ -139,5 +140,72 @@ describe('what a pass must never be', () => {
 
     expect(kick?.id).toBe(firstOf(HOME));
     expect(kick!.vz).toBeGreaterThan(0);
+  });
+});
+
+// ========================= AND HOW HARD IT IS HIT =========================
+// `decideKick` chose between two fixed speeds by distance and said, in a comment beside them: *"Enough to
+// arrive, never so much that it runs away from the man it was meant for."* It did not do that. A five-metre
+// pass was struck at fourteen metres a second, and a rolling ball covers `speed / rollDrag` metres before
+// it stops - so it went nine, four past him and usually over a line.
+//
+// ⚠️ MEASURED, AND IT WAS BREAKING WHOLE MATCHES. One fixture spent 94% OF FOUR HUNDRED THOUSAND TICKS
+// with the ball out of play: 4,564 throw-ins, 25,559 ticks of football, and no full time in a five-minute
+// half. A throw-in taken near the line was played straight back over it, for ever. The other five fixtures
+// were producing 146 to 200 throw-ins a match where real football has about forty.
+//
+// ⚠️ THE WEIGHT IS DERIVED AND NOT TUNED. `sim/ball` rolls at `v *= 1 - rollDrag * dt`, so a ball struck
+// at `v` travels `v / rollDrag` before it stops: the speed that puts it at his feet is `far * rollDrag`,
+// and the overshoot on top of that is the only chosen number in the line.
+describe('the weight of a pass', () => {
+  /** Where a struck ball comes to rest, by rolling it out with nothing else in the world. */
+  function restsAt(kick: { vx: number; vy: number }, from: { x: number; y: number }) {
+    const ball = createBall({ x: from.x, y: from.y });
+    ball.v = { x: kick.vx, y: kick.vy, z: 0 };
+    ball.grounded = true;
+    for (let t = 0; t < 1200 && (ball.v.x !== 0 || ball.v.y !== 0); t++) stepBall(ball, DT);
+    return { x: ball.p.x, y: ball.p.y };
+  }
+
+  /** A carrier under pressure with his team-mate exactly `gap` metres in front of him. */
+  function at(gap: number) {
+    const { s, carrier, mate, skills } = pressed();
+    s.players[mate].p = { x: 30 + gap, y: 28 };
+    return { s, carrier, mate, skills, from: { x: 30, y: 28 } };
+  }
+
+  it('[Right] a short pass stops near the man it was meant for, not ten metres past him', () => {
+    const { s, mate, skills, from } = at(5);
+
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills)!;
+    const rest = restsAt(kick, from);
+
+    const overshoot = rest.x - s.players[mate].p.x;
+    expect(overshoot, 'the pass ran away from him').toBeLessThan(2.5);
+    expect(overshoot, 'the pass died before it reached him').toBeGreaterThan(-1);
+  });
+
+  it('[Right] and a longer one is hit harder, because it has further to go', () => {
+    const short = decideKick(at(5).s, MATCH_PROFILE.playable, at(5).skills)!;
+    const long = decideKick(at(14).s, MATCH_PROFILE.playable, at(14).skills)!;
+
+    expect(long.vx, 'both passes were hit at the same speed').toBeGreaterThan(short.vx);
+  });
+
+  // ⚠️ A PASS THAT DOES NOT MOVE IS NOT AN OPTION, and it is the same argument as `minPower` on the child's
+  //    charge: the shortest ball the AI will play must still be reachable, or the rule reads as the game
+  //    refusing to pass at all.
+  //
+  //    ⚠️ THREE METRES AND NOT TWO, and the first version of this gate asked for two and failed with a null
+  //    kick. `receiverFor` skips anybody less than two metres ahead - *"a square or backward ball is not
+  //    what this is for"* - so two metres was asking for a pass the AI deliberately refuses. The gate was
+  //    wrong, not the code, and the shortest ball it will actually play is the one worth gating.
+  it('[Boundary] even the shortest ball the AI will play actually travels', () => {
+    const { s, skills, from } = at(3);
+
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills)!;
+    const rest = restsAt(kick, from);
+
+    expect(rest.x - from.x, 'the pass did not go anywhere').toBeGreaterThan(1);
   });
 });

@@ -16,10 +16,10 @@ import { SQUAD_SIZE, firstOf, isKeeper, teamOf, type PlayerId, type TeamId } fro
 import { NOBODY } from '../sim/possession.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { Body, MatchState } from '../sim/state.ts';
-import { PITCH } from '../sim/units.ts';
+import { BALL, PITCH } from '../sim/units.ts';
 import { clamp, dist2, type Vec2 } from '../sim/vec.ts';
 import { homeSpot, type TeamPlan } from './formation.ts';
-import { passErrorOf, shotErrorOf, type Ratings } from './ratings.ts';
+import { passErrorOf, pressedAtOf, shotErrorOf, type Ratings } from './ratings.ts';
 import { teamPlan } from './plan.ts';
 import { thinksThisTick } from './schedule.ts';
 import { RECKLESS_SPEED, wentIn } from '../rules/foul.ts';
@@ -262,8 +262,28 @@ const SHOT_SPEED = 26;
 const SHOT_LIFT = 1.6;
 
 /** Metres per second on a pass. Short balls arrive; long ones have to travel. */
-const PASS_SPEED_SHORT = 14;
-const PASS_SPEED_LONG = 19;
+/**
+ * How far past the receiver a pass is weighted to run, as a multiple of the distance to him.
+ *
+ * A ball weighted to stop exactly at his feet arrives dead, and a dead ball is one a defender reaches
+ * first. A quarter over is a ball still moving when it gets there and settling a stride beyond him, which
+ * is what "into his path" means.
+ */
+const PASS_OVERRUN = 1.25;
+
+/** Metres per second. The floor keeps the shortest ball the AI will play moving at all... */
+const PASS_SPEED_MIN = 5;
+
+/**
+ * ...and the ceiling is what a foot can do along the ground.
+ *
+ * ⚠️ IT MEANS A BALL BEYOND FIFTEEN METRES FALLS SHORT, and that is stated rather than hidden: at this
+ * speed a rolling ball covers `24 / 1.6` metres, so a pass to a man twenty-five away is a ball into space
+ * in front of him rather than a ball to his feet. The old fixed speeds could not reach him either - 19
+ * covered under twelve metres - so nothing regressed; what is new is that the shortfall is now a
+ * consequence of one rule instead of an accident of two constants.
+ */
+const PASS_SPEED_MAX = 24;
 
 /**
  * Does anybody strike the ball this tick?
@@ -339,9 +359,6 @@ const WENT_IN = RECKLESS_SPEED;
 
 /** Metres. How close the presser has to be to the carrier to count as having gone in at all. */
 const CHALLENGE_RANGE = 2.0;
-
-/** Metres. An opponent this close is pressure, and pressure is the reason to let the ball go. */
-const PRESSED_AT = 2.6;
 
 /** Metres. Further than this and a pass is a hopeful ball rather than a pass. */
 const PASS_RANGE = 26;
@@ -448,7 +465,11 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
     const gap = dist2(me, state.players[foe].p);
     if (gap < pressure) pressure = gap;
   }
-  if (pressure > PRESSED_AT * PRESSED_AT) return null;
+  // ⚠️ `composure` IS THE SIXTH AND LAST RATING TO REACH THE PITCH, and it spends itself here: when the
+  //    carrier lets go. Every one of the six now changes something a child can see or hear, and none of
+  //    them branches the cascade - which is what the whole design rested on.
+  const pressedAt = pressedAtOf(skills?.[team]?.composure ?? 0.5);
+  if (pressure > pressedAt * pressedAt) return null;
 
   const mate = receiverFor(state, holder, playable);
   if (mate === null) return null;
@@ -471,8 +492,22 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   const nx = px / far;
   const ny = py / far;
 
-  // Enough to arrive, never so much that it runs away from the man it was meant for.
-  const speed = far < 10 ? PASS_SPEED_SHORT : PASS_SPEED_LONG;
+  // ⚠️ THE WEIGHT OF THE PASS, AND THE COMMENT THAT USED TO BE HERE PROMISED IT WITHOUT DOING IT. It said
+  //    "enough to arrive, never so much that it runs away from the man it was meant for" beside a choice
+  //    between two fixed speeds by distance: a five-metre ball was struck at fourteen metres a second and
+  //    travelled nine, four past him and usually over a line.
+  //
+  //    Measured, and it was breaking whole matches. One fixture spent 94% OF FOUR HUNDRED THOUSAND TICKS
+  //    with the ball out of play - 4,564 throw-ins, 25,559 ticks of football, no full time in a five-minute
+  //    half - because a throw-in taken near the line was played straight back over it, for ever. The other
+  //    five were producing 146 to 200 throw-ins a match where football has about forty.
+  //
+  //    ⚠️ AND IT IS DERIVED, NOT TUNED. `sim/ball` rolls at `v *= 1 - rollDrag * dt`, so a ball struck at
+  //    `v` covers `v / rollDrag` metres before it stops. The speed that puts it at his feet is therefore
+  //    `far * rollDrag`, and the overrun on top is the only chosen number in the line - which is why the
+  //    drag constant is imported rather than a matching number being written down twice.
+  const wanted = far * BALL.rollDrag * PASS_OVERRUN;
+  const speed = clamp(wanted, PASS_SPEED_MIN, PASS_SPEED_MAX);
   return { id: holder, vx: (nx - ny * lean) * speed, vy: (ny + nx * lean) * speed, vz: 0 };
 }
 
