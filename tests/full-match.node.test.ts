@@ -65,6 +65,27 @@
 // `sim/possession` for the contested threshold, `ai/brain` for the mis-weighted pass, `sim/step` for
 // body contact.
 //
+// ========================= AND EVERY NUMBER ABOVE IS A MATCH NOBODY IS PLAYING =========================
+// ⚠️ THE BAND BELONGS TO A PLAYED MATCH, AND THIS FILE MEASURES AN EMPTY CHAIR. That was a question for
+// a while and it is now a measurement. A scripted seat that plays like a child - chase the ball, run at
+// their goal, shoot inside 22 metres - was driven against the same six fixtures:
+//
+//     five minutes            throw-ins   goals   corners   goal kicks   fouls   yellows   into the box
+//     nobody at the keyboard      14.33    0.67      0.00         0.17    0.83      0.17           1.67
+//     a child playing              8.50    1.83      0.83         1.33    3.33      1.83           5.33
+//     the band (interpolated)     3.5-6     2-3     1.5-3        3-4.5   2-3.5   0.5-1.5              -
+//
+// Her scores: 0-0, 4-0, 2-0, 3-1, 0-0, 1-0.
+//
+// One child driving ONE of the eleven triples the balls into the box, triples the goals, halves the
+// throw-ins and puts the fouls inside their band. And it UNDERSTATES her: the scripted seat never presses
+// switch, and a child presses it constantly to drive whoever is nearest the ball.
+//
+// ⚠️ WHICH SETTLES WHAT MAY BE TUNED. Driving the AI up to the band on its own would overshoot the
+// moment somebody sat down - the counts above would land past the top of every band. The empty-chair
+// match is a FLOOR: it has to look like football and it has to finish, and the band is measured with
+// somebody playing.
+//
 // ⚠️ AND A NINETY-MINUTE MODE WAS TUNED FOR DAYS BEFORE ANYBODY NOTICED IT WAS NOT IN THE GAME.
 // `FULL_MATCH` is referenced by one test and two comments; no composition root has ever selected it, so
 // no child could reach it. The table it was tuned against is kept in `rules/profile` beside the profile
