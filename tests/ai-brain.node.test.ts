@@ -168,14 +168,20 @@ describe('a match that plays itself', () => {
   //    What must never happen is play stopping and never starting again - which is exactly the deadlock
   //    this file found three times: the goalkeeper who held the ball forever, the dead ball nobody walked
   //    to because bodies did not move while stopped, and the kickoff that answered the wrong event.
+  // ⚠️ TWO DIFFERENT CLUBS, FOR THE SECOND TIME IN THIS FILE AND FOR THE SAME REASON. `AVERAGE` against
+  //    `AVERAGE` is a mirror - the away shape is the home shape rotated half a turn and the simulation has
+  //    no randomness in it - and once restarts stopped being played straight back out of play, that mirror
+  //    produced twelve thousand ticks with NO STOPPAGE AT ALL. The precondition of this gate could not be
+  //    met by a match the game cannot actually produce: `fixtureOf` refuses a club playing itself.
   it('[Zero] and it never wedges - every stoppage is followed by play resuming', () => {
     const s = createMatchState();
     s.phase = 'live';
+    const sides = { 0: CLUBS[0].ratings, 1: CLUBS[1].ratings };
     let stoppages = 0;
     let resumptions = 0;
 
     for (let t = 0; t < 12000; t++) {
-      for (const e of playTick(s, emptyFrame(t), DT, MATCH_PROFILE, skills)) {
+      for (const e of playTick(s, emptyFrame(t), DT, MATCH_PROFILE, sides)) {
         if (e.kind.startsWith('crossed') || e.kind === 'goalScored') stoppages += 1;
         if (e.kind === 'restartTaken' || e.kind === 'ballMoved') resumptions += 1;
       }

@@ -237,6 +237,52 @@ describe('a stopped match', () => {
     expect(s.restartTaker).toBe(AWAY);
   });
 
+  // ⚠️ AND IT IS PLAYED INTO THE PITCH, WHICH IS THE WHOLE OF WHAT TAKING ONE IS. The ball sits ON the
+  //    touchline; the taker walks out to it from inside; and the dribbling touch uses HIS OWN VELOCITY, so
+  //    the first thing he did with it was knock it straight back over the line he had just fetched it
+  //    from. Measured across three whole matches: the median gap between a restart being taken and the
+  //    ball going out again was FOUR TICKS - sixty-seven milliseconds - and 201 of 220 were under two
+  //    seconds. That is the whole reason this game has 364 throw-ins per ninety minutes where football has
+  //    about forty.
+  it('[Right] the ball is played INTO the pitch, not knocked back over the line', () => {
+    const s = live();
+    s.ball.p = { x: 30, y: 0.2, z: 0 };
+    s.ball.v = { x: 0, y: -30, z: 0 };
+    s.possession.lastTouch = SQUAD_SIZE + 4; // away put it out, so home takes it
+    playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+    expect(s.phase).toBe('throwIn');
+    expect(s.ball.p.y).toBe(0);
+
+    // A home body walks out to it from inside the pitch, which is where a taker comes from.
+    s.players[3].p = { x: s.ball.p.x, y: s.ball.p.y + 0.5 };
+    s.players[3].v = { x: 0, y: -4 };
+    const events = playTick(s, emptyFrame(1), DT, MATCH_PROFILE);
+
+    expect(events.map((e) => e.kind)).toContain('restartTaken');
+    expect(s.ball.v.y, 'the taker knocked it straight back out').toBeGreaterThan(0);
+  });
+
+  it('[Zero] and it stays in play afterwards, which it did not', () => {
+    const s = live();
+    s.ball.p = { x: 30, y: 0.2, z: 0 };
+    s.ball.v = { x: 0, y: -30, z: 0 };
+    s.possession.lastTouch = SQUAD_SIZE + 4;
+    playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+
+    s.players[3].p = { x: s.ball.p.x, y: s.ball.p.y + 0.5 };
+    s.players[3].v = { x: 0, y: -4 };
+    playTick(s, emptyFrame(1), DT, MATCH_PROFILE);
+    expect(s.phase).toBe('live');
+
+    let outAgain = false;
+    for (let t = 2; t < 122 && !outAgain; t++) {
+      const events = playTick(s, emptyFrame(t), DT, MATCH_PROFILE);
+      outAgain = events.some((e) => e.kind === 'crossedTouchline');
+    }
+
+    expect(outAgain, 'it went straight back out inside two seconds').toBe(false);
+  });
+
   it('[Zero] nobody owns a restart once play is live again', () => {
     const s = live();
     s.possession.holder = NOBODY;

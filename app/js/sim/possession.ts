@@ -95,6 +95,8 @@ export function resolvePossession(state: MatchState, sides?: readonly [SideCaps,
 
   for (let i = 0; i < players.length; i++) {
     if (!onPitch(state, i)) continue;
+    // Law 15: the man who took the restart may not play it again until somebody else has.
+    if (i === state.tookRestart) continue;
     const d2 = dist2(players[i].p, ball.p);
     const r = reachOf(i);
     if (d2 >= r * r) continue;
@@ -130,6 +132,9 @@ export function resolvePossession(state: MatchState, sides?: readonly [SideCaps,
   const gained = best !== possession.holder;
   possession.holder = best;
   if (best === NOBODY) return;
+
+  // Somebody else has played it, so the restart is over and the taker is an ordinary player again.
+  state.tookRestart = -1;
 
   possession.lastTouch = best;
   if (!gained && state.tick % TOUCH_PERIOD !== 0) return;

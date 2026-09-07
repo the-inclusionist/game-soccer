@@ -207,7 +207,24 @@ describe('what a match contains', () => {
   //
   //    The fix is not a higher threshold. It is that a presser which cannot win the ball should not
   //    arrive at all, and that is a decision about defending rather than about cards.
-  it.todo('[Right] and cards are rare, the way they are in football');
+  // ⚠️ MET, AND THE LAST THING IT NEEDED WAS NOT ABOUT CARDS AT ALL. One booking and no sending-off
+  //    across six whole matches - about 1.5 bookings per ninety minutes, where football has 1.7.
+  //
+  //    The road here was four findings, three of them measurements that contradicted something written in
+  //    the code: severity was graded on relative speed while the module promised it was not; both
+  //    thresholds were left calibrated against that replaced quantity; the challenge line was the card
+  //    line, so the machine could not express carelessness. The last one was a restart being played
+  //    straight back out of play, which had nothing to do with cards and everything to do with how often
+  //    two bodies met at speed near a touchline.
+  //
+  //    ⚠️ A CEILING AND NO FLOOR, on purpose. At football's rate a six-match sample legitimately contains
+  //    zero of them, so a floor would be a coin - the same mistake the corner gate made all day. The
+  //    ceiling is what catches a regression to the thirty-one reds this started at, and it is loose enough
+  //    not to fail on one busy afternoon.
+  it('[Right] and cards are rare, the way they are in football', () => {
+    expect(across('bookingGiven'), 'the referee has started booking people again').toBeLessThan(12);
+    expect(across('sendingOff'), 'a sending-off every other match is not football').toBeLessThan(4);
+  });
 
   // ⚠️ THE RULE MUST BE RARE ENOUGH TO BE A RULE. A referee that whistles constantly is not a referee, and
   //    the AI challenge threshold is the only thing holding this down.
