@@ -21,7 +21,7 @@ import type { RuleEvent } from './rules/events.ts';
 import { PHASES } from './rules/phase.ts';
 import type { RulesProfile } from './rules/profile.ts';
 import type { TickFrame } from './sim/command.ts';
-import { teamOf, type TeamId } from './sim/ids.ts';
+import { SQUAD_SIZE, firstOf, teamOf, type TeamId } from './sim/ids.ts';
 import { NOBODY } from './sim/possession.ts';
 import { onPitch } from './sim/squads.ts';
 import type { MatchState } from './sim/state.ts';
@@ -285,11 +285,24 @@ function awaitingRestart(
     step(state, frame, dt, steerAll(state), false);
   }
 
-  const taker = state.restartTaker;
+  // `restartTaker` is stored as a plain number because `-1` means nobody. Narrowing it once here means
+  // every use below is a `TeamId` and no consumer needs a cast of its own.
+  const taker = state.restartTaker as TeamId | -1;
   if (taker === -1) return [];
 
-  const near = nearestToBall(state);
-  if (near === NOBODY || teamOf(near) !== taker) return [];
+  // ⚠️ IT USED TO ASK WHETHER THE GLOBALLY NEAREST PLAYER WAS ON THE TAKING SIDE, and that hands any
+  //    opponent a veto: stand on the ball and the match never restarts. Measured across six whole
+  //    fixtures - one of them ran out of ticks stopped at a throw-in, with the side owed it reduced to two
+  //    men, and everything after that minute simply never happened.
+  //
+  //    The rule football uses is the other one: a restart is taken when somebody FROM THE TAKING SIDE
+  //    reaches the ball. Whoever else is standing there is not taking it, and their being there is not a
+  //    reason for the match to stop.
+  const near = nearestOfTeamToBall(state, taker);
+  if (near === NOBODY) return [];
+  const dx = state.players[near].p.x - state.ball.p.x;
+  const dy = state.players[near].p.y - state.ball.p.y;
+  if (dx * dx + dy * dy > TAKE_RADIUS * TAKE_RADIUS) return [];
 
   // ⚠️ A KICKOFF ANSWERS A DIFFERENT EVENT FROM EVERY OTHER RESTART, and missing that wedged the match:
   //    after a goal the phase walked `goal -> kickoff` on `restartTaken`, and then sat there forever
@@ -306,18 +319,33 @@ function awaitingRestart(
   return events;
 }
 
-/** Who is standing on the ball. Index order, so an exact tie goes to the lower index. */
-function nearestToBall(state: MatchState): number {
+/**
+ * Metres. How close somebody from the taking side has to get before the ball is in play again.
+ *
+ * A little wider than a body, because the taker has to be able to STAND at the ball rather than inside
+ * it - the contact step pushes two bodies apart, and a radius of exactly nothing would be a spot nobody
+ * can occupy.
+ */
+const TAKE_RADIUS = 1.2;
+
+/**
+ * The nearest player of one side to the ball, or `NOBODY`.
+ *
+ * Ties break on the smallest index, which is the rule possession uses - so two modules can never disagree
+ * about who got there first.
+ */
+function nearestOfTeamToBall(state: MatchState, team: TeamId): number {
   let best = NOBODY;
-  let bestD2 = 1;
-  for (let i = 0; i < state.players.length; i++) {
-    if (!onPitch(state, i)) continue;
-    const dx = state.players[i].p.x - state.ball.p.x;
-    const dy = state.players[i].p.y - state.ball.p.y;
+  let bestD2 = Infinity;
+  for (let k = 0; k < SQUAD_SIZE; k++) {
+    const id = firstOf(team) + k;
+    if (!onPitch(state, id)) continue;
+    const dx = state.players[id].p.x - state.ball.p.x;
+    const dy = state.players[id].p.y - state.ball.p.y;
     const d2 = dx * dx + dy * dy;
     if (d2 < bestD2) {
       bestD2 = d2;
-      best = i;
+      best = id;
     }
   }
   return best;

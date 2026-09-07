@@ -27,6 +27,28 @@ import { RED } from '../app/js/rules/cards.ts';
 const PROFILE = withPeriod(MATCH_PROFILE, 5);
 const skills = { 0: CLUBS[0].ratings, 1: CLUBS[1].ratings };
 
+/**
+ * Six fixtures, every club playing once.
+ *
+ * ⚠️ ONE MATCH IS AN OBSERVATION AND NOT A PROPERTY, and this file learned it the hard way. "Corners
+ * and goal kicks happen" was gated on a single fixture that produced two and one - and three of the other
+ * five produce neither, so the gate was measuring which clubs happened to be first in the list. Anything
+ * rare enough to be worth asserting is rare enough that one sample cannot answer it.
+ *
+ * AND SIX WHOLE MATCHES IS WHAT FOUND THE VETO. A restart used to need the GLOBALLY nearest player to be
+ * on the taking side, so an opponent standing over the ball held the match up for ever: five fixtures
+ * finished and the sixth ran out of ticks stopped at a throw-in. The single-fixture gate had been green
+ * through all of it.
+ */
+const SLATE = [
+  [0, 1],
+  [2, 3],
+  [4, 5],
+  [6, 7],
+  [8, 9],
+  [10, 11],
+] as const;
+
 interface Played {
   readonly state: ReturnType<typeof createMatchState>;
   readonly seen: Record<string, number>;
@@ -34,7 +56,7 @@ interface Played {
   readonly ticks: number;
 }
 
-function playToTheEnd(limit = 80_000): Played {
+function playToTheEnd(sides = skills, limit = 80_000): Played {
   const state = createMatchState(PROFILE);
   state.phase = 'live';
   const seen: Record<string, number> = {};
@@ -49,7 +71,7 @@ function playToTheEnd(limit = 80_000): Played {
   const phaseNow = (): string => state.phase;
 
   for (; ticks < limit && phaseNow() !== 'fullTime'; ticks++) {
-    for (const e of playTick(state, emptyFrame(ticks), DT, PROFILE, skills)) {
+    for (const e of playTick(state, emptyFrame(ticks), DT, PROFILE, sides)) {
       seen[e.kind] = (seen[e.kind] ?? 0) + 1;
     }
     const phase = phaseNow();
@@ -65,9 +87,25 @@ function playToTheEnd(limit = 80_000): Played {
 
 const played = playToTheEnd();
 
+/** Every fixture on the slate, played out. The rare events are counted across all six. */
+const slate = SLATE.map(([h, a]) => playToTheEnd({ 0: CLUBS[h].ratings, 1: CLUBS[a].ratings }));
+
+/** How many of `kind` the whole slate produced. */
+const across = (kind: string): number => slate.reduce((n, m) => n + (m.seen[kind] ?? 0), 0);
+
 describe('the match ends', () => {
   it('[Right] it reaches full time under its own steam, with nobody playing', () => {
     expect(played.state.phase).toBe('fullTime');
+  });
+
+  // ⚠️ EVERY FIXTURE, AND THIS IS THE GATE THAT FOUND THE VETO. One match ending proves that one
+  //    match ends; six clubs' worth of them is the first thing that can catch a wedge which needs a
+  //    particular situation to arise - here, an opponent left standing over the ball at a restart the
+  //    other side was owed. That fixture ran to the eighty-thousand-tick limit stopped at a throw-in.
+  it('[Right] and so does every fixture on the slate, not just the first one', () => {
+    for (const [i, match] of slate.entries()) {
+      expect(match.state.phase, `${SLATE[i][0]} v ${SLATE[i][1]} never finished`).toBe('fullTime');
+    }
   });
 
   it('[Right] and it plays both halves, changing ends in between', () => {
@@ -115,22 +153,26 @@ describe('what a match contains', () => {
   //    this asks that the two restarts are REACHABLE, which is what was actually wrong. How often they
   //    should happen is a question about the AI, and pinning a number nobody has tuned would turn an
   //    honest gate into a guess that goes red the next time the shape of play changes.
-  it('[Right] and corners and goal kicks, which needed a shot that can miss', () => {
-    expect(played.seen.crossedGoalLineByDefender ?? 0, 'no corner in a whole match').toBeGreaterThan(0);
-    expect(played.seen.crossedGoalLineByAttacker ?? 0, 'no goal kick in a whole match').toBeGreaterThan(0);
+  // ⚠️ ASKED OF THE SLATE, BECAUSE ONE MATCH CANNOT ANSWER IT. Half the fixtures produce no corner
+  //    at all and half produce no goal kick, so a single-fixture version of this gate measured the club
+  //    list rather than the game - it went green on the first pair and red on the next change to the AI,
+  //    for a reason that had nothing to do with the AI.
+  //
+  //    Five corners, three goal kicks and four offsides across six matches, measured. There is no ceiling
+  //    for the usual reason: how OFTEN they should happen is a question about the AI, and pinning a number
+  //    nobody has tuned turns an honest gate into a guess.
+  it('[Right] and corners, goal kicks and offsides happen across a slate of fixtures', () => {
+    expect(across('crossedGoalLineByDefender'), 'no corner in six whole matches').toBeGreaterThan(0);
+    expect(across('crossedGoalLineByAttacker'), 'no goal kick in six whole matches').toBeGreaterThan(0);
+    expect(across('offsideGiven'), 'no offside in six whole matches').toBeGreaterThan(0);
   });
 
-  // ⚠️ MET, AND IT WAS A MISSING WIRE RATHER THAN A MISSING RULE. `rules/offside` was written, gated hard
-  //    by `tests/offside`, and imported by `declaration.ts` - for the `gate` role that tints the offside
-  //    zone - and by nothing that played the match. `offsideGiven` was an event with a case in `takerFor`
-  //    and no producer anywhere. The sixth time here that a module was right, its gate was right, and
-  //    nobody called it; and once again only a whole match asked the second question.
-  //
-  //    One offside in a five-minute-half match, and no ceiling for the same reason as the corners above:
-  //    how often it should happen is a question about the AI, not about the law.
-  it('[Right] and offsides, once the flag is raised by a touch', () => {
-    expect(played.seen.offsideGiven ?? 0, 'no offside in a whole match').toBeGreaterThan(0);
-  });
+  // ⚠️ OFFSIDE WAS A MISSING WIRE RATHER THAN A MISSING RULE. `rules/offside` was written, gated
+  //    hard by `tests/offside`, and imported by `declaration.ts` - for the `gate` role that tints the
+  //    offside zone - and by nothing that played the match. `offsideGiven` was an event with a case in
+  //    `takerFor` and no producer anywhere: the sixth time here that a module was right, its gate was
+  //    right, and nobody called it. It is gated on the slate above, with the other two restarts that are
+  //    too rare for one fixture to answer for.
 
   // ⚠️ ALSO MEASURED AND NOT MET: five sendings-off in one ten-minute match, after the presser was taught
   //    to contain rather than dive in - which cut it from what had been a side reduced to six. Real
@@ -174,11 +216,14 @@ describe('what a match contains', () => {
 
   // ⚠️ THE FLOOR THAT IS STILL A REAL GATE. The requirement above is unmet and stated; this is the line
   //    below which the match stops being football at all, and it must never be crossed silently.
-  it('[Boundary] but nobody plays a match against three men', () => {
-    for (const team of [HOME, AWAY]) {
-      let playing = 0;
-      for (let k = 0; k < SQUAD_SIZE; k++) if (onPitch(played.state, firstOf(team) + k)) playing += 1;
-      expect(playing, `team ${team} was reduced to ${playing}`).toBeGreaterThan(3);
+  it('[Boundary] but nobody plays a match against three men, in any fixture', () => {
+    for (const [i, match] of slate.entries()) {
+      for (const team of [HOME, AWAY]) {
+        let playing = 0;
+        for (let k = 0; k < SQUAD_SIZE; k++) if (onPitch(match.state, firstOf(team) + k)) playing += 1;
+        const who = `${SLATE[i][0]} v ${SLATE[i][1]}: team ${team}`;
+        expect(playing, `${who} was reduced to ${playing}`).toBeGreaterThan(3);
+      }
     }
   });
 

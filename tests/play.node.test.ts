@@ -153,6 +153,30 @@ describe('a stopped match', () => {
     expect(s.phase).toBe('throwIn');
   });
 
+  // ⚠️ AND AN OPPONENT STANDING OVER THE BALL MUST NOT VETO IT. The rule was "the globally nearest player
+  //    has to be on the taking side", which lets any opponent who wanders back onto the spot hold the
+  //    match up for ever. Measured across six fixtures: one of them ran out of ticks stopped at a
+  //    throw-in, with the side owed it reduced to two men, and the whole remaining match never happened.
+  //
+  //    The rule football uses is the other one - a restart is taken when somebody FROM THE TAKING SIDE
+  //    reaches the ball - and whoever else is standing there is not taking it.
+  it('[Right] an opponent standing on the ball does not stop the taker taking it', () => {
+    const s = live();
+    s.ball.p = { x: 30, y: 0.2, z: 0 };
+    s.ball.v = { x: 0, y: -30, z: 0 };
+    s.possession.lastTouch = SQUAD_SIZE + 4; // an away player put it out, so home takes it
+    playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+    expect(s.restartTaker).toBe(HOME);
+
+    // The away man is nearer the ball than the home man, and it is not his throw.
+    s.players[SQUAD_SIZE + 6].p = { x: s.ball.p.x, y: s.ball.p.y };
+    s.players[3].p = { x: s.ball.p.x + 0.5, y: s.ball.p.y };
+    const events = playTick(s, emptyFrame(1), DT, MATCH_PROFILE);
+
+    expect(events.map((e) => e.kind), 'an opponent held the match up').toContain('restartTaken');
+    expect(s.phase).toBe('live');
+  });
+
   it('[Right] a throw-in belongs to the side that did NOT put it out', () => {
     const s = live();
     s.ball.p = { x: 30, y: 0.2, z: 0 };
