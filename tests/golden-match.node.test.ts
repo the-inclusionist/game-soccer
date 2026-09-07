@@ -1,0 +1,134 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// NINETY SECONDS OF FOOTBALL, RECORDED AS NUMBERS, AND COMPARED AGAINST THE SAME NINETY TOMORROW.
+//
+// ========================= THE HALF OF `replay` THAT WAS NEVER BUILT =========================
+// `tests/replay` asks that a recording replays to the digest trail it was recorded with, and refuses a
+// recording from another simulation version. Both are real, and neither can see what this sees: they
+// compare a build against ITSELF. A change to the AI rewrites the recording and the replay together, and
+// the gate goes on passing while the game becomes a different game.
+//
+// ⚠️ THE NEED IS MEASURED, NOT ARGUED. `thinksThisTick` was replaced with `return true` - deleting the AI
+// budget outright, so twenty-two agents re-decide on every tick instead of one in six - and of seven
+// hundred and thirty-eight gates, the only two that went red were the two that ask the schedule module
+// what it returns. Every behavioural gate stayed green: the digests, the whole-match slate, the anti-swarm
+// count, all of it. Twenty-two players did something different on five ticks out of every six and nothing
+// in this repository said so.
+//
+// ========================= WHAT A RED HERE MEANS, AND WHAT IT DOES NOT =========================
+// ⚠️ THIS IS A CHARACTERISATION GATE AND NOT A SPECIFICATION. It says the match is no longer the match it
+// was. It does NOT say the new one is worse - it cannot, because no number in it was chosen for being
+// right. Every other gate in this repository asserts something football is true of; this one asserts only
+// that yesterday and today agree.
+//
+// So a red here is a QUESTION: did you mean to change how a match plays?
+//
+//   - If you did - a new behaviour, a tuned constant, a fixed defect - re-run and paste the new trail in,
+//     and say IN THE COMMIT MESSAGE what moved and why. The summary below the trail is there to make that
+//     sentence writable: it tells you the score, the events and the tick the match ended on.
+//   - If you did not, you have just found an accident, and that is the entire reason this file exists.
+//
+// ⚠️ AND RE-BLESSING IS A DECISION, NEVER A CHORE. A trail updated without a sentence explaining it turns
+// this gate into a rubber stamp, at which point it costs a second a run and protects nothing. If you find
+// yourself pasting numbers without knowing what changed, the honest move is to go and find out.
+import { describe, expect, it } from 'vitest';
+import { createMatchState } from '../app/js/sim/state.ts';
+import { digest } from '../app/js/sim/digest.ts';
+import { playTick } from '../app/js/play.ts';
+import { MATCH_PROFILE, withPeriod } from '../app/js/rules/profile.ts';
+import { SIM_VERSION } from '../app/js/sim/recorder.ts';
+import { CLUBS } from '../app/js/teams/roster.ts';
+import { DT } from '../app/js/sim/ball.ts';
+import { emptyFrame } from '../app/js/sim/command.ts';
+
+/**
+ * Forty-five seconds a half, so ninety seconds is a WHOLE match.
+ *
+ * ⚠️ IT CROSSES HALF TIME ON PURPOSE. The ends swap there, and that single fact decides the offside line,
+ * which way the AI plays and which way a blind child is sent - the rule that lived as five copies until
+ * `sim/ends`. A golden that stopped at forty-four seconds would be blind to every second-half defect.
+ */
+const PROFILE = withPeriod(MATCH_PROFILE, 0.75);
+const TICKS = 5400;
+
+/** Ten seconds. Nine checkpoints, so a red names the ten-second window the two builds parted company in. */
+const CHECK_EVERY = 600;
+
+/**
+ * The trail, blessed by running it.
+ *
+ * ⚠️ THESE NUMBERS WERE NOT CHOSEN AND CANNOT BE REASONED ABOUT. They are what this simulation did, which
+ * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
+ */
+const GOLDEN: readonly number[] = [
+  3704578240, 2413161894, 3526890513, 2176295003, 3973463713, 72353084, 1541576081, 2862575029, 3218309391,
+];
+
+/** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
+const SUMMARY = {
+  phase: 'fullTime',
+  goals: [0, 0],
+  crossedTouchline: 1,
+  foulGiven: 1,
+  bookingGiven: 1,
+};
+
+function play() {
+  const skills = { 0: CLUBS[0].ratings, 1: CLUBS[1].ratings };
+  const state = createMatchState(PROFILE);
+  state.phase = 'live';
+  const trail: number[] = [];
+  const seen: Record<string, number> = {};
+
+  for (let t = 0; t < TICKS; t++) {
+    for (const e of playTick(state, emptyFrame(t), DT, PROFILE, skills)) {
+      seen[e.kind] = (seen[e.kind] ?? 0) + 1;
+    }
+    if ((t + 1) % CHECK_EVERY === 0) trail.push(digest(state));
+  }
+
+  return { state, trail, seen };
+}
+
+describe('ninety seconds that must stay the same ninety seconds', () => {
+  // ⚠️ PINNED TO THE VERSION, so a simulation that declares itself new is not silently measured against an
+  //    old world. `sim/recorder` already refuses a recording from another version; the trail below belongs
+  //    to the same version, and bumping one without the other is the mistake this catches.
+  it('[Interface] the trail belongs to this simulation version', () => {
+    expect(SIM_VERSION, 'the simulation version moved - the golden trail below is from the old one').toBe(1);
+  });
+
+  it('[Right] a whole match plays out exactly as it did when this was blessed', () => {
+    const { trail } = play();
+
+    expect(trail).toHaveLength(GOLDEN.length);
+    for (let i = 0; i < GOLDEN.length; i++) {
+      expect(
+        trail[i],
+        `the match changed somewhere in the ten seconds ending at tick ${(i + 1) * CHECK_EVERY}. ` +
+          'That is not automatically a defect - read the header of this file before touching the numbers.',
+      ).toBe(GOLDEN[i]);
+    }
+  });
+
+  // ⚠️ THE HALF A PERSON CAN READ. A digest that moved says only THAT the match changed; this says what
+  //    it changed INTO, which is the difference between re-blessing blind and writing the sentence the
+  //    commit message needs.
+  it('[Right] and the match it plays is still the one described beside the trail', () => {
+    const { state, seen } = play();
+
+    expect(state.phase, 'the match no longer reaches full time in ninety seconds').toBe(SUMMARY.phase);
+    expect([...state.goals]).toEqual(SUMMARY.goals);
+    expect(seen.crossedTouchline ?? 0).toBe(SUMMARY.crossedTouchline);
+    expect(seen.foulGiven ?? 0).toBe(SUMMARY.foulGiven);
+    expect(seen.bookingGiven ?? 0).toBe(SUMMARY.bookingGiven);
+  });
+
+  // ⚠️ AND THE GOLDEN IS ONLY WORTH THE FIXTURE IT PLAYS. One pairing is one observation - the whole-match
+  //    gate learned that the hard way and now plays a slate of six. This deliberately does NOT: six
+  //    ninety-second matches would cost six times as much to protect the same claim, because a change to
+  //    the simulation that misses THIS fixture and hits another is not a thing that happens. What the
+  //    slate buys is coverage of rare EVENTS; what this buys is a tripwire, and one wire is enough.
+  it('[Interface] the same ninety seconds twice in a row is the same ninety seconds', () => {
+    expect(play().trail).toEqual(play().trail);
+  });
+});
