@@ -127,4 +127,6 @@ export const es = {
   'tools.mode.realtime': 'Tiempo real',
   'tools.mode.assisted': 'Tiempo real con ayuda',
   'tools.mode.turn': 'Por jugadas',
+  'cue.foul': 'Falta señalada',
+  'cue.penalty': 'Penal!',
 } as const;

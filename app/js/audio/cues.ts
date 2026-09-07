@@ -46,6 +46,8 @@ export type CueName =
   | 'goalAgainst'
   | 'outOfPlay'
   | 'offside'
+  | 'foul'
+  | 'penalty'
   | 'halfTime'
   | 'fullTime'
   | 'restart';
@@ -71,6 +73,13 @@ export const CUES: Readonly<Record<CueName, CueDef>> = Object.freeze({
   outOfPlay: { t: 'sine', f: 440, d: 0.12, cap: 'cue.outOfPlay' },
   // A decision GIVEN, and the square wave is deliberate: a referee's call should not sound like the ball.
   offside: { t: 'square', f: 622, d: 0.3, cap: 'cue.offside' },
+  // The referee's whistle. Square, like the offside call, because a DECISION should not sound like the
+  // ball - but lower and shorter than offside, which is the rarer and stranger of the two.
+  foul: { t: 'square', f: 466, d: 0.22, cap: 'cue.foul' },
+  // ⚠️ THE LONGEST CALL IN THE MATCH, and deliberately so. A penalty stops everything, and a child who
+  //    cannot see the referee point at the spot has to be told that something bigger than a free kick
+  //    just happened, before the sentence arrives to say what.
+  penalty: { t: 'square', f: 349, d: 0.7, cap: 'cue.penalty' },
   halfTime: { t: 'square', f: 740, d: 0.4, cap: 'cue.halfTime' },
   fullTime: { t: 'square', f: 494, d: 0.8, cap: 'cue.fullTime' },
   // Play is live again. Short, because it happens often - and present, because a child who cannot see the
@@ -103,6 +112,12 @@ export function cueFor(event: RuleEvent, us: TeamId): CueName | null {
 
     case 'offsideGiven':
       return 'offside';
+
+    case 'foulGiven':
+      return 'foul';
+
+    case 'penaltyGiven':
+      return 'penalty';
 
     case 'periodExpired':
       return 'halfTime';

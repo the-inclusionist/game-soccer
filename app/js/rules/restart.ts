@@ -8,7 +8,7 @@
 
 import { teamOf, type TeamId } from '../sim/ids.ts';
 import type { MatchState } from '../sim/state.ts';
-import { GOAL, PITCH } from '../sim/units.ts';
+import { GOAL, PENALTY_SPOT, PITCH } from '../sim/units.ts';
 import { clamp, len2, norm, type Vec2 } from '../sim/vec.ts';
 import type { RuleEvent } from './events.ts';
 import { defenderOf } from './referee.ts';
@@ -24,10 +24,27 @@ const endOf = (x: number): EndId => (x > PITCH.length / 2 ? 1 : 0);
 
 /** Where the ball is placed for this event. */
 export function restartSpot(event: RuleEvent, period: number): Vec2 {
-  void period;
   const at = event.at;
 
   switch (event.kind) {
+    // A free kick is taken from where the foul was, which is the only restart in the game whose spot is
+    // simply the place something happened.
+    case 'foulGiven':
+      return { x: clamp(at?.x ?? 0, 0, PITCH.length), y: clamp(at?.y ?? 0, 0, PITCH.width) };
+
+    // ⚠️ AND A PENALTY IS ON THE SPOT, wherever the foul was - which is the point of a penalty. Which
+    //    spot depends on `event.team`: `rules/events` says that field is the side the event is ABOUT, and
+    //    a penalty is about the side AWARDED it, so the ball goes to the goal the OTHER side defends.
+    //    Reading it the other way round puts every penalty at the wrong end, and it reads as a fault in
+    //    the camera rather than in the laws.
+    case 'penaltyGiven': {
+      const theyDefendFar = ((event.team ?? 0) === 0) !== (period === 2);
+      return {
+        x: theyDefendFar ? PITCH.length - PENALTY_SPOT : PENALTY_SPOT,
+        y: PITCH.width / 2,
+      };
+    }
+
     case 'crossedTouchline':
       // Clamped along the pitch: a ball crossing the touchline beyond the goal line would otherwise put
       // the throw-in outside the field entirely.

@@ -130,4 +130,6 @@ export const en = {
   'tools.mode.realtime': 'Real time',
   'tools.mode.assisted': 'Real time with help',
   'tools.mode.turn': 'One move at a time',
+  'cue.foul': 'Foul given',
+  'cue.penalty': 'Penalty!',
 } as const;

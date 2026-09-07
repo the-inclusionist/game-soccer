@@ -16,6 +16,7 @@ export const PHASES = [
   'corner',
   'goalKick',
   'freeKick',
+  'penalty',
   'goal',
   'halfTime',
   'fullTime',
@@ -30,6 +31,8 @@ export const EVENTS = [
   'crossedGoalLineByAttacker',
   'crossedGoalLineByDefender',
   'offsideGiven',
+  'foulGiven',
+  'penaltyGiven',
   'goalScored',
   'restartTaken',
   'periodExpired',
@@ -39,7 +42,7 @@ export const EVENTS = [
 export type PhaseEvent = (typeof EVENTS)[number];
 
 /** Which profile switch a row depends on. `null` means the row is always in force. */
-type Gate = 'outOfPlay' | 'offside' | 'clock' | null;
+type Gate = 'outOfPlay' | 'offside' | 'fouls' | 'clock' | null;
 
 export interface Transition {
   readonly from: MatchPhase;
@@ -56,6 +59,11 @@ export const TRANSITIONS: readonly Transition[] = Object.freeze([
   { from: 'live', on: 'crossedGoalLineByAttacker', to: 'goalKick', needs: 'outOfPlay' },
   { from: 'live', on: 'crossedGoalLineByDefender', to: 'corner', needs: 'outOfPlay' },
   { from: 'live', on: 'offsideGiven', to: 'freeKick', needs: 'offside' },
+  // ⚠️ A FOUL AND A PENALTY ARE TWO EVENTS AND NOT ONE WITH A FLAG, because they lead to two phases and
+  //    the table is what makes that readable. One event carrying "and it was in the box" would push the
+  //    decision into whatever reads the row, which is the thing this table exists not to do.
+  { from: 'live', on: 'foulGiven', to: 'freeKick', needs: 'fouls' },
+  { from: 'live', on: 'penaltyGiven', to: 'penalty', needs: 'fouls' },
   { from: 'live', on: 'goalScored', to: 'goal', needs: null },
   { from: 'live', on: 'periodExpired', to: 'halfTime', needs: 'clock' },
   { from: 'live', on: 'secondPeriodExpired', to: 'fullTime', needs: 'clock' },
@@ -64,6 +72,7 @@ export const TRANSITIONS: readonly Transition[] = Object.freeze([
   { from: 'corner', on: 'restartTaken', to: 'live', needs: null },
   { from: 'goalKick', on: 'restartTaken', to: 'live', needs: null },
   { from: 'freeKick', on: 'restartTaken', to: 'live', needs: null },
+  { from: 'penalty', on: 'restartTaken', to: 'live', needs: null },
 
   { from: 'goal', on: 'restartTaken', to: 'kickoff', needs: null },
   { from: 'halfTime', on: 'restartTaken', to: 'kickoff', needs: null },
