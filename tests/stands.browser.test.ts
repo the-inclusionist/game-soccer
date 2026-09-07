@@ -49,6 +49,19 @@ const STANDS_TOP = 10;
  * at a fraction per FRAME, so how long it takes to arrive is a question about how many frames the machine
  * rendered - and with sixty-three other files running beside this one, 2500ms is a different number of
  * frames than it is alone. Waiting for the camera to SETTLE asks the thing the assertions are about.
+ *
+ * ⚠️ AND SETTLING WAS MEASURED IN WALL CLOCK, WHICH LOST THE SAME BET A THIRD TIME. "Three readings the
+ * same" means the lerp has converged OR the page rendered no frames between them - and under sixty-five
+ * other files the second is the ordinary case. It returned after 2.3 seconds with the camera twenty-two
+ * pixels short, and the assertion then reported a stand band that was never given a chance to arrive.
+ *
+ * So stillness is counted in TICKS, not in milliseconds: a reading only counts once the simulation has
+ * actually advanced, and only against a reading at least three ticks old. At a lerp of 0.12 per tick,
+ * three ticks close a third of whatever gap remains - comfortably more than the half pixel that integer
+ * rounding could otherwise hide - so a repeat reading means arrival and cannot mean a stalled page.
+ *
+ * ⚠️ AND RUNNING OUT OF TIME THROWS rather than returning quietly. A silent timeout is what turned a
+ * stalled page into an assertion about pixels; naming it says which of the two actually happened.
  */
 async function pinBallAt(y: number, ms = 6000): Promise<void> {
   const pin = window.setInterval(() => {
@@ -59,18 +72,23 @@ async function pinBallAt(y: number, ms = 6000): Promise<void> {
   try {
     const until = Date.now() + ms;
     let last = Number.NaN;
+    let lastTick = -1;
     let still = 0;
     while (Date.now() < until) {
       await new Promise((r) => setTimeout(r, 60));
+      const tick = booted?.state.tick ?? -1;
+      // No frames since the last reading: the page is starved, not settled. Say nothing about the camera.
+      if (tick - lastTick < 3) continue;
+      lastTick = tick;
       const now = booted?.cameraAt().y ?? Number.NaN;
       still = now === last ? still + 1 : 0;
       last = now;
-      // Three readings the same: the lerp has converged and the rounding has stopped changing.
       if (still >= 3) return;
     }
   } finally {
     window.clearInterval(pin);
   }
+  throw new Error(`the camera never settled at y=${y} within ${ms}ms - the page rendered too few frames`);
 }
 
 describe('where the camera actually goes', () => {
