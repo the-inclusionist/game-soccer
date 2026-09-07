@@ -15,18 +15,21 @@
 // Measured per match at the length stated, never extrapolated, against football's 40 throw-ins, 2.7 goals,
 // 10 corners, 1.7 bookings and 0.07 sendings-off:
 //
-//                 throw-ins   goals   corners   bookings   reds
-//   15 minutes         41.3     2.5       0.3        0.5   0
-//   90 minutes        213.0    19.7       2.8        2.0   0.33
+//                 throw-ins   goals   corners   bookings   reds     target: 40, 2.7, 10, 1.7, 0.07
+//   15 minutes         36.8     2.8       1.2        0.5      0
+//   90 minutes         77.2     4.5      11.5        1.7      0
 //
-// ⚠️ THE SHORT MATCH IS ALREADY THE SCHOOL MODE the Dev described - three of the five land on the target and
-// the other two are UNDER it - and the long one is uniformly five to seven times too eventful. The ratio
-// between the two columns is 90/15, which is the finding: this game's event density is right for a quarter
-// of an hour and six times too high for an hour and a half.
+// All twelve fixtures reach full time. `SHORT_MATCH` is fifteen minutes at the pace the game has always
+// played at; `FULL_MATCH` is ninety at HALF pace, and that lever is the only thing separating the columns.
 //
-// ⚠️ SO THE LONG MODE DOES NOT WANT MORE RULES. Every rule fixed today moved both columns together, because
-// a rule is a fact about a tick and both modes run the same ticks. What differs between fifteen minutes of
-// football and ninety is how much WORLD there is per player.
+// ⚠️ THEY MISS ON OPPOSITE HALVES OF THE LIST, which is what makes this two problems and not one. The short
+// match has football's throw-ins and football's goals and almost no corners; the long match has football's
+// corners and football's bookings and nearly twice the throw-ins.
+//
+// ⚠️ AND NO RULE COULD HAVE DONE IT. A rule is a fact about a TICK and both modes run the same ticks, so a
+// referee cannot hand down two different rates - every rule fixed here moved both columns together. What
+// differs between fifteen minutes of football and ninety has to be the WORLD, which is why the lever is
+// pace and not a threshold. See `rules/profile`, where the three settings measured are written down.
 //
 // ⚠️ AND "IT IS ALL DENSITY" WAS TOO BROAD, which a spike settled. `PITCH` was widened in a throwaway
 // experiment and six ninety-minute matches measured at each size:

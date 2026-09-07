@@ -123,15 +123,27 @@ const TICKS_PER_MINUTE = 60 * 60;
  * The same profile with the bodies at `k` times their pace.
  *
  * ⚠️ HALF IS THE NINETY-MINUTE MATCH and one is the short one, measured rather than argued - see `pace`.
- * A whole match at half pace produces 89 throw-ins, 1.0 goals, 9.0 corners and 1.7 bookings against
- * football's 40, 2.7, 10 and 1.7; at full pace it produces 206, 17.3, 5.0 and 1.0.
+ * A whole match at half pace produced 89 throw-ins, 1.0 goals, 9.0 corners and 1.7 bookings against
+ * football's 40, 2.7, 10 and 1.7; at full pace it produced 206, 17.3, 5.0 and 1.0.
+ *
+ * ⚠️ EVERY COUNT IN THIS FILE IS IN THE PAST TENSE ON PURPOSE. It is the measurement that MADE a choice,
+ * on the build of the day it was made, and it stays here because the choice would be unreadable without
+ * it. What the game produces NOW lives in exactly one place, `tests/full-match`, which runs it - a
+ * standing figure copied into a second file is a figure that drifts, and every number in this comment had
+ * drifted before this line was written.
  */
 /**
  * The school match: fifteen minutes, and the bodies at the pace this game has always played at.
  *
- * ⚠️ IT IS THE GAME AS IT IS, WHICH IS THE FINDING RATHER THAN A SETTING. Measured over six fixtures, a
- * fifteen-minute match produces 36.8 throw-ins and 2.5 goals against the Dev's targets of 40 and 2.7 - so
- * the short mode needed no lever at all. The long one is the one that needed a different world.
+ * ⚠️ IT IS THE GAME AS IT IS, WHICH IS THE FINDING RATHER THAN A SETTING. Measured over six fixtures when
+ * the two modes were chosen, a fifteen-minute match produced 36.8 throw-ins and 2.5 goals against the
+ * Dev's targets of 40 and 2.7 - so the short mode needed no lever at all, and the long one is the one that
+ * needed a different world.
+ *
+ * ⚠️ AND ITS CORNERS ARE THE HALF OF THE LIST IT MISSES. Corners here come overwhelmingly from a keeper's
+ * parry, and a quarter of an hour holds a sixth of the parries a full match does, so this mode cannot
+ * reach the Dev's ten by any threshold - it wants more balls hit INTO the box per minute than fifteen
+ * minutes of this cascade contains. `tests/full-match` carries the standing count and the attempts.
  */
 export const SHORT_MATCH: RulesProfile = withPeriod(MATCH_PROFILE, 7.5);
 
@@ -159,9 +171,13 @@ export const SHORT_MATCH: RulesProfile = withPeriod(MATCH_PROFILE, 7.5);
  * its four call sites, and the two the REFEREE uses were left comparing a halved going-in speed against a
  * full-pace top speed - so the bar was twice what it should be and `judgeTackle` was never called once.
  *
- * With that fixed, a ninety-minute match at half pace measures 77.2 throw-ins, 2.3 goals, 10.8 corners,
- * 15.5 fouls, 0.8 bookings and 0.17 sendings-off, against football's 40, 2.7, 10, 22, 1.7 and 0.07. The
- * throw-ins are the one that is still nearly twice the target, and they have a cause of their own.
+ * With that fixed the bookings came back to football's rate, and the throw-ins are the count that is still
+ * nearly twice the target - which is a MECHANISM rather than a frequency, and so cannot be tuned: measured,
+ * 279 of 281 crossings are the carrier walking his own ball over the line, where football's throw-in comes
+ * off a ball played too hard. `ai/brain` carries the pass that was built for exactly that, and the twelve
+ * matches on which it was rejected.
+ *
+ * The standing counts for this mode are in `tests/full-match`, which runs it, and not repeated here.
  */
 export const FULL_MATCH: RulesProfile = withPeriod(withPace(MATCH_PROFILE, 0.5), 45);
 
