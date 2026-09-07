@@ -129,6 +129,25 @@ beforeEach(() => {
   document.body.innerHTML = SHELL;
 });
 
+
+/**
+ * Wait for a fact, not for a duration.
+ *
+ * ⚠️ EVERY FIXED SLEEP IN THIS FILE WAS A BET ON THE MACHINE, and the end-of-match one lost it: 400ms is
+ * plenty of frames on an idle laptop and not enough with sixty-two other files running beside it, so the
+ * panel had not been shown yet and axe audited a `hidden` subtree - which it SKIPS, so the case did not
+ * even fail loudly. It failed on the assertion that the panel was open, which is the only reason the
+ * flake was visible at all.
+ */
+async function waitFor(what: () => boolean, why: string, timeoutMs = 8000): Promise<void> {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    if (what()) return;
+    await new Promise((r) => setTimeout(r, 40));
+  }
+  throw new Error(`timed out waiting for: ${why}`);
+}
+
 describe('the running game', () => {
   it('[Interface] reports ZERO WCAG A and AA violations, with no exclusions at all', async () => {
     booted = bootar(document, window);
@@ -144,7 +163,7 @@ describe('the running game', () => {
     booted = bootar(document, window);
     booted!.state.goals = [2, 1];
     booted!.state.phase = 'fullTime';
-    await new Promise((r) => setTimeout(r, 400));
+    await waitFor(() => !(document.querySelector('#end-panel') as HTMLElement).hidden, 'the end panel');
 
     expect((document.querySelector('#end-panel') as HTMLElement).hidden, 'the panel is actually shown').toBe(false);
     expect(await violationsNow()).toEqual([]);
@@ -155,7 +174,7 @@ describe('the running game', () => {
   it('[Interface] and the remap screen is clean - it is the first screen some children need', async () => {
     booted = bootar(document, window);
     (document.querySelector('#open-controls') as HTMLButtonElement).click();
-    await new Promise((r) => setTimeout(r, 200));
+    await waitFor(() => !(document.querySelector('#controls-panel') as HTMLElement).hidden, 'the remap screen');
 
     expect((document.querySelector('#controls-panel') as HTMLElement).hidden, 'the screen is open').toBe(false);
     expect(await violationsNow()).toEqual([]);
@@ -170,7 +189,10 @@ describe('the running game', () => {
     seats.value = 'coop';
     seats.dispatchEvent(new Event('change'));
     (document.querySelector('#open-controls') as HTMLButtonElement).click();
-    await new Promise((r) => setTimeout(r, 200));
+    await waitFor(
+      () => document.querySelectorAll('#ctrl-players button[data-seat]').length === 2,
+      'both keyboard choosers',
+    );
 
     expect(document.querySelectorAll('#ctrl-players button[data-seat]').length, 'the chooser is there').toBe(2);
     expect(await violationsNow()).toEqual([]);
@@ -181,7 +203,7 @@ describe('the running game', () => {
   //    other cases audit.
   it('[Interface] and the club choosers are clean, built and populated', async () => {
     booted = bootar(document, window);
-    await new Promise((r) => setTimeout(r, 200));
+    await waitFor(() => document.querySelectorAll('#home-club option').length > 8, 'the club lists');
 
     expect(document.querySelectorAll('#home-club option').length, 'the lists were built').toBeGreaterThan(8);
     expect(await violationsNow()).toEqual([]);
@@ -192,7 +214,7 @@ describe('the running game', () => {
   it('[Interface] and the assistances screen is clean, open, with its lists built', async () => {
     booted = bootar(document, window);
     (document.querySelector('#open-assists') as HTMLButtonElement).click();
-    await new Promise((r) => setTimeout(r, 200));
+    await waitFor(() => !(document.querySelector('#assist-panel') as HTMLElement).hidden, 'the assistances screen');
 
     expect((document.querySelector('#assist-panel') as HTMLElement).hidden, 'the screen is open').toBe(false);
     expect(document.querySelectorAll('#assist-charge option').length, 'the lists were built').toBe(3);

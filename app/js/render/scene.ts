@@ -34,6 +34,7 @@ import type { MatchState } from '../sim/state.ts';
 import { GOAL, PITCH } from '../sim/units.ts';
 import { MARKER, markerCells } from './marker-pixels.ts';
 import { centreCircle, penaltySpotAt, pitchLines } from './pitch-marks.ts';
+import { bodyCells, outlineOf } from './body-pixels.ts';
 import { SX, SY, SZ, WORLD_PX, project } from '../project.ts';
 
 /** The engine's logical screen. Never anything else: ADR-0001, integer scale only. */
@@ -76,18 +77,36 @@ export interface Scene {
   destroy(): void;
 }
 
-function bodyTexture(app: PIXI.Application, kit: number): PIXI.Texture {
+/**
+ * A player, painted from `body-pixels`.
+ *
+ * ⚠️ THE OUTLINE FOLLOWS THE FIGURE. It used to be a filled rectangle drawn UNDER four blocks, which is
+ * why the silhouette was a rectangle however the figure was shaped - and the outline is the single
+ * biggest thing separating twelve pixels of player from a field of grass, whatever colour the kit is.
+ *
+ * ⚠️ AND THE SKIN IS ONE TONE FOR EVERYBODY, which is a decision and not an oversight. At three pixels of
+ * head there is no room to say anything true about a face, and a generator picking tones would be
+ * inventing differences it cannot draw. What a child recognises here is the KIT and the mark over her own
+ * player; the figure is a body, and every body is the same body.
+ */
+function bodyTexture(app: PIXI.Application, kit: number, frame: number): PIXI.Texture {
   const g = new PIXI.Graphics();
-  // A body is 6x12 px: about 1.8m tall at SZ, and wide enough to have a shape at all.
-  g.beginFill(OUTLINE).drawRect(0, 0, 6, 12).endFill();
-  g.beginFill(kit).drawRect(1, 1, 4, 6).endFill();
-  g.beginFill(0x2a1c12).drawRect(1, 7, 4, 4).endFill();
-  g.beginFill(0xe3b08a).drawRect(1, 0, 4, 2).endFill();
-  // ⚠️ AND A `region` OPTION IS THE OBVIOUS FIX AND IT IS NOT THIS ONE. `generateTexture(g, { region })`
-  //    states the rectangle instead of inferring it, which is right in principle - and measured here it
-  //    left every BODY on the pitch drawn as a two-pixel dash. Whatever it changes reaches further than
-  //    this texture. It was tried, measured, and reverted; the next person should not spend the evening
-  //    rediscovering that it looks like the answer.
+  const cells = bodyCells(frame);
+
+  // Offset by one so an arm on column 0 has room for its outline. The sprite is therefore two wider and
+  // two taller than `BODY`, and the anchor below puts its feet where the projection says they are.
+  const O = 1;
+  for (const o of outlineOf(cells)) g.beginFill(OUTLINE).drawRect(o.x + O, o.y + O, 1, 1).endFill();
+
+  const colours: Record<string, number> = {
+    head: 0xe3b08a,
+    arm: 0xe3b08a,
+    leg: 0xe3b08a,
+    shirt: kit,
+    shorts: 0x2a1c12,
+  };
+  for (const c of cells) g.beginFill(colours[c.part]).drawRect(c.x + O, c.y + O, 1, 1).endFill();
+
   return app.renderer.generateTexture(g);
 }
 
@@ -300,12 +319,13 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
   // ⚠️ ONE TEXTURE PER DISTINCT KIT, NOT ONE PER BODY. Twenty-two textures where four will do is twenty-two
   //    uploads at boot on a machine that has none to spare - and the colours come from `kitFor`, so the
   //    renderer holds no table of its own to disagree with the crest.
-  const kitTex = new Map<number, PIXI.Texture>();
-  const textureFor = (colour: number): PIXI.Texture => {
-    const found = kitTex.get(colour);
+  const kitTex = new Map<string, PIXI.Texture>();
+  const textureFor = (colour: number, frame: number): PIXI.Texture => {
+    const key = `${colour}/${frame}`;
+    const found = kitTex.get(key);
     if (found !== undefined) return found;
-    const made = bodyTexture(app, colour);
-    kitTex.set(colour, made);
+    const made = bodyTexture(app, colour, frame);
+    kitTex.set(key, made);
     return made;
   };
 
@@ -318,7 +338,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
     world.addChild(sh);
     shadows.push(sh);
 
-    const sp = new PIXI.Sprite(textureFor(kitFor(fixture, i)));
+    const sp = new PIXI.Sprite(textureFor(kitFor(fixture, i), 0));
     sp.anchor.set(0.5, 1);
     world.addChild(sp);
     bodies.push(sp);
@@ -344,6 +364,10 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
     chevrons.push(c);
   }
 
+  // Which kits are on the pitch right now. The draw needs it every frame, because the stride picks a
+  // different texture per body per tick.
+  let shirts = fixture;
+
   const camera: CameraObj = criarCamera(
     { w: WORLD_PX.w, h: WORLD_PX.h },
     { w: LOGICAL.w, h: LOGICAL.h },
@@ -359,7 +383,8 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
     },
 
     setFixture(next: Fixture): void {
-      for (let i = 0; i < bodies.length; i++) bodies[i].texture = textureFor(kitFor(next, i));
+      shirts = next;
+      for (let i = 0; i < bodies.length; i++) bodies[i].texture = textureFor(kitFor(next, i), 0);
     },
 
     draw(state: MatchState, controlled: readonly number[]): void {
@@ -397,6 +422,13 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
         const px = Math.round(at.x);
         const py = Math.round(at.y);
         bodies[i].position.set(px, py);
+        // ⚠️ THE STRIDE IS DRIVEN BY DISTANCE TRAVELLED, NOT BY THE CLOCK. A leg cycle on a timer keeps
+        //    running while a player stands still, which reads as fidgeting; driven by where the body has
+        //    got to, a stopped player stands and a quick one strides faster - for free, and identically
+        //    in all three clock modes, because it is a fact about the world rather than about frames.
+        const body = state.players[i];
+        const stride = Math.floor((Math.abs(body.p.x) + Math.abs(body.p.y)) * 1.1) % 2;
+        bodies[i].texture = textureFor(kitFor(shirts, i), stride);
         // Painter's algorithm: `y` grows toward the near touchline, so ascending `y` is far to near.
         bodies[i].zIndex = Z.PLAYER + Math.round(state.players[i].p.y * 4);
         shadows[i].position.set(px, py);
