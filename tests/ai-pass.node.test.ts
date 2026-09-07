@@ -302,7 +302,24 @@ describe('a defender with nowhere to play it', () => {
 // ⚠️ THAT IS A CLOSED PASSING LOOP, and the two-metre rule's own comment predicted it in six words. Two
 // free players square to each other are each other's best outlet, for ever, and the ball goes nowhere.
 //
-// ⚠️ SO THE OUTLET NEEDS SOMETHING THIS CASCADE HAS NOT GOT: a memory of who just gave it to him. Football
-// has the same instinct - you do not immediately give it back - and Law 15 already made this repository
-// build one, `tookRestart`, for the taker who may not play it twice. An outlet that refuses the man who
-// just passed to him is the version worth trying next; an outlet without one is a metronome.
+// ⚠️ THE MEMORY WAS BUILT AND IT WORKED, AND THE OUTLET STILL LOSES. A third attempt added `lastStruck` -
+// who last played the ball deliberately - and had the outlet refuse him, which is football's own instinct
+// and the same shape as the Law 15 memory this repository already carries. It killed the metronome
+// outright: the phase changed again, play stopped and resumed again, the match progressed again.
+//
+// And the outlet turned out to be too GOOD. A carrier always has an escape, so the ball stops going loose:
+//
+//                          before      with outlet     target
+//   throw-ins                69.7            0.7         40
+//   goals                    16.7            8.0          2.7
+//   corners                  73.3           36.3         10
+//   bookings                  2.0            8.0          1.7
+//   sendings-off              0              5.67         0.07
+//
+// Better on goals and corners, and seven-tenths of a throw-in per NINETY MINUTES against football's forty -
+// with the cards going the same way, because a ball that never goes out is a ball always being fought over.
+//
+// ⚠️ SO THE IDEA IS NOT "AN OUTLET", IT IS "AN OUTLET THAT CAN FAIL". Every pass in this cascade is aimed
+// with a lean from `passing` and still finds its man, because the receiver is chosen for being FREE. A
+// sideways ball out of trouble is the one football most often gives away, and this AI has no way to
+// express giving it away. That is the next thing, and it is a bigger idea than a fallback branch.
