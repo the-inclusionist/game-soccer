@@ -43,3 +43,39 @@ describe('a ball that leaves the turf', () => {
     expect(Math.abs(ball.v.z)).toBeLessThan(0.001);
   });
 });
+
+// ========================= A BALL CANNOT BE ASLEEP IN THE AIR =========================
+// `stepBall` returns immediately for a ball that is grounded and still, which is what stops a settled ball
+// costing anything - and it trusted `grounded` without ever asking where the ball WAS.
+//
+// ⚠️ THAT COST FORTY-FOUR MINUTES OF EVERY MATCH. Measured on a real ninety-minute match: events happened
+// in the first minute and at half time and NOWHERE ELSE, and for the last sixteen minutes the ball sat at
+// exactly (5.7, 16.3, 1.20) without moving a millimetre. 1.2 is `MAX_CONTROL_HEIGHT` - so nobody could
+// take it either, and the match ran to full time with a frozen ball in the middle of the pitch.
+//
+// It got there because a keeper's parry marked the ball grounded without putting it on the turf. But the
+// invariant belongs HERE, where the shortcut is: a claim about `grounded` is a claim about a height, and
+// this function is the one that can check it rather than trusting five callers to.
+describe('a ball that says it has settled', () => {
+  it('[Right] falls anyway if it is not actually on the turf', () => {
+    const ball = createBall({ x: 45, y: 28 });
+    ball.p.z = 1.2;
+    ball.v = { x: 0, y: 0, z: 0 };
+    ball.grounded = true; // the lie a parry used to tell
+
+    for (let t = 0; t < 120; t++) stepBall(ball, DT);
+
+    expect(ball.p.z, 'the ball hung in the air for two seconds').toBeLessThan(0.01);
+  });
+
+  it('[Zero] and a ball actually at rest on the turf still costs nothing', () => {
+    const ball = createBall({ x: 45, y: 28 });
+    ball.v = { x: 0, y: 0, z: 0 };
+    ball.grounded = true;
+    const before = { ...ball.p };
+
+    for (let t = 0; t < 120; t++) stepBall(ball, DT);
+
+    expect(ball.p).toEqual(before);
+  });
+});

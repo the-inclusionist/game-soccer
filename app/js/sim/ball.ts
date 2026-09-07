@@ -42,6 +42,27 @@ export function createBall(at: { x: number; y: number }): Ball {
  * digest would drift on a ball sitting still on the centre spot.
  */
 export function stepBall(ball: Ball, dt: number): void {
+  // ⚠️ AND IT HAS TO BE ON THE TURF, not merely to say so. This shortcut trusted `grounded` alone, and a
+  //    ball marked grounded at a height with no velocity was frozen for ever - gravity is below this line.
+  //    Measured on a real ninety-minute match: the ball sat at (5.7, 16.3, 1.20) for the last sixteen
+  //    minutes, and 1.2 is `MAX_CONTROL_HEIGHT`, so nobody could pick it up either. Events happened in the
+  //    first minute and at half time and nowhere else.
+  //
+  //    A keeper's parry was telling the lie, and it is fixed there too - but the invariant belongs here,
+  //    where the shortcut is. A claim about `grounded` is a claim about a HEIGHT, and this is the one
+  //    function that can check it instead of trusting every caller to.
+  // ⚠️ A BALL ABOVE THE TURF IS NOT GROUNDED, WHATEVER IT SAYS. The flag routes the physics - grounded
+  //    takes the rolling branch, which has no gravity in it - so a caller that set it while the ball was in
+  //    the air did not merely mislabel the ball, it switched gravity off for the rest of the match.
+  //
+  //    Measured on a real ninety-minute match: events happened in the first minute and at half time and
+  //    NOWHERE else, and for the last sixteen minutes the ball sat at exactly (5.7, 16.3, 1.20) without
+  //    moving. 1.2 is `MAX_CONTROL_HEIGHT`, so nobody could pick it up either.
+  //
+  //    A keeper's parry was telling the lie and is fixed there too, but the invariant belongs here: this is
+  //    the one function that knows both the flag and the height, so it is the one that can refuse.
+  if (ball.p.z > 0) ball.grounded = false;
+
   if (ball.grounded && ball.v.x === 0 && ball.v.y === 0 && ball.v.z === 0) return;
 
   if (!ball.grounded) {

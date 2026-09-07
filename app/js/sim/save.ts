@@ -118,8 +118,12 @@ export function keeperSave(state: MatchState, sides?: readonly [SideCaps, SideCa
     const on = ball.v.x * PARRY_KEEP;
     ball.v.x = on;
     ball.v.y = wide * Math.abs(on) * PARRY_WIDE;
+    // ⚠️ ONLY GROUNDED IF IT IS ON THE GROUND. Claiming it for a ball still in the air froze it there: with
+    //    no vertical speed and `grounded` set, `sim/ball` skipped gravity entirely, and a parry taken at
+    //    head height left the ball hanging at 1.2 metres - above `MAX_CONTROL_HEIGHT`, so unreachable -
+    //    for the rest of the match. `sim/ball` refuses the lie now; this stops telling it.
     ball.v.z = 0;
-    ball.grounded = true;
+    ball.grounded = ball.p.z <= 0;
     state.possession.holder = -1;
     state.possession.lastTouch = id;
     return; // one ball, one keeper
