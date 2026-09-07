@@ -31,7 +31,8 @@ import {
 } from '../drivers/driver.ts';
 import { createTurnPanel } from '../ui/turn-panel.ts';
 import { clockText } from '../ui/clock.ts';
-import { youLine } from '../ui/mirror.ts';
+import { spotLines, youLine } from '../ui/mirror.ts';
+import { attackDirOf } from '../sim/ends.ts';
 import { outcomeFor, outcomeKey } from '../ui/outcome.ts';
 import { crestCanvas } from '../ui/crest-canvas.ts';
 import type { Command } from '../sim/command.ts';
@@ -719,7 +720,15 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     phase: doc.querySelector<HTMLElement>('#m-phase'),
     ball: doc.querySelector<HTMLElement>('#m-ball'),
     you: doc.querySelector<HTMLElement>('#m-you'),
+    options: doc.querySelector<HTMLElement>('#m-options'),
   };
+  // A list of four short phrases with no name on it is four phrases about nothing. The other mirror lines
+  // carry their own subject in the words; this one cannot, so the list says what it is a list OF.
+  mirror.options?.setAttribute('aria-label', t('hud.spot.label'));
+  // ⚠️ REWRITTEN ONLY WHEN IT CHANGES. This runs sixty times a second, and rebuilding four list items on
+  //    every frame is DOM churn a school tablet pays for - pillar 1 is the dominant constraint here, not
+  //    an afterthought. Comparing the joined text is one string compare against several allocations.
+  let optionsWere = '';
 
   // ⚠️ THE PIXI TICKER IS THE CLOCK, and `startLoop` reads `deltaTime` off it. Handing the engine a
   //    hand-rolled `requestAnimationFrame` shim would mean maintaining a second clock that has to agree
@@ -776,6 +785,26 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    ⚠️ ONE LINE PER SEAT, LABELLED, and joined by the seat's own name rather than by a sentence
       //    built out of two dictionary halves. With two children on one keyboard an unlabelled line is a
       //    line that belongs to nobody.
+      // ⚠️ THE SONAR, IN WORDS, FOR A CHILD WHO CANNOT USE THE SONAR. `targetsOf` is the half of the
+      //    contract the spatial audio uses, and spatial audio needs ears - so the single most useful
+      //    thing this game knows reached a deaf-blind child on a braille display through no channel at
+      //    all. The SAME spots are asked for here, never worked out a second time.
+      if (mirror.options !== null) {
+        const me = state.controlled[0];
+        const lines = spotLines(state.players[me].p, motor.declaration.targetsOf(0), attackDirOf(HOME, state.period), t);
+        const joined = lines.join('\u0000');
+        if (joined !== optionsWere) {
+          optionsWere = joined;
+          mirror.options.replaceChildren(
+            ...lines.map((line) => {
+              const li = doc.createElement('li');
+              li.className = 'mirror__line';
+              li.textContent = line;
+              return li;
+            }),
+          );
+        }
+      }
       if (mirror.you !== null) {
         const seated = state.controlled.slice(0, seating);
         mirror.you.textContent = seated

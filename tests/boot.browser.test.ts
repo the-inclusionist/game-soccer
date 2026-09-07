@@ -30,6 +30,7 @@ const SHELL = `
           <p id="m-phase">-</p>
           <p id="m-ball">-</p>
           <p id="m-you">-</p>
+          <ul id="m-options"></ul>
         </div>
       </section>
     </div></div>
@@ -239,6 +240,24 @@ describe('what a child sees', () => {
     expect(shown, 'the mirror never said who the child is').not.toBe('-');
     // A shirt number, because that is the whole point of the line: which ONE of the eleven.
     expect(shown, `no shirt number in "${shown}"`).toMatch(/\d/);
+  });
+
+  // ⚠️ AND WHERE SHE COULD PUT THE BALL, which the sonar already answers - for a child who can hear it.
+  //    Spatial audio needs ears, and a deaf-blind child on a braille display has the DOM and nothing
+  //    else, so the most useful thing this game knows was reaching her through no channel at all.
+  //
+  //    ⚠️ A LIST, BECAUSE A SCREEN READER ANNOUNCES ONE. "List, three items" and then step through them
+  //    is what she is doing with it; four phrases run into one sentence is a paragraph she has to parse.
+  it('[Right] and where the ball could go next, as a list a screen reader can step through', async () => {
+    booted = bootar(document, window);
+
+    await new Promise((r) => setTimeout(r, 350));
+
+    const list = document.querySelector('#m-options');
+    expect(list, 'the options list is not in the page').not.toBeNull();
+    expect(list?.getAttribute('aria-label'), 'a list of phrases with no name is phrases about nothing')
+      .toBeTruthy();
+    expect(list?.querySelectorAll('li').length, 'the mirror never listed an option').toBeGreaterThan(0);
   });
 
   // ⚠️ NOT A GATE - A LOOK. Nothing here can assert that twenty-two twelve-pixel figures READ, and

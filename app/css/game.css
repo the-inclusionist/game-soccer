@@ -62,6 +62,17 @@ body {
   margin: 2px 0;
 }
 
+/* Where the ball can go next, one item each.
+ *
+ * A LIST and not a sentence, because a screen reader announces "list, three items" and lets a child step
+ * through them - which is what she is doing with it. The bullets are off because the count is the
+ * information and a marker beside four short phrases at 14px is noise. */
+.mirror__options {
+  margin: 2px 0;
+  padding: 0;
+  list-style: none;
+}
+
 /* The caption of an earcon: what a deaf child reads in place of a tone.
  *
  * It holds a fixed line of height even when empty, because a caption that appears and disappears makes
