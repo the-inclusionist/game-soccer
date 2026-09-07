@@ -724,6 +724,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   };
   // A list of four short phrases with no name on it is four phrases about nothing. The other mirror lines
   // carry their own subject in the words; this one cannot, so the list says what it is a list OF.
+  //
+  // ⚠️ AND THE NAME IS DELIBERATELY GENERIC, which was found by WATCHING A MATCH and not by reading the
+  //    code. `targetsOf` answers three different questions depending on the state - go and get the loose
+  //    ball, run into this space, or put the pass here - and the first label written here said "where the
+  //    ball can go", which is true only of the third. On screen it sat over a line reading "twenty-two
+  //    paces to your right" while the ball was LOOSE and that spot WAS the ball. Every gate was green:
+  //    the wire gate asks that the label is not empty, and no gate can ask whether a sentence is true of
+  //    a situation it does not name.
   mirror.options?.setAttribute('aria-label', t('hud.spot.label'));
   // ⚠️ REWRITTEN ONLY WHEN IT CHANGES. This runs sixty times a second, and rebuilding four list items on
   //    every frame is DOM churn a school tablet pays for - pillar 1 is the dominant constraint here, not

@@ -74,7 +74,7 @@ export const en = {
   'hud.you.keeper': 'You are the keeper, number {shirt}',
   'hud.you.keeperBall': 'You are the keeper, number {shirt}, and the ball is yours',
   'hud.you.sentOff': 'Your player has been sent off',
-  'hud.spot.label': 'Where the ball can go',
+  'hud.spot.label': 'Your options now',
   'hud.spot.none': 'Nothing on',
   'hud.spot.ahead': '{paces} paces ahead',
   'hud.spot.aheadOne': 'One pace ahead',

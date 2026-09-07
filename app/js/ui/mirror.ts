@@ -63,6 +63,11 @@ interface Spot {
  * child on a braille display has the DOM and nothing else, and the most useful thing this game knows was
  * reaching her through no channel at all.
  *
+ * ⚠️ AND THEY ARE NOT ALL PASSES. `targetsOf` answers whichever question the state is asking - the
+ * loose ball to chase, the space to run into, or the receivers to choose between - so nothing here calls
+ * them passes, and the list's own label must not either. The first label did, and a match watched on
+ * screen showed it captioning a LOOSE ball as somewhere to pass to.
+ *
  * ⚠️ HER LEFT, NOT THE SCREEN'S. Ends swap at half time, so a spot at a fixed `y` is on her left in one
  * half and her right in the other. `across` is multiplied by the attacking direction for exactly that
  * reason - it is the same rule `narration` has obeyed since it existed, and getting it backwards would

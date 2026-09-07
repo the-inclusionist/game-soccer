@@ -127,14 +127,46 @@ describe('the cascade', () => {
     expect(after).toBeLessThan(before);
   });
 
-  it('[Interface] thinking is staggered, so a body keeps steering toward a target it decided earlier', () => {
+  // ⚠️ THIS GATE COULD NOT FAIL, AND THAT IS WHY IT IS WRITTEN OUT AT LENGTH. It used to call `think`
+  //    twice WITHOUT MOVING THE TICK - so both calls asked the same question of the same world, and the
+  //    two answers matched whether the stagger existed or not. Measured: `thinksThisTick` was replaced
+  //    with `return true`, removing the budget entirely, and this file stayed green on all seventeen.
+  //
+  //    Worse, it is the gate NAMED for the thing. Pillar 1 - sixty frames a second on a school tablet -
+  //    is the dominant engineering constraint of this game, the stagger is how the AI pays it, and the
+  //    only gates that noticed its removal were the two that ask `thinksThisTick` what it returns. Those
+  //    measure the module. This is supposed to measure the WIRE.
+  //
+  //    ⚠️ AND IT NEEDS BOTH HALVES. A gate that only shows the target standing still passes on an AI
+  //    that never decides anything at all, so the second half moves the tick to one he IS scheduled for
+  //    and demands that the target moves. Player 4 decides when `(tick + 4) % 6 === 0`: tick 2, not 3.
+  it('[Interface] a body that is not scheduled this tick keeps the target it decided earlier', () => {
     const s = live();
+    s.tick = 2;
     think(s, skills);
-    const first = { ...s.players[4].target };
+    const decided = { ...s.players[4].target };
 
+    // The whole match moves to the other end. A fresh decision could not land on the same spot.
+    s.ball.p = { x: 5, y: 5, z: 0 };
+    s.tick = 3;
     think(s, skills);
 
-    expect(s.players[4].target).toEqual(first);
+    expect(s.players[4].target, 'he decided again on a tick that is not his').toEqual(decided);
+  });
+
+  it('[Right] and on the tick that IS his, he decides again', () => {
+    const s = live();
+    s.tick = 2;
+    think(s, skills);
+    const decided = { ...s.players[4].target };
+
+    s.ball.p = { x: 5, y: 5, z: 0 };
+    s.tick = 8;
+    think(s, skills);
+
+    expect(s.players[4].target, 'he never decides at all, so the gate above proves nothing').not.toEqual(
+      decided,
+    );
   });
 });
 

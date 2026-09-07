@@ -74,7 +74,7 @@ export const pt = {
   'hud.you.keeper': 'Você é o goleiro, número {shirt}',
   'hud.you.keeperBall': 'Você é o goleiro, número {shirt}, e a bola é sua',
   'hud.you.sentOff': 'Seu jogador foi expulso',
-  'hud.spot.label': 'Para onde a bola pode ir',
+  'hud.spot.label': 'Suas opções agora',
   'hud.spot.none': 'Nenhuma opção',
   'hud.spot.ahead': '{paces} passos à frente',
   'hud.spot.aheadOne': 'Um passo à frente',
