@@ -19,7 +19,7 @@ import type { Body, MatchState } from '../sim/state.ts';
 import { PITCH } from '../sim/units.ts';
 import { clamp, dist2, type Vec2 } from '../sim/vec.ts';
 import { homeSpot, type TeamPlan } from './formation.ts';
-import type { Ratings } from './ratings.ts';
+import { passErrorOf, type Ratings } from './ratings.ts';
 import { teamPlan } from './plan.ts';
 import { thinksThisTick } from './schedule.ts';
 import { RECKLESS_SPEED } from '../rules/foul.ts';
@@ -214,6 +214,10 @@ const SHOOT_RANGE = 22;
 const SHOT_SPEED = 26;
 const SHOT_LIFT = 1.6;
 
+/** Metres per second on a pass. Short balls arrive; long ones have to travel. */
+const PASS_SPEED_SHORT = 14;
+const PASS_SPEED_LONG = 19;
+
 /**
  * Does anybody strike the ball this tick?
  *
@@ -284,7 +288,63 @@ const WENT_IN = RECKLESS_SPEED;
 /** Metres. How close the presser has to be to the carrier to count as having gone in at all. */
 const CHALLENGE_RANGE = 2.0;
 
-export function decideKick(state: MatchState, playable: Playable = PITCH): Kick | null {
+/** Metres. An opponent this close is pressure, and pressure is the reason to let the ball go. */
+const PRESSED_AT = 2.6;
+
+/** Metres. Further than this and a pass is a hopeful ball rather than a pass. */
+const PASS_RANGE = 26;
+
+/**
+ * The team-mate worth giving it to, or `null`.
+ *
+ * ⚠️ FORWARD, FREE, AND IN RANGE - in that order, and all three matter. Backwards is safe and produces
+ * a match that never arrives anywhere; a marked man is a giveaway; beyond the range a pass stops being a
+ * pass. With nobody who qualifies the answer is NULL and the carrier keeps it, because hoofing it away is
+ * not something a child can learn anything from.
+ */
+function receiverFor(state: MatchState, carrier: PlayerId, playable: Playable): PlayerId | null {
+  const team = teamOf(carrier);
+  const dir = dirOf(team, state.period);
+  const me = state.players[carrier].p;
+
+  let best: PlayerId | null = null;
+  let bestScore = 0;
+
+  for (let k = 0; k < SQUAD_SIZE; k++) {
+    const id = firstOf(team) + k;
+    if (id === carrier || isKeeper(id) || !onPitch(state, id)) continue;
+
+    const at = state.players[id].p;
+    const ahead = (at.x - me.x) * dir;
+    if (ahead <= 2) continue; // a square or backward ball is not what this is for
+
+    const d2 = dist2(me, at);
+    if (d2 > PASS_RANGE * PASS_RANGE) continue;
+    if (at.x < 0 || at.x > playable.length || at.y < 0 || at.y > playable.width) continue;
+
+    // How free he is: the gap to his nearest marker. Ties break on the smallest index, like possession
+    // does, so two identical options never depend on iteration order.
+    let room = Infinity;
+    for (let j = 0; j < SQUAD_SIZE; j++) {
+      const foe = firstOf(team === 0 ? 1 : 0) + j;
+      if (!onPitch(state, foe)) continue;
+      const gap = dist2(at, state.players[foe].p);
+      if (gap < room) room = gap;
+    }
+
+    // Forward AND free, neither able to dominate: a marked man twenty metres up the pitch is worse than a
+    // free one ten metres up.
+    const score = ahead * Math.sqrt(room);
+    if (score > bestScore) {
+      bestScore = score;
+      best = id;
+    }
+  }
+
+  return best;
+}
+
+export function decideKick(state: MatchState, playable: Playable = PITCH, skills?: Skills): Kick | null {
   const holder = state.possession.holder;
   if (holder === NOBODY) return null;
 
@@ -303,10 +363,48 @@ export function decideKick(state: MatchState, playable: Playable = PITCH): Kick 
   const dx = mouth.x - state.ball.p.x;
   const dy = mouth.y - state.ball.p.y;
   const d2 = dx * dx + dy * dy;
-  if (d2 > SHOOT_RANGE * SHOOT_RANGE) return null;
+  if (d2 <= SHOOT_RANGE * SHOOT_RANGE) {
+    const d = Math.sqrt(d2) || 1;
+    return { id: holder, vx: (dx / d) * SHOT_SPEED, vy: (dy / d) * SHOT_SPEED, vz: SHOT_LIFT };
+  }
 
-  const d = Math.sqrt(d2) || 1;
-  return { id: holder, vx: (dx / d) * SHOT_SPEED, vy: (dy / d) * SHOT_SPEED, vz: SHOT_LIFT };
+  // ⚠️ HE ONLY LETS GO UNDER PRESSURE. A carrier who passed whenever a pass existed would produce a
+  //    match of nothing but passing, and dribbling is half of what a child watches for. Pressure is the
+  //    reason football has passes at all.
+  const me = state.players[holder].p;
+  let pressure = Infinity;
+  for (let j = 0; j < SQUAD_SIZE; j++) {
+    const foe = firstOf(team === 0 ? 1 : 0) + j;
+    if (!onPitch(state, foe)) continue;
+    const gap = dist2(me, state.players[foe].p);
+    if (gap < pressure) pressure = gap;
+  }
+  if (pressure > PRESSED_AT * PRESSED_AT) return null;
+
+  const mate = receiverFor(state, holder, playable);
+  if (mate === null) return null;
+
+  const to = state.players[mate].p;
+  const px = to.x - me.x;
+  const py = to.y - me.y;
+  const far = Math.sqrt(px * px + py * py) || 1;
+
+  // ⚠️ THE FIRST RATING THAT REACHES THE PITCH. `think` did `void skills` - the clubs' six numbers
+  //    were accepted and thrown away, so "every club is a side" was true of the roster and false of the
+  //    match. A pass leans off its line by an angle from `passing`, and a perfect passer's error is ZERO:
+  //    the honest end of the scale rather than a floor somebody chose.
+  //
+  //    ⚠️ AND THE LEAN IS DETERMINISTIC, not rolled. ADR-0049 asks for it and fairness asks harder: a
+  //    pass that misses by luck is a pass a child cannot learn to make. Which way it leans comes from the
+  //    carrier's own shirt number, so the same club in the same position plays the same ball for ever.
+  const error = passErrorOf(skills?.[team]?.passing ?? 0.5);
+  const lean = holder % 2 === 0 ? error : -error;
+  const nx = px / far;
+  const ny = py / far;
+
+  // Enough to arrive, never so much that it runs away from the man it was meant for.
+  const speed = far < 10 ? PASS_SPEED_SHORT : PASS_SPEED_LONG;
+  return { id: holder, vx: (nx - ny * lean) * speed, vy: (ny + nx * lean) * speed, vz: 0 };
 }
 
 export { SQUAD_SIZE };

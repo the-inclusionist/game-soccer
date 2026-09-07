@@ -198,7 +198,7 @@ export function playTick(
   }
 
   if (skills !== undefined && !struck) {
-    const kick = decideKick(state, profile.playable);
+    const kick = decideKick(state, profile.playable, skills);
     if (kick !== null) {
       state.ball.v = { x: kick.vx, y: kick.vy, z: kick.vz };
       state.ball.grounded = false;
