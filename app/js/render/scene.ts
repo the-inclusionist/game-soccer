@@ -159,8 +159,19 @@ function pitchTexture(app: PIXI.Application): PIXI.Texture {
   const g = new PIXI.Graphics();
   const m = WORLD_PX.margin;
 
-  // ⚠️ THE TOP OF THE WORLD IS LEFT TRANSPARENT, so the stands behind it show through. Painting grass from
-  //    edge to edge is what made the parallax invisible in the first place.
+  // ⚠️ THE WHOLE WORLD IS PINNED FIRST, WITH A FULLY TRANSPARENT RECTANGLE, and without it the top band is
+  //    transparent and the parallax is STILL invisible. `generateTexture` crops to the graphics' own
+  //    BOUNDS: with the first painted thing starting at y = 36, the texture began there, and a sprite
+  //    placed at (0, 0) put row 36 of the world at row 0 of the screen. The grass then covered exactly the
+  //    band that had been left clear for the stands - so leaving it transparent achieved nothing, and the
+  //    pitch sat thirty-six pixels above where `project()` says it is.
+  //
+  //    Zero alpha still contributes to bounds, so this costs one rectangle and makes the alignment a fact
+  //    rather than a consequence of what happens to be painted highest.
+  g.beginFill(0x000000, 0).drawRect(0, 0, WORLD_PX.w, WORLD_PX.h).endFill();
+
+  // The top of the world is left clear, so the stands behind it show through. Painting grass from edge to
+  // edge is what made the parallax invisible the FIRST time.
   const grassTop = m.top - 10;
   g.beginFill(0x27632f).drawRect(0, grassTop, WORLD_PX.w, WORLD_PX.h - grassTop).endFill();
 

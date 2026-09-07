@@ -586,6 +586,31 @@ describe('what a child sees', () => {
     expect(document.querySelectorAll('#pitch canvas')).toHaveLength(1);
   });
 
+  // ⚠️ THE THIRD PICTURE, AND THE ONE THE README HAS BEEN ADMITTING IT DID NOT HAVE. `stadium-layers` has
+  //    been built, gated on its maths and on reduced motion, and NEVER SEEN: the stands sit in screen
+  //    space at rows 10 to 44, and the camera only reaches the top of the world when the ball is near the
+  //    FAR touchline. Every screenshot this repository has taken had the ball around the middle, where the
+  //    camera clamps well below them - so "not yet seen in a captured frame" was true for months and the
+  //    fix was to put the ball somewhere else.
+  it('[Right] and the stands, which no picture here has ever shown', async () => {
+    booted = bootar(document, window);
+    booted!.state.phase = 'live';
+
+    // ⚠️ PINNED EVERY FRAME, not placed once. The camera follows the BALL and twenty-two players take it
+    //    away within a tick; a ball placed and left drifts back toward the middle, the camera follows it,
+    //    and the picture is of the halfway line again - which is how this went unseen for months.
+    const pin = window.setInterval(() => {
+      if (booted === null) return;
+      booted.state.ball.p = { x: 45, y: 0.5, z: 0 };
+      booted.state.ball.v = { x: 0, y: 0, z: 0 };
+    }, 8);
+    await new Promise((r) => setTimeout(r, 2500));
+    await page.screenshot({ path: 'stands.png' });
+    window.clearInterval(pin);
+
+    expect(booted!.state.ball.p.y).toBeLessThan(4);
+  });
+
   // ⚠️ A SECOND PICTURE, AT THE GOAL, because the first one can never show the thing that most needs
   //    looking at. The camera follows the ball and the ball starts on the halfway line, so every
   //    screenshot this repository has taken shows the centre circle and no penalty area at all - which is
