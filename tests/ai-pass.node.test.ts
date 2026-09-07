@@ -412,3 +412,59 @@ describe('a defender with nowhere to play it', () => {
 // with a lean from `passing` and still finds its man, because the receiver is chosen for being FREE. A
 // sideways ball out of trouble is the one football most often gives away, and this AI has no way to
 // express giving it away. That is the next thing, and it is a bigger idea than a fallback branch.
+
+// ========================= AND THE ONE HE PUTS BEHIND ON PURPOSE =========================
+// Six fifteen-minute matches produce 0.3 corners between them, against football's ten a match. The corner
+// RULE has been gated since the referee existed; what the game lacks is anything that reliably puts the
+// ball behind a defender's own line.
+//
+// It had two sources and lost one. The keeper tips a shot round the post - but shots stopped reaching him
+// once a body could block one, which is `sim/block` and is worth its cost. Nothing else in the cascade
+// ever sends the ball backwards at all: `receiverFor` only passes forward and `clearIt` hoofs it upfield.
+//
+// ⚠️ FOOTBALL'S ANSWER IS A CHOICE, NOT AN ACCIDENT. A defender in his own six-yard area with a man on him
+// puts it out rather than risk it in front of his own goal, and conceding a corner is the point of doing
+// it. That is the one behaviour here that produces corners on purpose.
+describe('a defender on his own goal line', () => {
+  /** A home defender `x` metres from his own line, pressed, with nobody to pass to. */
+  function cornered(x: number) {
+    const s = createMatchState(MATCH_PROFILE);
+    s.phase = 'live';
+    const back = firstOf(HOME) + 3;
+    for (let k = 0; k < SQUAD_SIZE; k++) {
+      s.players[firstOf(HOME) + k].p = { x: 1, y: 54 };
+      s.players[firstOf(AWAY) + k].p = { x: 80, y: 54 };
+    }
+    s.players[back].p = { x, y: 24 };
+    s.players[firstOf(AWAY) + 3].p = { x: x + 1.2, y: 24 };
+    s.ball.p = { x, y: 24, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = back;
+    s.possession.lastTouch = back;
+    return { s, back, skills: { 0: AVERAGE, 1: AVERAGE } };
+  }
+
+  it('[Right] puts it behind rather than playing it across his own goal', () => {
+    const { s, skills } = cornered(3);
+
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills);
+
+    expect(kick, 'he kept it in his own six-yard box with a man on him').not.toBeNull();
+    expect(kick!.vx, 'he cleared it upfield from three metres out').toBeLessThan(0);
+  });
+
+  // ⚠️ AND ONLY THAT DEEP. A defender twenty metres out has a pitch in front of him and hoofs it there;
+  //    putting THAT ball behind would be a side conceding a corner every time it won the ball back.
+  it('[Zero] but from the edge of his third he still clears upfield', () => {
+    const { s, skills } = cornered(20);
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills)!.vx).toBeGreaterThan(0);
+  });
+
+  it('[Zero] and with nobody near him he plays football with it', () => {
+    const { s, skills } = cornered(3);
+    s.players[firstOf(AWAY) + 3].p = { x: 80, y: 54 };
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills)).toBeNull();
+  });
+});

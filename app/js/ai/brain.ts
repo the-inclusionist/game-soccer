@@ -169,6 +169,14 @@ export function decide(
 const OWN_THIRD_OF = 1 / 3;
 
 /**
+ * Metres from his own goal line inside which a pressed defender puts the ball out rather than upfield.
+ *
+ * The goal area's depth, which is the patch of grass where playing it anywhere but away is how a side
+ * concedes. Deeper than this a defender has a pitch in front of him and uses it.
+ */
+const GOAL_AREA = 5.5;
+
+/**
  * Pressed, deep, and nobody to pass to: get rid of it.
  *
  * ⚠️ ONLY THE KEEPER EVER CLEARED HIS LINES. An outfield player in his own box with a man on him and no
@@ -577,6 +585,22 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   //    them branches the cascade - which is what the whole design rested on.
   const pressedAt = pressedAtOf(skills?.[team]?.composure ?? 0.5);
   if (pressure > pressedAt * pressedAt) return null;
+
+  // ⚠️ AND FROM HIS OWN GOAL AREA HE PUTS IT OUT, BEFORE HE LOOKS FOR A PASS. Putting this inside
+  //    `clearIt` - which is only reached when there is NOBODY to pass to - was measured and never fired
+  //    once in six whole matches, because a defender that deep almost always has somebody ahead of him.
+  //    It passed its hand-built gate and was unreachable in play.
+  //
+  //    A defender on his own line with a man on him does not pick a pass across his own goal. He puts it
+  //    out, and conceding the corner is the point of doing it - which is also the only thing in this
+  //    cascade that sends the ball over a goal line on purpose. The keeper's tip round the post was the
+  //    other source, and shots stopped reaching him once a body could block one.
+  const deep = dir === 1 ? me.x : playable.length - me.x;
+  if (deep <= GOAL_AREA) {
+    const out = CLEARANCE_SPEED * (playable.length / PITCH.length);
+    const wide = me.y < playable.width / 2 ? -1 : 1;
+    return { id: holder, vx: -dir * out, vy: wide * out * CLEAR_WIDE, vz: CLEARANCE_LIFT };
+  }
 
   const mate = receiverFor(state, holder, playable);
   if (mate === null) return clearIt(state, holder, dir, playable);
