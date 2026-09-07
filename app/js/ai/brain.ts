@@ -145,12 +145,73 @@ export function decide(
 
   // 4, 5 - Nobody has it, or they do: exactly ONE of us goes, and it is the one the plan named. Everyone
   //        else holds the shape. This single line is the anti-swarm rule.
-  if (plan.presserId === squadIndex) return ball;
+  //
+  //     ⚠️ CLAMPED TO THE PLAYABLE PITCH, WHICH EVERY OTHER BRANCH ALREADY WAS. This one returned the raw
+  //        ball position, so the moment anything put the ball outside the training half the presser
+  //        followed it out - and `tests/ai-brain` says bodies must stay inside it. It went unnoticed
+  //        because nothing could put the ball out there until a defender could hoof it clear.
+  if (plan.presserId === squadIndex) {
+    return { x: clamp(ball.x, 0, playable.length), y: clamp(ball.y, 0, playable.width) };
+  }
 
   // 6, 7 - Mark space by standing in the shape. A dedicated marking rule would be the next thing to add,
   //        and the shape already slides toward the ball, which is most of the effect for none of the cost.
   return home;
 }
+
+/**
+ * Metres. How deep in his own half a player has to be before a ball with nowhere to go is hammered clear.
+ *
+ * ⚠️ HIS OWN THIRD AND NOT ANYWHERE, which is what keeps it a clearance rather than a way of never playing
+ * football. A player hoofing it from the halfway line every time he is closed down turns every match into
+ * two goalkeepers kicking to each other.
+ */
+const OWN_THIRD_OF = 1 / 3;
+
+/**
+ * Pressed, deep, and nobody to pass to: get rid of it.
+ *
+ * ⚠️ ONLY THE KEEPER EVER CLEARED HIS LINES. An outfield player in his own box with a man on him and no
+ * forward receiver simply DRIBBLED, which is not football - and which is also the reason this game had no
+ * legitimate way for the ball to leave the pitch. Clamping the dribbling touch so it could not knock the
+ * ball out was tried twice and took throw-ins from six times football's rate to ZERO, which proved the
+ * touch was the only route to a touchline the game had. A clearance is football's, and it is the one this
+ * cascade was plainly missing.
+ *
+ * ⚠️ IT LEAVES THE FLOOR, which is what makes it a clearance and not a bad pass: `CLEARANCE_LIFT` puts it
+ * over the man in front of him, and a ball in the air is one nobody dribbles.
+ *
+ * ⚠️ AND IT IS AIMED SLIGHTLY WIDE, away from the middle. A clearance up the middle of your own box is the
+ * one every coach shouts about, and aiming it out towards the touchline is both the instruction a child
+ * gets and - measured, in the count above - the throw-ins football has and this did not.
+ */
+function clearIt(state: MatchState, holder: PlayerId, dir: 1 | -1, playable: Playable): Kick | null {
+  const me = state.players[holder].p;
+  // ⚠️ OF THE PLAYABLE PITCH AND NOT OF `PITCH`. The practice profile is half a pitch, and a third
+  //    measured on the full one covers two thirds of it - so a training session became twenty-two bodies
+  //    chasing clearances out of the area they are supposed to stay inside. `tests/ai-brain` caught it.
+  const along = dir === 1 ? me.x : playable.length - me.x;
+  if (along > playable.length * OWN_THIRD_OF) return null;
+
+  // Towards the nearer touchline: away from the middle is where a clearance goes.
+  const wide = me.y < playable.width / 2 ? -1 : 1;
+
+  // ⚠️ A CLEARANCE IS A FRACTION OF THE PITCH, NOT A NUMBER OF METRES. The practice profile is HALF a
+  //    pitch, and twenty-two metres a second carries the ball clean out of it - so a training session
+  //    became a squad chasing hoofed balls out of the area they are meant to stay inside, which
+  //    `tests/ai-brain` reported as bodies at x=56 on a 45-metre field. Scaling it by the playable length
+  //    keeps the same shot of football on any size of pitch.
+  const hoof = CLEARANCE_SPEED * (playable.length / PITCH.length);
+  return {
+    id: holder,
+    vx: dir * hoof,
+    vy: wide * hoof * CLEAR_WIDE,
+    vz: CLEARANCE_LIFT,
+  };
+}
+
+/** How much of a clearance goes across rather than up. A quarter is "out towards the line", not sideways. */
+const CLEAR_WIDE = 0.25;
 
 /** All the ratings a match needs, by team. */
 export type Skills = Readonly<Record<number, Ratings>>;
@@ -495,7 +556,7 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   if (pressure > pressedAt * pressedAt) return null;
 
   const mate = receiverFor(state, holder, playable);
-  if (mate === null) return null;
+  if (mate === null) return clearIt(state, holder, dir, playable);
 
   const to = state.players[mate].p;
   const px = to.x - me.x;

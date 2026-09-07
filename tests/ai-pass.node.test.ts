@@ -74,9 +74,17 @@ describe('a carrier under pressure', () => {
 
   // ⚠️ A PASS TO NOBODY IS A GIVEAWAY. With no team-mate to aim at, holding the ball is the better answer
   //    and the honest one - there is no reason to hoof it away that a child could learn from.
-  it('[Zero] with nobody to pass to, he keeps it', () => {
+  //
+  //    ⚠️ AND THAT IS NOW TRUE OUTSIDE HIS OWN THIRD, which is a real qualification and not a repair to keep
+  //    this green. Deep in his own third with a man on him and nobody forward, a defender CLEARS - see the
+  //    clearance gates at the foot of this file. The carrier here sat exactly on that boundary at x=30, so
+  //    he is moved into midfield where the claim this gate makes is the one the game keeps.
+  it('[Zero] with nobody to pass to in midfield, he keeps it', () => {
     const { s, mate, skills } = pressed();
     s.players[mate].p = { x: 5, y: 50 };
+    s.players[s.possession.holder].p = { x: 45, y: 28 };
+    s.ball.p = { x: 45, y: 28, z: 0 };
+    s.players[firstOf(AWAY) + 3].p = { x: 46.2, y: 28 };
 
     expect(decideKick(s, MATCH_PROFILE.playable, skills)).toBeNull();
   });
@@ -207,5 +215,69 @@ describe('the weight of a pass', () => {
     const rest = restsAt(kick, from);
 
     expect(rest.x - from.x, 'the pass did not go anywhere').toBeGreaterThan(1);
+  });
+});
+
+// ========================= AND A DEFENDER WITH NOBODY TO PASS TO =========================
+// Only the KEEPER ever cleared his lines. An outfield player pressed in his own box with no forward
+// receiver simply dribbled - which is not football, and which is also why this game had no legitimate way
+// for the ball to leave the pitch at all.
+//
+// ⚠️ THAT SECOND HALF IS WHY THIS EXISTS NOW. Clamping the dribbling touch so it could not knock the ball
+// out was tried twice and took throw-ins from six times football's rate to ZERO, which proved the touch was
+// the only route to a touchline the game had. Football's others are a deflected tackle, a misplaced pass,
+// and a clearance under pressure - and a clearance is the one this AI is plainly missing.
+describe('a defender with nowhere to play it', () => {
+  /** A home carrier `at` metres up the pitch, pressed, with every team-mate behind him. */
+  function cornered(at: number) {
+    const s = createMatchState(MATCH_PROFILE);
+    s.phase = 'live';
+    const carrier = firstOf(HOME) + 4;
+    for (let k = 0; k < SQUAD_SIZE; k++) {
+      // Everybody of his own side BEHIND him, so `receiverFor` - which only looks forward - finds nobody.
+      s.players[firstOf(HOME) + k].p = { x: 2, y: 50 };
+      s.players[firstOf(AWAY) + k].p = { x: 80, y: 50 };
+    }
+    s.players[carrier].p = { x: at, y: 28 };
+    s.players[firstOf(AWAY) + 3].p = { x: at + 1.2, y: 28 };
+    s.ball.p = { x: at, y: 28, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = carrier;
+    s.possession.lastTouch = carrier;
+    return { s, carrier, skills: { 0: AVERAGE, 1: AVERAGE } };
+  }
+
+  it('[Right] hammers it clear when he is pressed in his own third', () => {
+    const { s, skills } = cornered(12);
+
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills);
+
+    expect(kick, 'he dribbled it in his own box with a man on him').not.toBeNull();
+    expect(kick!.vx, 'he cleared it towards his own goal').toBeGreaterThan(0);
+    expect(kick!.vz, 'a clearance that stays on the floor is a pass to nobody').toBeGreaterThan(0);
+  });
+
+  it('[Right] and it is hit harder than a pass, because it is going nowhere in particular', () => {
+    const { s, skills } = cornered(12);
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills)!.vx).toBeGreaterThan(15);
+  });
+
+  // ⚠️ HIS OWN THIRD AND NOT ANYWHERE, which is what keeps it a clearance rather than a way of never
+  //    playing football. A player hoofing it from the halfway line every time he is closed down would
+  //    turn every match into two goalkeepers kicking to each other.
+  it('[Zero] but he dribbles out of it in midfield, as he did before', () => {
+    const { s, skills } = cornered(45);
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills)).toBeNull();
+  });
+
+  // ⚠️ AND ONLY UNDER PRESSURE. A defender with time on the ball plays football with it; clearing whenever
+  //    there is no forward pass would mean a defender never turns and never carries it out.
+  it('[Zero] and with nobody near him he keeps it, deep or not', () => {
+    const { s, skills } = cornered(12);
+    s.players[firstOf(AWAY) + 3].p = { x: 80, y: 50 };
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills)).toBeNull();
   });
 });
