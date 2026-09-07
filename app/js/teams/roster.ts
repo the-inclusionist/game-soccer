@@ -23,6 +23,7 @@
 
 import { BANDS, LUMA_GAP, NAME_KEYS, colourAt, crestOf, lumaOf, type Crest, type Fixture } from './clubs.ts';
 import { createRng } from '@the-inclusionist/engine/core/rng.js';
+import type { Ratings } from '../ai/ratings.ts';
 
 /**
  * A club as a thing a child can pick, rather than as half of a generated fixture.
@@ -35,6 +36,42 @@ export interface ClubIdentity {
   readonly crest: Crest;
   readonly kit: number;
   readonly changeKit: number;
+  /**
+   * The six numbers `ai/ratings` applies at the point of action.
+   *
+   * ⚠️ THEY ADD UP TO THE SAME TOTAL FOR EVERY CLUB, which is the decision this whole field turns on. A
+   * child picks the badge she likes; if that badge carried a worse team she would have been punished for a
+   * choice the game invited her to make on looks, with nothing on the screen to warn her. So clubs differ
+   * in SHAPE and never in strength - one quick and careless, another slow and composed, and neither the
+   * right answer.
+   *
+   * It is ADR-0006 territory too: a game where some clubs are simply better has a ladder in it, and a
+   * child learns to pick the strong one rather than the one that is hers.
+   */
+  readonly ratings: Ratings;
+}
+
+/** The six, in one fixed order, so a shape can be built and read back the same way. */
+const KEYS = ['pace', 'control', 'passing', 'shooting', 'defending', 'composure'] as const;
+
+/**
+ * Six numbers that differ from each other and add up to exactly six halves.
+ *
+ * ⚠️ BUILT AS PAIRS THAT CANCEL, not drawn and then normalised. Normalising a random draw would keep
+ * the total right and let one club come out low on everything but one - strong on paper, unplayable in
+ * fact. Taking the six in three pairs and moving one up by exactly what the other comes down by keeps the
+ * total exact by construction and keeps every club within a band of the middle.
+ */
+function shapeFor(rng: () => number): Ratings {
+  const out: Record<string, number> = {};
+  for (let pair = 0; pair < 3; pair++) {
+    // 0.10 to 0.24 either side of the middle: enough to feel, never enough to make a club a bad choice.
+    const swing = 0.1 + rng() * 0.14;
+    const up = rng() < 0.5;
+    out[KEYS[pair * 2]] = 0.5 + (up ? swing : -swing);
+    out[KEYS[pair * 2 + 1]] = 0.5 - (up ? swing : -swing);
+  }
+  return out as unknown as Ratings;
 }
 
 /**
@@ -55,6 +92,11 @@ export const CLUBS: readonly ClubIdentity[] = Object.freeze(
       crest: crestOf(i + 1),
       kit: colourAt(rng.rnd, prefersDark ? BANDS[0] : BANDS[3]),
       changeKit: colourAt(rng.rnd, prefersDark ? BANDS[3] : BANDS[0]),
+      // ⚠️ `Math.cos` LIVES IN `colourAt` AND IS BANNED THREE FOLDERS AWAY, and these numbers are the
+      //    reason that note in `clubs.ts` mattered: a rating DOES enter the simulation. The arithmetic
+      //    here is `+ - *` and a seeded stream, which the gate over `sim/`, `rules/` and `ai/` permits -
+      //    and the ratings are computed ONCE, at module load, so no per-tick arithmetic is added at all.
+      ratings: shapeFor(rng.rnd),
     });
   }),
 );

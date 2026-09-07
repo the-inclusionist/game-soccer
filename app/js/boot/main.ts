@@ -9,7 +9,6 @@ import { createGame, type Engine } from '@the-inclusionist/engine';
 import { registerDict, t } from '@the-inclusionist/engine/core/i18n.js';
 import { startLoop } from '@the-inclusionist/engine/core/loop.js';
 import { srAlert, srSay } from '@the-inclusionist/engine/core/a11y-sr.js';
-import { AVERAGE } from '../ai/ratings.ts';
 import { createDeclaration } from '../declaration.ts';
 import { playTick } from '../play.ts';
 import { createScene, LOGICAL } from '../render/scene.ts';
@@ -103,7 +102,6 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   let profile: RulesProfile = MATCH_PROFILE;
   let state = createMatchState(profile);
   state.phase = 'live';
-  const skills = { 0: AVERAGE, 1: AVERAGE };
 
   /**
    * Start the match again under whatever the rules are now.
@@ -127,6 +125,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    it, which is what football does. All 132 pairings are gated in `tests/roster.node.test.ts`.
   let picked: [number, number] = [0, 1];
   let fixture = fixtureOf(picked[0], picked[1]);
+  // ⚠️ THE CHOSEN CLUBS' OWN RATINGS, and this line read `{ 0: AVERAGE, 1: AVERAGE }` until now - so the
+  //    whole of `ai/ratings` was written, gated by a monotonicity test, applied at the point of action,
+  //    and REACHED BY NOTHING. Twelve clubs were twelve palettes. It is the fourth time in this
+  //    repository: a module that is right, a gate that is right, and no wire between them.
+  //
+  // ⚠️ AND NO CLUB IS STRONGER THAN ANOTHER - the six add up to the same total for every one of them, so a
+  //    child who picks a badge she likes has chosen a STYLE and not a handicap.
+  let skills = { 0: CLUBS[picked[0]].ratings, 1: CLUBS[picked[1]].ratings };
 
   const motor = createGame({
     declaration: createDeclaration({
@@ -571,6 +577,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     }
     picked = side === 'home' ? [index, other] : [other, index];
     fixture = fixtureOf(picked[0], picked[1]);
+    // Rebuilt with the fixture: a side that changed club and kept the last one's ratings would be
+    // wearing one badge and playing as another.
+    skills = { 0: CLUBS[picked[0]].ratings, 1: CLUBS[picked[1]].ratings };
 
     // ⚠️ THE MATCH RESTARTS, and changing shirts mid-play was the alternative. A score carried across a
     //    change of club is a score belonging to a club that is not on the pitch any more.
