@@ -150,3 +150,28 @@ describe('a shot in a running match', () => {
     expect(strikes, 'the ball was hammered over and over as it left him').toBe(1);
   });
 });
+
+// ========================= AND ONLY WITH A SIGHT OF GOAL - TRIED, MEASURED, REVERTED =========================
+// Measured on a ninety-minute match, after a shot stopped being struck on every tick: 73 corners and 133
+// goal kicks - about 206 balls over a goal line, where football has roughly twenty-five SHOTS in total.
+// The AI shoots whenever the carrier is inside twenty-two metres, with no notion of whether there is
+// anything to shoot at, and every one that misses comes back as a corner or a goal kick and is shot again.
+//
+// A footballer checks one thing before he hits it: can he see the goal. So the shot was gated on a clear
+// lane - no opponent within a body's width of the line from the ball to the mouth, the keeper excepted
+// because you shoot AT him. It works, and it costs more than it saves:
+//
+//   corners      73.3 -> 17.7   (target 10)   BETTER
+//   goal kicks  133.3 -> 31.7                 BETTER
+//   throw-ins    69.7 -> 179.7  (target 40)   far worse
+//   goals        16.7 -> 24.0   (target 2.7)  worse
+//   bookings      2.0 -> 6.7    (target 1.7)  worse
+//   sendings-off  0    -> 3.0   (target 0.07) worse
+//
+// ⚠️ AND THE REASON IS THE HALF THAT IS MISSING, NOT THE RULE. A carrier who may not shoot falls through
+// to the pass branch, which wants pressure AND a receiver further up the pitch - and inside the box there
+// is nobody further up. So he dribbles, in a crowd, next to a line: contact, cards, and the ball out.
+//
+// Football's answer is that a man who cannot shoot plays it ACROSS or BACK, and this cascade has no such
+// ball in it - `receiverFor` skips anybody less than two metres ahead of the carrier, by design. The
+// sight-of-goal rule is worth having the day that exists, and not before.
