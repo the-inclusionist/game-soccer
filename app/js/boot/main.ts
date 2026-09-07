@@ -76,6 +76,8 @@ export interface Booted {
    * widget is only one possible translator for her.
    */
   readonly onSigned: (fn: (text: string) => void) => void;
+  /** Where the camera is, in world pixels. See `Scene.cameraAt`. */
+  readonly cameraAt: () => { readonly x: number; readonly y: number };
   readonly stop: () => void;
 }
 
@@ -775,6 +777,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     onSigned: (fn) => {
       signed = fn;
     },
+    cameraAt: () => scene.cameraAt(),
     stop: () => {
       scene.app.ticker.stop();
       scene.destroy();

@@ -62,6 +62,17 @@ export interface Scene {
    * second of work on the hardware pillar 1 names, for a change that is twenty-two texture assignments.
    */
   setFixture(next: Fixture): void;
+  /**
+   * Where the camera is, in world pixels, after the last frame.
+   *
+   * ⚠️ IT IS RETURNED FOR THE SAME REASON `Booted.state` IS: a property nobody can read is a property
+   * nobody can assert. The stadium parallax was gated on its own maths and reported "never seen in a
+   * captured frame" for months - and the reason turned out to be two things about the CAMERA, neither of
+   * which could be measured from outside, so both were argued about from screenshots instead.
+   *
+   * Nothing writes through this, and a debug overlay would want exactly the same handle.
+   */
+  cameraAt(): { readonly x: number; readonly y: number };
   destroy(): void;
 }
 
@@ -337,6 +348,10 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
 
   return {
     app,
+
+    cameraAt(): { readonly x: number; readonly y: number } {
+      return { x: -world.position.x, y: -world.position.y };
+    },
 
     setFixture(next: Fixture): void {
       for (let i = 0; i < bodies.length; i++) bodies[i].texture = textureFor(kitFor(next, i));
