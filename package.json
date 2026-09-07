@@ -29,6 +29,7 @@
     "dev": "vite",
     "prebuild": "npm run assets",
     "build": "vite build",
+    "postbuild": "node scripts/build-sw.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -36,7 +37,7 @@
     "test:node": "vitest run --project node",
     "test:browser": "vitest run --project browser",
     "test:a11y": "node scripts/axe-check.mjs",
-    "validate": "npm run typecheck && vitest run && vite build"
+    "validate": "npm run typecheck && vitest run && npm run build"
   },
   "comment:dependencies": [
     "THE ENGINE COMES FROM THE REGISTRY, and this line is the one ADR-0072 was waiting for. It used to read",

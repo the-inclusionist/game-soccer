@@ -1,0 +1,20 @@
+{
+  "name": "Futebol",
+  "short_name": "Futebol",
+  "description": "Association football for Brazilian public schools, accessible first and offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#10160f",
+  "theme_color": "#10160f",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
