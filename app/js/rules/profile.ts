@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // WHICH RULES ARE SWITCHED ON. The practice pitch is this file, not a second referee.
 //
-// ⚠️ NO FOULS, NO CARDS, NO PENALTIES, AND IT IS A DECISION RATHER THAN AN OMISSION. They are not in the
-// feature list this game is measured against, so they are out of scope and written down as out of scope.
-// The flag exists so that adding them later is a profile change and not an archaeology exercise.
+// ⚠️ THE `fouls` FLAG WAS `false` EVERYWHERE, AND THE COMMENT HERE SAID THAT WAS A DECISION. It was mine,
+// it was recorded in the plan under what the Dev could revert, and it was then repeated as though it had
+// been his. He reverted it on 2026-09-07. A match has a referee who gives fouls, shows cards and points to
+// the spot; a PRACTICE pitch still does not, which is what the flag is actually for.
+//
+// The comment that stood here also claimed the flag existed "so that adding them later is a profile change
+// and not an archaeology exercise". That much held up: it was a profile change.
 
 import { SQUAD_SIZE } from '../sim/ids.ts';
 import { PITCH } from '../sim/units.ts';
@@ -47,7 +51,7 @@ const PRACTICE_SHARE = 0.5;
 export const MATCH_PROFILE: RulesProfile = Object.freeze({
   outOfPlay: true,
   offside: true,
-  fouls: false,
+  fouls: true,
   clock: 'count',
   periodTicks: TEN_MINUTES,
   playable: Object.freeze({ length: PITCH.length, width: PITCH.width }),

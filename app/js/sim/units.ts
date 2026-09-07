@@ -24,6 +24,23 @@ export const PACE_M = 1.5;
 export const GOAL = Object.freeze({ width: 7.0, height: 2.44 });
 
 /**
+ * The penalty area, and the spot.
+ *
+ * ⚠️ SHRUNK BY THE SAME RATIO AS THE PITCH, not copied from the laws. The real area is 16.5m deep on a
+ * 105m pitch; this pitch is 90m, so a 16.5m area would eat a fifth of it and every foul near goal would be
+ * a penalty. Scaled and rounded to numbers a child can be told: fourteen metres deep, thirty-two wide, and
+ * the spot at nine and a half.
+ *
+ * ⚠️ AND IT IS A SIMULATION NUMBER, NOT A DRAWN ONE. Whether a foul is a penalty is decided here; whether
+ * the box is painted on the grass is `render/`, and the two must not disagree - so the renderer reads this
+ * rather than keeping a rectangle of its own.
+ */
+export const BOX = Object.freeze({ depth: 14, width: 32 });
+
+/** Metres from the goal line. The spot a penalty is taken from. */
+export const PENALTY_SPOT = 9.5;
+
+/**
  * Ball tuning.
  *
  * `gravity` is 14 and not 9.81 deliberately: at a real gravity an arcade-speed lob hangs long enough to
