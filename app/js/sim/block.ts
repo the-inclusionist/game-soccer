@@ -64,6 +64,30 @@ export const CONTROL_SPEED = 10;
 const BLOCK_KEEP = 0.4;
 
 /**
+ * ⚠️ A TURN OFF THE SHIN WAS BUILT, MEASURED AND REVERTED - the fourth model tried here, and the first
+ * one measured on a build that is not drowning in shots.
+ *
+ * The Dev asked for more corners and more goal kicks while keeping the shot error, so they could not be
+ * bought with goals; a blocked shot was already not going in, so turning it looked free. The ball was
+ * turned 0.3 rad, the side taken from the blocker's shirt number, keeping `BLOCK_KEEP` of the pace.
+ *
+ * Twelve fixtures, each pairing both ways, before and after:
+ *
+ *                            corners   goal kicks   goals   scorelines
+ *   nobody playing, before      1.00         1.92    1.75
+ *   nobody playing, after       1.67         2.92    1.50
+ *   a child playing, before     0.50         1.92    2.67   4-0 3-0 1-0 2-0 3-0 2-1 ...
+ *   a child playing, after      0.25         0.92    3.00   3-0 1-0 1-0 1-0 2-0 6-0 9-0 5-0 ...
+ *
+ * ⚠️ IT WORKS FOR THE EMPTY CHAIR AND DOES THE OPPOSITE WHERE IT COUNTS. The played match is the ruler -
+ * that was measured and settled - and there the two counts it was built to raise were HALVED, while the
+ * child won all twelve, one of them 9-0. A turned block falls to whoever is already attacking, and the
+ * side already attacking is hers.
+ *
+ * The gates for what a block does are kept in `tests/block`, which this module had gone without entirely.
+ */
+
+/**
  * Take the force out of a struck ball that somebody is standing in.
  *
  * Runs after the keeper has had his go and before possession is resolved: a ball he has palmed away must
