@@ -21,14 +21,14 @@
 // once, all six reaching full time:
 //
 //                     throw-ins   goals   corners   goal kicks   offsides   fouls   yellows   pens
-//     nobody playing         2.00    1.50      2.17         2.83       0.33    2.50      1.00   0.50
-//     a child playing        3.17    2.00      1.17         1.83       0.33    4.33      2.00   0.50
+//     nobody playing         3.17    1.83      1.00         2.00       0.50    3.67      0.33   0.67
+//     a child playing        3.50    2.67      0.67         2.50       0.67    4.00      1.83   0.83
 //     the band (mine)       3.5-6     2-3     1.5-3        3-4.5    0.5-1.5   2-3.5   0.5-1.5   rare
 //
-//     scores, nobody playing    2-0   0-1   1-3   0-0   1-1   0-0
-//     scores, a child playing   4-0   0-0   1-0   1-1   1-0   4-0
+//     scores, nobody playing    3-0   1-0   0-0   0-3   3-1   0-0
+//     scores, a child playing   4-0   3-0   1-0   2-0   3-0   2-1
 //
-//     balls into the box: 10.33 a match with nobody playing, 7.00 with a child
+//     balls into the box: 8.50 a match with nobody playing, 10.00 with a child
 //
 // ⚠️ AND HER SHOT WAS NOT JUDGED BY THE SAME FUNCTION UNTIL 2026-09-07. The machine's shot is scattered
 // by its club's `shooting`; hers went dead centre from any distance, and she scored fourteen goals from a

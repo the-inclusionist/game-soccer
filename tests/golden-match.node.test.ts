@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  718792295, 1473486568, 379641673, 1821086427, 3411146813, 1113250407, 425466731, 3595401569, 3337923044,
-  3337923044,
+  2974871658, 1199836416, 3945314587, 1630000645, 2950232398, 3148195389, 300279425, 2853174283, 1985462486,
+  1985462486,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -104,14 +104,23 @@ const GOLDEN: readonly number[] = [
 //               balls into the box 7.33 to 10.33, goals 2.50 to 1.50. A child playing now lands four of
 //               the nine counts inside their bands. In these ninety seconds: the goal is gone and a
 //               corner is there instead.
+//
+//   2026-09-07  A pass into his path. The aim was the receiver's FEET - the spot he stood on when the
+//               ball was struck - and a ball is about a second in the air, so every pass to a moving
+//               team-mate landed behind him and he had to turn and come back for it. The lead is derived
+//               rather than chosen: the speed is already a function of the distance, so the flight time
+//               is far/speed, and he is led by his own velocity across it. A child playing: throw-ins
+//               3.17 to 3.50 and offsides 0.33 to 0.67 - both INSIDE their bands, offsides for the first
+//               time - goals 2.00 to 2.67, goal kicks 1.83 to 2.50, balls into the box 9.17 to 10.00.
+//               In these ninety seconds: two throw-ins and a foul, where there had been a corner.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
   phase: 'fullTime',
   goals: [0, 0],
   goalScored: 0,
-  crossedGoalLineByDefender: 1,
-  crossedGoalLineByAttacker: 0,
+  crossedTouchline: 2,
+  foulGiven: 1,
 };
 
 function play() {
@@ -161,8 +170,8 @@ describe('ninety seconds that must stay the same ninety seconds', () => {
     expect(state.phase, 'the match no longer reaches full time in ninety seconds').toBe(SUMMARY.phase);
     expect([...state.goals]).toEqual(SUMMARY.goals);
     expect(seen.goalScored ?? 0).toBe(SUMMARY.goalScored);
-    expect(seen.crossedGoalLineByDefender ?? 0).toBe(SUMMARY.crossedGoalLineByDefender);
-    expect(seen.crossedGoalLineByAttacker ?? 0).toBe(SUMMARY.crossedGoalLineByAttacker);
+    expect(seen.crossedTouchline ?? 0).toBe(SUMMARY.crossedTouchline);
+    expect(seen.foulGiven ?? 0).toBe(SUMMARY.foulGiven);
   });
 
   // ⚠️ AND THE GOLDEN IS ONLY WORTH THE FIXTURE IT PLAYS. One pairing is one observation - the whole-match

@@ -1,2 +1,0 @@
-718792295, 1473486568, 379641673, 1821086427, 3411146813, 1113250407, 425466731, 3595401569, 3337923044, 3337923044
-phase=fullTime goals=0-0 counts={"crossedGoalLineByDefender":1,"restartTaken":2,"periodExpired":1,"ballMoved":1,"secondPeriodExpired":1}

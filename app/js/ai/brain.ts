@@ -743,9 +743,9 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   if (mate === null) return clearIt(state, holder, dir, playable);
 
   const to = state.players[mate].p;
-  const px = to.x - me.x;
-  const py = to.y - me.y;
-  const far = Math.sqrt(px * px + py * py) || 1;
+  let px = to.x - me.x;
+  let py = to.y - me.y;
+  let far = Math.sqrt(px * px + py * py) || 1;
 
   // ⚠️ THE FIRST RATING THAT REACHES THE PITCH. `think` did `void skills` - the clubs' six numbers
   //    were accepted and thrown away, so "every club is a side" was true of the roster and false of the
@@ -757,8 +757,6 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   //    carrier's own shirt number, so the same club in the same position plays the same ball for ever.
   const error = passErrorOf(skills?.[team]?.passing ?? 0.5);
   const lean = holder % 2 === 0 ? error : -error;
-  const nx = px / far;
-  const ny = py / far;
 
   // ⚠️ THE WEIGHT OF THE PASS, AND THE COMMENT THAT USED TO BE HERE PROMISED IT WITHOUT DOING IT. It said
   //    "enough to arrive, never so much that it runs away from the man it was meant for" beside a choice
@@ -776,7 +774,34 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   //    drag constant is imported rather than a matching number being written down twice.
   const wanted = far * BALL.rollDrag * PASS_OVERRUN;
   const speed = clamp(wanted, PASS_SPEED_MIN, PASS_SPEED_MAX);
-  return { id: holder, vx: (nx - ny * lean) * speed, vy: (ny + nx * lean) * speed, vz: 0 };
+
+  // ⚠️ AND IT IS PLAYED WHERE HE WILL BE, NOT WHERE HE STANDS. The aim used to be the receiver's FEET -
+  //    the spot he was on when the ball was struck - and a ball takes about a second to arrive, so every
+  //    pass to a moving team-mate landed BEHIND him. He had to stop, turn and come back for it, which is
+  //    the opposite of what a pass is for, and it is a large part of why the attack never progressed: a
+  //    side passing backwards to itself keeps the ball in the middle third, which is what six matches
+  //    measured before this line existed.
+  //
+  //    ⚠️ THE LEAD IS DERIVED AND NOT CHOSEN. The speed is already a function of the distance, so the
+  //    time the ball spends travelling is `far / speed` and leading him by his own velocity across that
+  //    time is arithmetic. One iteration: the aim moves and the speed does not, because a second pass at
+  //    re-deriving the speed from the moved aim converges on nothing a child could see.
+  //
+  //    ⚠️ AND IT IS CLAMPED TO THE PITCH. A winger sprinting at the touchline would otherwise be passed
+  //    to a spot in the stands, which is a throw-in the passer chose to concede.
+  const flight = far / speed;
+  const runner = state.players[mate].v;
+  const ahead = {
+    x: clamp(to.x + runner.x * flight, 0, playable.length),
+    y: clamp(to.y + runner.y * flight, 0, playable.width),
+  };
+  px = ahead.x - me.x;
+  py = ahead.y - me.y;
+  far = Math.sqrt(px * px + py * py) || 1;
+  const ax = px / far;
+  const ay = py / far;
+
+  return { id: holder, vx: (ax - ay * lean) * speed, vy: (ay + ax * lean) * speed, vz: 0 };
 }
 
 export { SQUAD_SIZE };

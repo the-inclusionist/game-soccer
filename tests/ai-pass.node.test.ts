@@ -26,6 +26,7 @@ import { decideKick } from '../app/js/ai/brain.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
 import { NOBODY, resolvePossession } from '../app/js/sim/possession.ts';
 import { createBall, stepBall, DT } from '../app/js/sim/ball.ts';
+import { BALL, PITCH } from '../app/js/sim/units.ts';
 
 const sharp = { ...AVERAGE, passing: 0.95 };
 const poor = { ...AVERAGE, passing: 0.05 };
@@ -466,5 +467,94 @@ describe('a defender on his own goal line', () => {
     s.players[firstOf(AWAY) + 3].p = { x: 80, y: 54 };
 
     expect(decideKick(s, MATCH_PROFILE.playable, skills)).toBeNull();
+  });
+});
+
+// ========================= AND A PASS GOES WHERE HE WILL BE =========================
+// The pass was aimed at the receiver's FEET - at the spot he was standing on when it was struck. A ball
+// takes a second or so to arrive and a running player is metres away by then, so every pass to a moving
+// team-mate arrived behind him: he had to stop, turn, and come back for it, which is the opposite of
+// what a pass is for. It is also why the attack never progressed - a side that passes backwards to itself
+// is a side keeping the ball in the middle third, which is exactly what six matches measured.
+//
+// ⚠️ THE LEAD IS DERIVED, NOT CHOSEN. The pass speed is already computed from the distance, so the time
+// the ball spends travelling is `far / speed` - and leading him by his own velocity over that time is
+// arithmetic rather than a constant somebody tuned. One iteration: the aim moves, the speed does not.
+describe('a pass into his path', () => {
+  function passTo(mateAt: { x: number; y: number }, mateV: { x: number; y: number }) {
+    const s = createMatchState(MATCH_PROFILE);
+    s.phase = 'live';
+    const carrier = firstOf(HOME) + 6;
+    const mate = firstOf(HOME) + 9;
+    for (let k = 0; k < SQUAD_SIZE; k++) {
+      s.players[firstOf(HOME) + k].p = { x: 5, y: 54 };
+      s.players[firstOf(AWAY) + k].p = { x: 5, y: 2 };
+    }
+    // A rival on the carrier, so he lets it go rather than carrying it.
+    s.players[firstOf(AWAY) + 4].p = { x: 41, y: 28 };
+    s.players[carrier].p = { x: 40, y: 28 };
+    s.players[mate].p = { ...mateAt };
+    s.players[mate].v = { ...mateV };
+    s.ball.p = { x: 40, y: 28, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = carrier;
+    s.possession.lastTouch = carrier;
+    return { s, carrier, mate };
+  }
+
+  /** Where a struck ball comes to rest: `v / rollDrag` metres along its own line. */
+  const restsAt = (from: { x: number; y: number }, k: { vx: number; vy: number }) => ({
+    x: from.x + k.vx / BALL.rollDrag,
+    y: from.y + k.vy / BALL.rollDrag,
+  });
+
+  // ⚠️ HE RUNS ACROSS THE PASSING LINE, NOT ALONG IT, and the first version of this gate did not. A
+  //    receiver sprinting straight away from the passer is led along the SAME line - only further - and
+  //    the pass speed is already clamped at its maximum over that distance, so both balls came out
+  //    identical and the gate could not see the feature it was written for. Across the line, the aim has
+  //    to move sideways or nothing has changed.
+  it('[Right] a runner is passed to where he is going, not where he stands', () => {
+    const still = passTo({ x: 60, y: 28 }, { x: 0, y: 0 });
+    const running = passTo({ x: 60, y: 28 }, { x: 0, y: 6 });
+
+    const a = decideKick(still.s, MATCH_PROFILE.playable, { 0: AVERAGE, 1: AVERAGE })!;
+    const b = decideKick(running.s, MATCH_PROFILE.playable, { 0: AVERAGE, 1: AVERAGE })!;
+
+    const from = { x: 40, y: 28 };
+    expect(restsAt(from, b).y, 'the ball was played to his feet while he ran across it').toBeGreaterThan(
+      restsAt(from, a).y + 1,
+    );
+  });
+
+  it('[Zero] and a team-mate standing still is passed to where he stands', () => {
+    const { s } = passTo({ x: 60, y: 28 }, { x: 0, y: 0 });
+    const kick = decideKick(s, MATCH_PROFILE.playable, { 0: AVERAGE, 1: AVERAGE })!;
+
+    // Aimed straight down the line between them, so nothing across the pitch beyond the passing lean.
+    expect(Math.abs(kick.vy / kick.vx)).toBeLessThan(0.3);
+  });
+
+  it('[Interface] and the same runner is led the same way every time - no dice', () => {
+    const a = passTo({ x: 60, y: 28 }, { x: 6, y: 0 });
+    const b = passTo({ x: 60, y: 28 }, { x: 6, y: 0 });
+
+    expect(decideKick(a.s, MATCH_PROFILE.playable, { 0: AVERAGE, 1: AVERAGE })).toEqual(
+      decideKick(b.s, MATCH_PROFILE.playable, { 0: AVERAGE, 1: AVERAGE }),
+    );
+  });
+
+  // ⚠️ AND THE LEAD NEVER AIMS OFF THE PITCH. A winger sprinting at the touchline would otherwise be
+  //    passed to a spot in the stands, which is a throw-in the passer chose to concede.
+  it('[Boundary] a man running at the touchline is not led over it', () => {
+    const { s } = passTo({ x: 55, y: 42 }, { x: 0, y: 9 });
+    const kick = decideKick(s, MATCH_PROFILE.playable, { 0: AVERAGE, 1: AVERAGE })!;
+
+    // ⚠️ THE AIM IS CLAMPED, THE PASSER'S ERROR IS NOT, and that is the football rather than a hole. He
+    //    is running at 9 m/s and the ball is a second and a third in the air, so an unclamped lead would
+    //    aim four metres into the stands; the clamp puts the aim ON the line and the passing lean can
+    //    still take it over. A pass that goes out because it was leaned badly is where a throw-in comes
+    //    from, and this game needs more of those, not fewer.
+    const atHim = 28 + (kick.vy / kick.vx) * (55 - 40);
+    expect(atHim, 'he was played a ball four metres into the stands').toBeLessThan(PITCH.width + 1);
   });
 });
