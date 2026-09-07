@@ -299,16 +299,25 @@ describe('the run beyond the ball', () => {
 
   // ⚠️ NOT PAST THE LAST DEFENDER. Two men camped beyond the line are two men permanently offside and
   //    nine playing football, which is the objection that kept this rule out of the game until now.
-  it('[Boundary] but never past the defence', () => {
+  // ⚠️ THE NEAR-POST MAN HOLDS THE LINE and the far-post man gambles past it, which is a forward
+  //    PAIRING rather than a dice. A striker who times his run perfectly is never caught, and the day
+  //    this run was built the offsides went from 0.33 a match to 0.00 - correct football with a hole in
+  //    it. He is not punished for standing there: Law 11 raises the flag only when the ball is PLAYED to
+  //    him, which is why a poacher is a position and not a mistake.
+  it('[Boundary] the near-post forward holds the line', () => {
     const s = attacking(70, 76);
+    for (let t = 0; t < 6; t++) {
+      think(s, { 0: AVERAGE, 1: AVERAGE }, MATCH_PROFILE.playable);
+      s.tick += 1;
+    }
 
-    expect(forwardTarget(s).x, 'he ran himself offside').toBeLessThanOrEqual(76.001);
+    expect(s.players[firstOf(HOME) + 9].target.x, 'he ran himself offside').toBeLessThanOrEqual(76.001);
   });
 
-  // ⚠️ "HOLDS THE SHAPE" IS NOT "STAYS DEEP", which the first version of this gate got wrong: it asked
-  //    for a target behind fifty metres and a centre forward with the ball on twenty is legitimately
-  //    aimed at fifty-five, because a striker stays high. What holding the shape means here is that he is
-  //    NOT in the box - the run beyond the ball puts him there and the shape does not.
+  // ⚠️ A GAMBLING FAR-POST FORWARD WAS BUILT HERE AND REVERTED - see `ai/brain` for the table. He
+  //    bought a third of the offside count and sold the goals, the corners and the goal kicks, because a
+  //    man standing permanently beyond the last defender is a free man for the whole match.
+
   it('[Zero] and he holds the shape while the ball is in our own half', () => {
     const deep = attacking(20, 84);
     const high = attacking(70, 84);

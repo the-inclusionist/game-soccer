@@ -180,6 +180,23 @@ export function decide(
       const near = squadIndex === FORWARDS[0];
       const line = offsideLineOf(state, team);
       const want = ball.x + dir * SUPPORT_AHEAD;
+
+      // ⚠️ AND A GAMBLING FORWARD WAS BUILT FOR THE OFFSIDES AND REVERTED. Stopping both of them ON the
+      //    line is correct football with a hole in it - a striker who times his run perfectly is never
+      //    caught - and the day this run was built the offsides fell from 0.33 a match to 0.00. So the
+      //    far-post man was given a stray past the line, scaled by `composure`, holding the near-post man
+      //    on it: a forward PAIRING rather than a dice, and Law 11 does not punish standing there.
+      //
+      //    Twelve fixtures, a child playing, before and after:
+      //
+      //                    offsides   goals   corners   goal kicks   scorelines
+      //      holding           0.00    2.50      0.83         2.00   5-0 1-0 2-0 ... 2-1 1-1
+      //      gambling          0.33    3.50      0.50         1.08   7-0 9-1 6-0 ...
+      //
+      //    ⚠️ IT BOUGHT A THIRD OF ONE COUNT AND SOLD THREE. A man standing permanently beyond the last
+      //    defender is a free man for the whole match, so the attack got easier rather than riskier: the
+      //    goals overshot their band, the corners and goal kicks fell, and the scorelines went back to
+      //    7-0 and 9-1. The offsides never even reached their band.
       const onside = dir === 1 ? Math.min(want, line) : Math.max(want, line);
       return {
         x: clamp(onside, 0, playable.length),
@@ -381,6 +398,9 @@ export function think(
   skills: Skills,
   playable: Playable = PITCH,
 ): void {
+  // ⚠️ NOTHING IN THE MOVEMENT CASCADE READS A RATING, and `void skills` says so out loud rather than
+  //    leaving an unused parameter. A gambling forward needed `composure` and was reverted - see `decide`
+  //    - so this is true again, and it will stop being true the moment any movement depends on a club.
   void skills;
   const plans = [teamPlan(state, 0 as TeamId), teamPlan(state, 1 as TeamId)];
 
