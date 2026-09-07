@@ -460,6 +460,34 @@ const SHOT_LIFT = 1.6;
  */
 const PASS_OVERRUN = 1.25;
 
+// ⚠️ AND A PASS WHOSE WEIGHT CAN BE WRONG WAS BUILT, MEASURED AND REJECTED. Football's commonest throw-in
+//    comes off a ball hit too hard, and this game has none of those: measured, 279 of 281 crossings are the
+//    carrier walking his own ball over the line. So `passWeightErrorOf(passing) = (1 - passing) * 0.6` went
+//    into `ai/ratings` and was applied right here as `PASS_OVERRUN + off`, `off` signed by a DIFFERENT bit
+//    of the shirt number from the angle's - `(holder >> 1) & 1` - so that the two errors would read as two
+//    faults and not as one. Six fixtures at each length, against 40 throw-ins, 2.7 goals, 10 corners, 1.7
+//    bookings and 0.07 sendings-off:
+//
+//        build                       length   throw-ins   goals   corners   bookings   reds
+//        as committed                90 min        77.2     4.5      11.5        1.7   0.00
+//        mis-weighted pass           90 min        87.7     2.0      14.8        2.0   0.50
+//        mis-weighted + touch clamp  90 min         3.8     3.0      14.3        2.5   0.67
+//        as committed                15 min        36.8     2.8       1.2        0.5   0.00
+//        mis-weighted pass           15 min        33.8     2.3       0.8        0.8   0.00
+//        mis-weighted + touch clamp  15 min         0.0     3.5       0.8        0.3   0.00
+//
+//    ⚠️ IT BOUGHT ONE TARGET AND SOLD FOUR. The goals come down past 2.7 from the far side, and every
+//    other count moves away - including the throw-ins it was built to reduce, which went UP by ten a match.
+//    WHY they went up was not measured, and no explanation is written here for it: this same decision has
+//    carried two wrong explanations before, and both were written before anybody had counted anything.
+//
+//    ⚠️ AND THE CLAMPED PAIR IS THE USUAL EMPTY TOUCHLINE. Nought throw-ins in a fifteen-minute match is
+//    not a match anybody plays; `sim/possession` records that clamp being rejected for the third time.
+//
+//    A DEFECT is fixed whatever the counts do. A new BEHAVIOUR is judged on them, and this one failed on
+//    four of five. The mechanism is still the right one and the game still wants it - what it needs first
+//    is a receiver who moves to a ball that misses him, and that is repertoire this cascade has not got.
+
 /** Metres per second. The floor keeps the shortest ball the AI will play moving at all... */
 const PASS_SPEED_MIN = 5;
 
