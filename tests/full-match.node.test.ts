@@ -178,7 +178,14 @@ describe('what a match contains', () => {
   //    putting it out on purpose - and this game has none of them. So the rate cannot be fixed from this
   //    end: clamping the touch trades six times too many for none at all, and what is actually missing is
   //    a legitimate way for the ball to leave the pitch.
-  it.todo('[Right] and not six times as often as football, which needs another way for it to go out');
+  // ⚠️ AND A HARDER RESTART WAS TRIED AND MEASURED WORSE, which is worth the two lines it costs. The
+  //    argument was good: `applyRestart` pushes everybody but the taker's side out to `KEEP_OUT`, so a
+  //    restart travelling less than that reaches NOBODY - and it was travelling seven and a half metres
+  //    against a keep-out of nine and a bit. Deriving the speed from it rather than choosing one took
+  //    throw-ins from 118 per ninety minutes to 290, which is worse than where this line of work started
+  //    two fixes ago. Corners and goal kicks both improved, so it is a trade and not a mistake - but the
+  //    rate is what this todo is about, and the number decides it.
+  it.todo('[Right] and not three times as often as football, which is contested balls near the line');
 
   // ⚠️ MET, AND BY THE SHOT RATHER THAN BY THE RULES. A shot aimed at the exact centre of the mouth can
   //    only be scored or saved, so the ball never crossed a goal line for any other reason and a whole
