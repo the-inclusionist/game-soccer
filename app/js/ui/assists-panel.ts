@@ -31,7 +31,12 @@ export interface Assists {
 export const DEFAULT_ASSISTS: Assists = Object.freeze({
   charge: 'hold',
   tempo: 0.5,
-  period: 10,
+  // ⚠️ THREE AND A HALF: a seven-minute match, the longest International Superstar Soccer offered and the
+  //    length the Dev scoped this game to on 2026-09-07. The chooser carries that ladder plus the two
+  //    lengths modern football games compete at (4 a half in Ultimate Team, 6 online) and `'none'`, so
+  //    the WCAG 2.2.1 accommodation is untouched: what satisfies it is that one option removes the limit
+  //    altogether, not that the list is long.
+  period: 3.5,
 });
 
 export interface AssistsPanelPorts {

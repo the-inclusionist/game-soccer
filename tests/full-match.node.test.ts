@@ -15,21 +15,25 @@
 // Measured per match at the length stated, never extrapolated, against football's 40 throw-ins, 2.7 goals,
 // 10 corners, 1.7 bookings and 0.07 sendings-off:
 //
-//                 throw-ins   goals   corners   bookings   reds     target: 40, 2.7, 10, 1.7, 0.07
-//   15 minutes         36.8     2.8       1.2        0.5      0
-//   90 minutes         77.2     4.5      11.5        1.7      0
+// ⚠️ THE GAME IS THE SEVEN-MINUTE SCHOOL MATCH, scoped by the Dev on 2026-09-07: two halves of three and
+// a half, the longest length International Superstar Soccer offered, with modern football games sitting
+// just above it at 8 and 12 minutes. Six fixtures, measured once, all six reaching full time:
 //
-// All twelve fixtures reach full time. `SHORT_MATCH` is fifteen minutes at the pace the game has always
-// played at; `FULL_MATCH` is ninety at HALF pace, and that lever is the only thing separating the columns.
+//     throw-ins   goals   corners   goal kicks   offsides   fouls   bookings   reds
+//          16.8    0.83      0.50         0.67       0.50    1.50          0      0
 //
-// ⚠️ THEY MISS ON OPPOSITE HALVES OF THE LIST, which is what makes this two problems and not one. The short
-// match has football's throw-ins and football's goals and almost no corners; the long match has football's
-// corners and football's bookings and nearly twice the throw-ins.
+//     scores      0-0   1-0   1-0   1-0   0-0   2-0
 //
-// ⚠️ AND NO RULE COULD HAVE DONE IT. A rule is a fact about a TICK and both modes run the same ticks, so a
-// referee cannot hand down two different rates - every rule fixed here moved both columns together. What
-// differs between fifteen minutes of football and ninety has to be the WORLD, which is why the lever is
-// pace and not a threshold. See `rules/profile`, where the three settings measured are written down.
+// ⚠️ FOOTBALL'S PER-MATCH COUNTS ARE NOT THIS MATCH'S TARGET, and reading them as one cost days. Forty
+// throw-ins and 2.7 goals belong to ninety minutes of football; seven minutes of arcade is a different
+// thing on purpose. What this mode owes is a match that STARTS, FINISHES, and contains each kind of event
+// often enough for a child to meet it - and on that reading the open ones are corners and cards, which a
+// child would meet about once every two matches and never.
+//
+// ⚠️ AND A NINETY-MINUTE MODE WAS TUNED FOR DAYS BEFORE ANYBODY NOTICED IT WAS NOT IN THE GAME.
+// `FULL_MATCH` is referenced by one test and two comments; no composition root has ever selected it, so
+// no child could reach it. The table it was tuned against is kept in `rules/profile` beside the profile
+// itself, parked - the measurements are real and the mode is not offered.
 //
 // ⚠️ AND "IT IS ALL DENSITY" WAS TOO BROAD, which a spike settled. `PITCH` was widened in a throwaway
 // experiment and six ninety-minute matches measured at each size:

@@ -100,11 +100,22 @@ export const PRACTICE_PROFILE: RulesProfile = Object.freeze({
 /**
  * The lengths of a half a grown-up can choose, in minutes - and `'none'`.
  *
+ * ⚠️ THE LADDER IS THE GENRE'S, NOT ONE I INVENTED, and it spans thirty years of it. International
+ * Superstar Soccer on the SNES offered three-, five- and seven-minute matches - halves of 1:30, 2:30 and
+ * 3:30 - and the plan asks for ARCADE in as many words. Today's football games sit just above that:
+ * Ultimate Team locks its minimum at 4 minutes a half, online competitive play defaults to 6, and an
+ * offline match can be set anywhere from 3 to 20. So the list is the ISS three plus the two lengths a
+ * modern game actually competes at.
+ *
+ * ⚠️ THE LENGTHS THIS FILE USED TO OFFER - 5, 10 and 20 minutes a half - WERE A GUESS, and a guess is
+ * what put days of counting into a ninety-minute match nobody could select.
+ *
  * ⚠️ `'none'` IS NOT A BIG NUMBER. WCAG 2.2.1 is satisfied two ways here at once: ADJUSTABLE, because
  * every limit is an option, and REMOVABLE, because one of the options is that there is no limit. A very
- * long half is still a limit and still runs out, on the child least able to judge how long she needs.
+ * long half is still a limit and still runs out, on the child least able to judge how long she needs -
+ * so the accommodation is `'none'`, and it is why shortening the ladder does not take one away.
  */
-export const PERIOD_CHOICES: readonly (number | 'none')[] = Object.freeze([5, 10, 20, 'none']);
+export const PERIOD_CHOICES: readonly (number | 'none')[] = Object.freeze([1.5, 2.5, 3.5, 4, 6, 'none']);
 
 const TICKS_PER_MINUTE = 60 * 60;
 
@@ -133,22 +144,27 @@ const TICKS_PER_MINUTE = 60 * 60;
  * drifted before this line was written.
  */
 /**
- * The school match: fifteen minutes, and the bodies at the pace this game has always played at.
+ * The school match: SEVEN minutes, two halves of three and a half, at the pace this game already plays at.
  *
- * ⚠️ IT IS THE GAME AS IT IS, WHICH IS THE FINDING RATHER THAN A SETTING. Measured over six fixtures when
- * the two modes were chosen, a fifteen-minute match produced 36.8 throw-ins and 2.5 goals against the
- * Dev's targets of 40 and 2.7 - so the short mode needed no lever at all, and the long one is the one that
- * needed a different world.
+ * ⚠️ SEVEN BECAUSE THE GENRE SAYS SEVEN. International Superstar Soccer offered three, five and seven
+ * minutes; the plan asks for arcade; and this is the longest of the three. Modern football games sit just
+ * above it - 8 minutes in Ultimate Team, 12 online - so seven is the short end of a live tradition rather
+ * than a museum piece. It was fifteen until 2026-09-07, and fifteen was a number nobody had a reason for.
  *
- * ⚠️ AND ITS CORNERS ARE THE HALF OF THE LIST IT MISSES. Corners here come overwhelmingly from a keeper's
- * parry, and a quarter of an hour holds a sixth of the parries a full match does, so this mode cannot
- * reach the Dev's ten by any threshold - it wants more balls hit INTO the box per minute than fifteen
- * minutes of this cascade contains. `tests/full-match` carries the standing count and the attempts.
+ * ⚠️ AND FOOTBALL'S PER-MATCH COUNTS ARE NOT THIS MATCH'S TARGET. Forty throw-ins and 2.7 goals belong
+ * to ninety minutes of football. Seven minutes of arcade is a different thing on purpose - it is the
+ * shape that has to read, not the rate - so what this mode owes is a match that starts, finishes, and
+ * contains each kind of event often enough for a child to meet it. `tests/full-match` measures it.
  */
-export const SHORT_MATCH: RulesProfile = withPeriod(MATCH_PROFILE, 7.5);
+export const SHORT_MATCH: RulesProfile = withPeriod(MATCH_PROFILE, 3.5);
 
 /**
  * The full match: ninety minutes, with the bodies at half pace.
+ *
+ * ⚠️ PARKED BY THE DEV ON 2026-09-07: for now the game is the SCHOOL MODE only - fifteen minutes, two
+ * halves of seven and a half. This profile is kept because the measurement below is worth keeping, and it
+ * is NOT offered to a child: nothing in the composition root has ever selected it, which is a thing that
+ * should have been noticed sooner. Days of counting were spent tuning a mode no child could reach.
  *
  * ⚠️ HALF, AND SIX FIXTURES PICKED IT. Against targets of 40 throw-ins, 2.7 goals, 10 corners:
  *

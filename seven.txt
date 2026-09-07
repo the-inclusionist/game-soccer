@@ -1,0 +1,2 @@
+finished 6/6  throwIns 16.83  goals 0.83  corners 0.50  goalKicks 0.67  offsides 0.50  fouls 1.50  bookings 0.00  reds 0.00  penalties 0.00
+scores: 0-0  1-0  1-0  1-0  0-0  2-0
