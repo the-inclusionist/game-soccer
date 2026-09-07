@@ -84,18 +84,39 @@ const TOUCH_LOOKAHEAD = TOUCH_PERIOD / 60;
  * where throw-ins come from. So the clamp asks whether he is alone, and nothing here is a dice: the same
  * two bodies in the same two places give the same answer for ever.
  *
- * ⚠️ ONE AND A HALF METRES, MEASURED. Two was the first number and it is generous: at two metres a man
- * can still turn away from you. Over six fixtures at each match length, against targets of 40 throw-ins
- * and 2.7 goals:
+ * ⚠️ ONE AND A HALF METRES, AND THE LEVER IS SPENT. The number was first chosen against football's
+ * ninety-minute counts, which turned out to be the wrong ruler for a seven-minute arcade match - see
+ * `tests/full-match` for the Dev's bands, which replaced them. Re-measured against those bands on the
+ * seven-minute match, six fixtures each, all of them reaching full time (band in brackets):
  *
- *                  90 min: throw-ins   goals        15 min: throw-ins   goals
- *     2.0 m                     82.5     3.5                      36.8     2.5
- *     1.5 m                     68.2     4.0                      37.3     2.7
- *     1.1 m                     74.5     3.3                      30.7     3.5
+ *     CONTESTED_AT   throw-ins   goals   corners   goal kicks   fouls   yellows
+ *                      (5 - 8)   (2-4)     (2-4)        (4-6)   (3-5)     (1-2)
+ *     1.5 m              16.83    0.83      0.50         0.67    1.50      0.00
+ *     1.1 m              14.50    1.17      0.67         1.17    1.33      0.00
+ *     0.8 m               0.33    2.67      0.33         0.50    1.67      0.33
+ *     0.5 m               0.00    1.83      0.33         0.33    1.17      0.17
  *
- * One and a half is the best of the three in the long match and puts the short one on football's goal
- * number exactly. Below it the count goes back UP, because a carrier who is never contested keeps the ball
- * until somebody arrives properly - and then it goes out anyway, from a worse position.
+ * Eight tenths is closer to its band than 1.5 on six of the nine counts and is the only setting that ever
+ * put the GOALS inside theirs. It was adopted, and then reverted, because it stops the match being played:
+ * the anti-deadlock gate in `tests/ai-brain` measures how far the ball travels from the kickoff spot in a
+ * hundred seconds, and at 0.8 it manages 17.4 metres against the 20 that gate demands. A carrier who is
+ * almost never counted as contested keeps the ball, so the game becomes a dribble in the middle third.
+ *
+ * ⚠️ GOALS IN BAND DO NOT BUY A MATCH WHERE THE BALL DOES NOT MOVE. That is the trade, written down so
+ * the next person does not re-make it: one count landing is worth less than the shape of the game, and
+ * the shape is what a child sees.
+ *
+ * ⚠️ IT IS A CLIFF AND NOT A SLOPE, WHICH IS THE FINDING RATHER THAN THE SETTING. Between 1.1 and 0.8
+ * the throw-ins fall from 14.5 to 0.33 - there is no value that produces five to eight, because this rule
+ * is BINARY: either the carrier's touch is turned back in or it is not. Measured at the crossings
+ * themselves, on the seven-minute match: all 101 of them had a body within 3 metres (median 1.0 m) and
+ * 100 of the 101 had somebody closing on the ball at nearly 6 metres a second. Nobody is failing to
+ * chase. A man arrives on top of the ball, at speed, and it crosses anyway.
+ *
+ * So a throw-in here is the carrier walking his own ball out, at one threshold, and nothing at all at the
+ * next one down. Football's throw-in comes off a DEFLECTION - a tackle, a block, a misplaced pass - and
+ * this game barely produces any of those. Five to eight of them will come from building that, not from
+ * moving this number: no setting of a binary rule lands between its two values.
  *
  * ⚠️ AND THE COUNT IS CLOSER FOR THE WRONG REASON, which is measured and worth knowing. Of 281 touchline
  * crossings over three whole matches, 279 were the CARRIER'S OWN SIDE putting it out and 2 were a defender.
