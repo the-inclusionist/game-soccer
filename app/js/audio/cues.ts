@@ -48,6 +48,8 @@ export type CueName =
   | 'offside'
   | 'foul'
   | 'penalty'
+  | 'booking'
+  | 'sendingOff'
   | 'halfTime'
   | 'fullTime'
   | 'restart';
@@ -80,6 +82,10 @@ export const CUES: Readonly<Record<CueName, CueDef>> = Object.freeze({
   //    cannot see the referee point at the spot has to be told that something bigger than a free kick
   //    just happened, before the sentence arrives to say what.
   penalty: { t: 'square', f: 349, d: 0.7, cap: 'cue.penalty' },
+  // A card is SHOWN, not blown - so it is not a whistle. A short flat tone for a booking, and for a
+  // sending-off the same tone twice as long and lower: the same family, unmistakably worse.
+  booking: { t: 'sawtooth', f: 415, d: 0.18, cap: 'cue.booking' },
+  sendingOff: { t: 'sawtooth', f: 233, d: 0.75, cap: 'cue.sendingOff' },
   halfTime: { t: 'square', f: 740, d: 0.4, cap: 'cue.halfTime' },
   fullTime: { t: 'square', f: 494, d: 0.8, cap: 'cue.fullTime' },
   // Play is live again. Short, because it happens often - and present, because a child who cannot see the
@@ -118,6 +124,12 @@ export function cueFor(event: RuleEvent, us: TeamId): CueName | null {
 
     case 'penaltyGiven':
       return 'penalty';
+
+    case 'bookingGiven':
+      return 'booking';
+
+    case 'sendingOff':
+      return 'sendingOff';
 
     case 'periodExpired':
       return 'halfTime';

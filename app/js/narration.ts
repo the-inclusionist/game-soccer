@@ -76,9 +76,35 @@ export function narrate(event: RuleEvent, ctx: NarrationCtx): string {
     case 'secondPeriodExpired':
       return ctx.t('say.fullTime');
 
-    default:
+    // `team` is the side the foul was given TO, so "ours" means the kick is ours.
+    case 'foulGiven':
+      return ctx.t(mine ? 'say.foul.ours' : 'say.foul.theirs');
+
+    case 'penaltyGiven':
+      return ctx.t(mine ? 'say.penalty.ours' : 'say.penalty.theirs');
+
+    // ⚠️ AND A CARD NAMES THE OFFENDER'S SIDE, which is the OPPOSITE reading of the two above. A card
+    //    is against somebody; a kick is for somebody. `foulEvent` and `cardEvent` each put the side their
+    //    own sentence needs on the event, so neither reader has to remember a rule.
+    case 'bookingGiven':
+      return ctx.t(mine ? 'say.booking.ours' : 'say.booking.theirs');
+
+    case 'sendingOff':
+      // The sentence says the side is a player down, because that is the part that changes the match.
+      return ctx.t(mine ? 'say.sentOff.ours' : 'say.sentOff.theirs');
+
+    case 'start':
       return ctx.t('say.start');
   }
+
+  // ⚠️ NO `default`, AND THAT IS THE POINT OF THIS REWRITE. It used to end in
+  //    `default: return t('say.start')`, so the day fouls existed a blind child heard "the match begins"
+  //    every time one was given - a wrong answer delivered confidently, which is worse than silence and
+  //    which no test would catch, because a real sentence came back. The switch is exhaustive now, so a
+  //    thirteenth event fails the TYPECHECK the way it already does in `audio/cues`.
+  //
+  //    This line is unreachable while `PhaseEvent` is what it is, and TypeScript needs it anyway.
+  return ctx.t('say.start');
 }
 
 /**

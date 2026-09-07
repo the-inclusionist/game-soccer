@@ -33,6 +33,12 @@ export const EVENTS = [
   'offsideGiven',
   'foulGiven',
   'penaltyGiven',
+  // ⚠️ A CARD IS ITS OWN EVENT AND NOT A FIELD ON THE FOUL. A booking and a sending-off happen to a
+  //    PLAYER; a foul is about a TEAM. Widening the event every consumer reads, for the one consumer that
+  //    needs it, is how a shared type stops being readable - and these two change no phase at all, which
+  //    is why the table below has no row for them.
+  'bookingGiven',
+  'sendingOff',
   'goalScored',
   'restartTaken',
   'periodExpired',

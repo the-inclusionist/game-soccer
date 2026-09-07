@@ -166,3 +166,71 @@ describe('a foul in the box', () => {
     expect(s.phase).toBe('freeKick');
   });
 });
+
+// ========================= THE CARD AS SOMETHING A CHILD IS TOLD =========================
+// The card was applied to the state and announced to nobody. A blind child would have found out that her
+// side was a player down by noticing the shape of the game had changed, which is not being told.
+describe('the card is announced', () => {
+  it('[Zero] a careless challenge raises the whistle and nothing else', () => {
+    const { s } = setUp(1);
+
+    const kinds = tackle(s).map((e) => e.kind);
+
+    expect(kinds).toContain('foulGiven');
+    expect(kinds).not.toContain('bookingGiven');
+    expect(kinds).not.toContain('sendingOff');
+  });
+
+  // ⚠️ THE WHISTLE FIRST AND THE CARD SECOND, because that is the order it happens in and therefore the
+  //    order she hears it. Reversed, she is told somebody was sent off before she is told there was a foul.
+  it('[Right] a booking is its own event, after the foul', () => {
+    const { s } = setUp(7);
+
+    const kinds = tackle(s).map((e) => e.kind);
+
+    expect(kinds).toContain('bookingGiven');
+    expect(kinds.indexOf('bookingGiven')).toBeGreaterThan(kinds.indexOf('foulGiven'));
+  });
+
+  it('[Right] and the card names the OFFENDER side, where the kick named the other one', () => {
+    const { s } = setUp(7);
+
+    const events = tackle(s);
+    const kick = events.find((e) => e.kind === 'foulGiven');
+    const card = events.find((e) => e.kind === 'bookingGiven');
+
+    expect(kick?.team).toBe(AWAY);
+    expect(card?.team).toBe(HOME);
+  });
+
+  it('[Right] a violent challenge raises a sending-off and not a booking', () => {
+    const { s } = setUp(12);
+
+    const kinds = tackle(s).map((e) => e.kind);
+
+    expect(kinds).toContain('sendingOff');
+    expect(kinds).not.toContain('bookingGiven');
+  });
+
+  // ⚠️ THE CASE THE SEVERITY ALONE GETS WRONG. A second reckless challenge is still 'reckless', and what
+  //    actually happened is a sending-off. Only asking the state what CHANGED gets this right.
+  it('[Right] a second booking is announced as a sending-off, not as a booking', () => {
+    const { s, by } = setUp(7);
+    s.cards[by] = YELLOW;
+
+    const kinds = tackle(s).map((e) => e.kind);
+
+    expect(kinds).toContain('sendingOff');
+    expect(kinds).not.toContain('bookingGiven');
+    expect(s.cards[by]).toBe(RED);
+  });
+
+  it('[Zero] and a card never becomes the restart - the kick is still the kick', () => {
+    const { s } = setUp(12);
+
+    tackle(s);
+
+    expect(s.restartTaker).toBe(AWAY);
+    expect(s.phase).toBe('freeKick');
+  });
+});

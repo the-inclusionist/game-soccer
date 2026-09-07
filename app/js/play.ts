@@ -15,7 +15,7 @@
 import { evaluate, applyEvents, defenderOf } from './rules/referee.ts';
 import { applyRestart } from './rules/restart.ts';
 import { judgeTackle, type Foul } from './rules/foul.ts';
-import { book, cardFor } from './rules/cards.ts';
+import { book, cardFor, RED } from './rules/cards.ts';
 import type { RuleEvent } from './rules/events.ts';
 import type { RulesProfile } from './rules/profile.ts';
 import type { TickFrame } from './sim/command.ts';
@@ -40,14 +40,32 @@ import { PITCH } from './sim/units.ts';
  * the event carries a team. Putting a player id on the event only for this would widen the type every
  * other consumer reads for the one that needs it.
  */
-function foulEvent(state: MatchState, foul: Foul): RuleEvent {
+function foulEvents(state: MatchState, foul: Foul): RuleEvent[] {
+  const offender = teamOf(foul.by);
+  const fouled = (offender === 0 ? 1 : 0) as TeamId;
+
+  const out: RuleEvent[] = [
+    { kind: foul.inBox ? 'penaltyGiven' : 'foulGiven', team: fouled, at: foul.at },
+  ];
+
+  // ⚠️ THE WHISTLE FIRST AND THE CARD SECOND, because that is the order it happens in and therefore the
+  //    order a child hears it. Reversed, she is told somebody was sent off before she is told there was a
+  //    foul at all.
+  const before = state.cards[foul.by] ?? 0;
   book(state, foul.by, cardFor(foul.severity));
-  const against = teamOf(foul.by) === 0 ? 1 : 0;
-  return {
-    kind: foul.inBox ? 'penaltyGiven' : 'foulGiven',
-    team: against as TeamId,
-    at: foul.at,
-  };
+  const after = state.cards[foul.by] ?? 0;
+
+  // ⚠️ AND THE CARD NAMES THE OFFENDER'S SIDE - the OPPOSITE of the event above it. A kick is FOR
+  //    somebody; a card is AGAINST somebody. Each event carries the side its own sentence needs, so
+  //    neither reader has to remember which way round it goes.
+  //
+  // ⚠️ COMPARED BEFORE AND AFTER rather than derived from the severity, because a second booking is a
+  //    RED: severity says 'reckless' and what actually happened was a sending-off. Asking the state what
+  //    changed is the only version that gets that case right.
+  if (after > before) {
+    out.push({ kind: after >= RED ? 'sendingOff' : 'bookingGiven', team: offender, at: foul.at });
+  }
+  return out;
 }
 
 const STOPPED = new Set(['throwIn', 'corner', 'goalKick', 'freeKick', 'goal', 'halfTime', 'kickoff']);
@@ -144,7 +162,7 @@ export function playTick(
       if (cmd.verb === 'tackle') {
         const who = state.controlled[cmd.seat];
         const foul = who === undefined ? null : judgeTackle(state, who, profile);
-        if (foul !== null) fouls.push(foulEvent(state, foul));
+        if (foul !== null) fouls.push(...foulEvents(state, foul));
       }
       continue;
     }

@@ -28,6 +28,11 @@ export interface RuleEvent {
 export const URGENT: ReadonlySet<PhaseEvent> = new Set<PhaseEvent>([
   'goalScored',
   'offsideGiven',
+  // A penalty stops everything, and a player leaving the pitch is the biggest thing short of a goal - one
+  // side plays the rest of the match a man down, and a child who missed it spends that match not knowing
+  // why the shape changed.
+  'penaltyGiven',
+  'sendingOff',
   'periodExpired',
   'secondPeriodExpired',
 ]);
