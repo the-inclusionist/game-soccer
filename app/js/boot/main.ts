@@ -31,6 +31,7 @@ import {
 } from '../drivers/driver.ts';
 import { createTurnPanel } from '../ui/turn-panel.ts';
 import { clockText } from '../ui/clock.ts';
+import { youLine } from '../ui/mirror.ts';
 import { outcomeFor, outcomeKey } from '../ui/outcome.ts';
 import { crestCanvas } from '../ui/crest-canvas.ts';
 import type { Command } from '../sim/command.ts';
@@ -717,6 +718,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     score: doc.querySelector<HTMLElement>('#m-score'),
     phase: doc.querySelector<HTMLElement>('#m-phase'),
     ball: doc.querySelector<HTMLElement>('#m-ball'),
+    you: doc.querySelector<HTMLElement>('#m-you'),
   };
 
   // ⚠️ THE PIXI TICKER IS THE CLOCK, and `startLoop` reads `deltaTime` off it. Handing the engine a
@@ -765,6 +767,22 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
           holder === NOBODY
             ? t('hud.ball.loose')
             : t('hud.ball.with', { club: t(teamOf(holder) === HOME ? fixture.home.nameKey : fixture.away.nameKey) });
+      }
+      // ⚠️ WHICH OF THE ELEVEN SHE IS DRIVING, which until now existed ONLY as a five-pixel wedge over a
+      //    head. Every other line of this mirror has a second route to a child who cannot see - the score
+      //    is an earcon too, the phase is narrated too - and this one had none, so `hud.ball.with` could
+      //    say her club had the ball while she had no way of learning it was at her own feet.
+      //
+      //    ⚠️ ONE LINE PER SEAT, LABELLED, and joined by the seat's own name rather than by a sentence
+      //    built out of two dictionary halves. With two children on one keyboard an unlabelled line is a
+      //    line that belongs to nobody.
+      if (mirror.you !== null) {
+        const seated = state.controlled.slice(0, seating);
+        mirror.you.textContent = seated
+          .map((who, seat) =>
+            seating === 1 ? youLine(state, who, t) : `${t('keys.seat', { n: seat + 1 })}: ${youLine(state, who, t)}`,
+          )
+          .join(' - ');
       }
     },
     MAX_DT_FRAMES,

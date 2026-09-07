@@ -44,6 +44,7 @@ const SHELL = `
           <p><b id="m-score">0 - 0</b> <span id="m-clock">00:00</span></p>
           <p id="m-phase">-</p>
           <p id="m-ball">-</p>
+          <p id="m-you">-</p>
         </div>
       </section>
     </div></div>

@@ -29,6 +29,7 @@ const SHELL = `
           <p><b id="m-score">0 - 0</b> <span id="m-clock">00:00</span></p>
           <p id="m-phase">-</p>
           <p id="m-ball">-</p>
+          <p id="m-you">-</p>
         </div>
       </section>
     </div></div>
@@ -219,6 +220,25 @@ describe('what a child sees', () => {
     expect(shown).not.toBe('-');
     expect(shown.length).toBeGreaterThan(1);
     expect(document.querySelector('#m-fixture')?.textContent).toMatch(/ x /);
+  });
+
+  // ⚠️ AND THE ONE FACT THAT USED TO LIVE ONLY IN PIXELS. Which of the eleven she is driving was a
+  //    five-pixel wedge over a head and nothing else - no earcon, no narration, no line here - so a child
+  //    who could not see the screen could hear that her club had the ball and could not learn whether it
+  //    was at her own feet.
+  //
+  //    ⚠️ ASKED OF THE PAGE AND NOT OF `youLine`. `tests/mirror` measures what the sentence SAYS, and it
+  //    would go on passing with this wire cut: eight modules in this repository have been right, gated
+  //    and connected to nothing, and the gate that would have caught each of them is this one.
+  it('[Right] and which player she is driving, which lived only in pixels before', async () => {
+    booted = bootar(document, window);
+
+    await new Promise((r) => setTimeout(r, 350));
+
+    const shown = document.querySelector('#m-you')?.textContent ?? '';
+    expect(shown, 'the mirror never said who the child is').not.toBe('-');
+    // A shirt number, because that is the whole point of the line: which ONE of the eleven.
+    expect(shown, `no shirt number in "${shown}"`).toMatch(/\d/);
   });
 
   // ⚠️ NOT A GATE - A LOOK. Nothing here can assert that twenty-two twelve-pixel figures READ, and
