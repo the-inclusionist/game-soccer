@@ -437,7 +437,27 @@ export interface Kick {
 const CLEARANCE_SPEED = 22;
 const CLEARANCE_LIFT = 5;
 
-/** Metres. Inside this a carrier shoots instead of carrying on. */
+/**
+ * Metres. Inside this a carrier shoots instead of carrying on.
+ *
+ * ⚠️ AND MORE SHOTS IS NOT MORE FOOTBALL, which was measured after the Dev asked for more corners and
+ * goal kicks. `sim/block` had pointed upstream - "the shot volume is the next thing" - and six shots a
+ * match producing three goals is a 50% conversion against football's ten, so shooting more looked like
+ * the free lever. Twelve fixtures each, both ways round, with a child playing:
+ *
+ *     range   goals   corners   goal kicks
+ *      22m     2.67      0.50         1.92
+ *      26m     1.25      0.08         0.42
+ *      30m     0.67      0.25         0.58
+ *
+ * ⚠️ EVERYTHING FELL, INCLUDING THE TWO IT WAS MEANT TO RAISE. A longer range does not add shots to the
+ * attacks that already exist - it REPLACES them, because a carrier who may shoot from thirty metres shoots
+ * from thirty metres instead of carrying the ball to twenty. He never reaches the box, and a corner and a
+ * goal kick are things that happen at the end of a pitch he stopped going to.
+ *
+ * So the shot volume was not upstream after all: the attacks are. That note in `sim/block` is answered
+ * here rather than left standing.
+ */
 const SHOOT_RANGE = 22;
 
 /** Metres per second on a shot, and the small lift that keeps it off the turf. */
