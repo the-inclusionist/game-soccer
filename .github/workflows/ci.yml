@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# THE CALLER — and it is short on purpose (ADR-0068 §4).
+#
+# The gate itself lives once, in the engine repository, and every game invokes it. Copying it here would
+# create the failure that record refuses: three hundred copies drift, and the ones that drift silently are
+# the ones that stop gating. This file is allowed to grow only in the `with:` block.
+#
+# `a11y: true`, and this line was `false` until the condition written here was met and watched.
+#
+# WCAG A/AA IS GATED TWICE, at two different distances, and both are wanted.
+#
+#   · `tests/a11y.browser.test.ts` runs axe-core against the game AS IT BOOTS - with the stylesheet
+#     loaded, so it measures the page that ships, and with NO exclusions at all. It also opens each of the
+#     four panels a child can reach, because axe SKIPS a `hidden` subtree: a dialog audited while hidden is
+#     a dialog nobody looked at, and this repository shipped two of those before noticing.
+#   · This flag adds the same check against the BUILT BUNDLE over HTTP, which catches what a bundler does
+#     to a page and what the test harness's own DOM never has to survive.
+#
+# ⚠️ IT WAS OFF BECAUSE NOBODY HAD WATCHED IT PASS, which is not a formality: turning on a gate that has
+# never run is how a red gate reaches a branch, and the machine this repository was started on had every
+# port taken by other sessions, so `dist` could not be served at all.
+#
+# What was done before this line changed, in this order:
+#
+#   1. `npm run build`, then the exact sequence `game-ci.yml` runs - `npm run preview -- --port 4173`,
+#      wait for the port, `npm run test:a11y` with no URL override. Printed `0 violacoes`.
+#   2. PROVED IT CAN FAIL, which is the half that makes the green mean anything. The first attempt did not:
+#      emptying a button's text stayed green, correctly, because the game fills that text from the
+#      dictionary at boot - the markup was repaired before axe ever saw it. Stripping `lang` from `<html>`
+#      is a defect the runtime cannot repair, and it came back `1 violacao (html-has-lang)`.
+#
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    uses: the-inclusionist/the-inclusionist-engine/.github/workflows/game-ci.yml@main
+    with:
+      a11y: true
