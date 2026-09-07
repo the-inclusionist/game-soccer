@@ -281,3 +281,28 @@ describe('a defender with nowhere to play it', () => {
     expect(decideKick(s, MATCH_PROFILE.playable, skills)).toBeNull();
   });
 });
+
+// ========================= THE BALL THAT GOES SIDEWAYS - TRIED TWICE, MEASURED, REVERTED =========================
+// `receiverFor` skips anybody less than two metres ahead of the carrier - *"a square or backward ball is
+// not what this is for"* - and that leaves a hole football does not have: a carrier under pressure with
+// nobody in front of him has only the dribble. It is also what blocked the sight-of-goal rule, which was
+// measured and reverted for exactly this reason (see `tests/ai-shot`).
+//
+// So an outlet was added: the nearest FREE team-mate in any direction, asked only when the forward ball
+// returns nothing. Twice, in two orders, and the second is the one worth recording.
+//
+//   forward -> outlet -> clear     six gates fell. A defender in his own third stopped clearing, because
+//                                  there was always somebody within range to give it to.
+//   forward -> clear  -> outlet    the clearance came back, and five gates still fell:
+//
+//                                    the phase NEVER CHANGED in six thousand ticks
+//                                    NOTHING stopped play in thirty-six thousand
+//                                    the ball never went out, and no card was ever shown
+//
+// ⚠️ THAT IS A CLOSED PASSING LOOP, and the two-metre rule's own comment predicted it in six words. Two
+// free players square to each other are each other's best outlet, for ever, and the ball goes nowhere.
+//
+// ⚠️ SO THE OUTLET NEEDS SOMETHING THIS CASCADE HAS NOT GOT: a memory of who just gave it to him. Football
+// has the same instinct - you do not immediately give it back - and Law 15 already made this repository
+// build one, `tookRestart`, for the taker who may not play it twice. An outlet that refuses the man who
+// just passed to him is the version worth trying next; an outlet without one is a metronome.
