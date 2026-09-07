@@ -13,7 +13,7 @@
 import { stepBall } from './ball.ts';
 import { stepBody } from './body.ts';
 import { FLAG_JOCKEY, FLAG_SPRINT, type TickFrame } from './command.ts';
-import { DEFAULT_CAPS, type BodyCaps } from './body.ts';
+import { DEFAULT_CAPS, type SideCaps } from './body.ts';
 import { containDirection } from './contain.ts';
 import { NOBODY, resolvePossession } from './possession.ts';
 import { teamOf } from './ids.ts';
@@ -43,7 +43,7 @@ export function step(
   dt: number,
   base?: readonly Vec2[],
   moveBall = true,
-  sides?: readonly [BodyCaps, BodyCaps],
+  sides?: readonly [SideCaps, SideCaps],
 ): void {
   // 1 - INTENT. A desired direction per body, defaulting to standing still. Built as a dense array rather
   //     than a map so the iteration below is by index, which is what keeps ties deterministic.
@@ -58,7 +58,7 @@ export function step(
   //     stopped there, and every test still passed because they all asserted on the COMMAND.
   // ⚠️ SEEDED PER SIDE, WHICH IS WHERE PACE ENTERS THE MATCH. It was `DEFAULT_CAPS` for all twenty-two, so
   //     `capsFor` was imported by nobody and the clubs ran at identical speeds while a card said otherwise.
-  const caps = state.players.map((_, i) => (sides === undefined ? DEFAULT_CAPS : sides[teamOf(i)]));
+  const caps = state.players.map((_, i) => (sides === undefined ? DEFAULT_CAPS : sides[teamOf(i)].body));
 
   for (const cmd of frame.cmds) {
     const who = state.controlled[cmd.seat];
@@ -104,7 +104,7 @@ export function step(
 
   // 4 - POSSESSION, after everything has moved. Deciding it before the bodies move would answer "who has
   //     the ball" about a world that no longer exists, and the referee reads this on the same tick.
-  resolvePossession(state);
+  resolvePossession(state, sides);
 
   // 5 - THE CLOCK, last, so that everything above ran at the tick it is numbered with.
   state.tick += 1;

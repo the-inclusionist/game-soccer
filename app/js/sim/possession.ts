@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // WHO HAS THE BALL. And, separately, who touched it last.
 
-import type { PlayerId } from './ids.ts';
+import { teamOf, type PlayerId } from './ids.ts';
+import type { SideCaps } from './body.ts';
 import type { MatchState } from './state.ts';
 import { onPitch } from './squads.ts';
 import { dist2 } from './vec.ts';
@@ -10,11 +11,16 @@ import { dist2 } from './vec.ts';
 export const NOBODY = -1;
 
 /**
- * Metres. A player controls the ball inside this radius.
+ * Metres. A player controls the ball inside this radius, when nobody has said otherwise.
  *
- * ⚠️ IT WILL BECOME A FUNCTION OF THE `control` RATING, and the constant is the rating at 0.5. Ratings
- * apply at the POINT OF ACTION rather than by branching the logic, so this becomes `0.7 + 0.4 * control`
- * and nothing else in this file changes.
+ * ⚠️ IT PROMISED TO BECOME A FUNCTION OF `control` AND NOW IT HAS, and the promise was kept in the shape
+ * it was made in: *"ratings apply at the POINT OF ACTION rather than by branching the logic, so this
+ * becomes `0.7 + 0.4 * control` and nothing else in this file changes."* The arithmetic lives in
+ * `ai/ratings.controlRadiusOf`; this file receives the ANSWER, so it still knows nothing about clubs.
+ *
+ * ⚠️ AND IT IS EXACTLY `controlRadiusOf(0.5)`. A default that did not match the middle of the scale would
+ * mean every gate driving the simulation without clubs described a different world from the game, and the
+ * symptom would have been golden replays quietly ceasing to match.
  */
 export const CONTROL_R = 0.9;
 
@@ -68,7 +74,7 @@ export function createPossession(): Possession {
  * on a tie. No sort: a comparator's tie-breaking would silently become part of the simulation's
  * determinism, and nothing would say so.
  */
-export function resolvePossession(state: MatchState): void {
+export function resolvePossession(state: MatchState, sides?: readonly [SideCaps, SideCaps]): void {
   const { ball, players, possession } = state;
 
   if (ball.p.z >= MAX_CONTROL_HEIGHT) {
@@ -76,13 +82,21 @@ export function resolvePossession(state: MatchState): void {
     return;
   }
 
-  const reach = CONTROL_R * CONTROL_R;
+  // ⚠️ REACH IS PER SIDE NOW, so "within reach" and "nearest" are two questions where they used to be one
+  //    initialiser. A single `bestD2` seeded with the radius answered both at once, and it cannot survive
+  //    two radii: a deft dribbler a metre away and a clumsy one at ninety centimetres are both candidates
+  //    or not depending on WHOSE radius the seed was.
+  const reachOf = (i: number): number =>
+    sides === undefined ? CONTROL_R : sides[teamOf(i)].controlRadius;
+
   let best = NOBODY;
-  let bestD2 = reach;
+  let bestD2 = Infinity;
 
   for (let i = 0; i < players.length; i++) {
     if (!onPitch(state, i)) continue;
     const d2 = dist2(players[i].p, ball.p);
+    const r = reachOf(i);
+    if (d2 >= r * r) continue;
     // Strictly nearer, so an exact tie leaves `best` on the LOWER index that got there first.
     if (d2 < bestD2) {
       bestD2 = d2;
@@ -96,7 +110,10 @@ export function resolvePossession(state: MatchState): void {
   const held = possession.holder;
   if (held !== NOBODY && held !== best) {
     const heldD2 = dist2(players[held].p, ball.p);
-    if (heldD2 < reach && Math.sqrt(heldD2) - Math.sqrt(bestD2) < SHIELD_MARGIN) best = held;
+    const heldReach = reachOf(held);
+    if (heldD2 < heldReach * heldReach && Math.sqrt(heldD2) - Math.sqrt(bestD2) < SHIELD_MARGIN) {
+      best = held;
+    }
   }
 
   // ⚠️ TAKING THE BALL IS ITSELF A TOUCH, and leaving that out was a defect with a strange symptom: a

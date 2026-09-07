@@ -10,7 +10,7 @@
 // It is also ADR-0049: every reward deterministic. A rating shifts an outcome by shifting a number, never
 // by rolling for it.
 
-import type { BodyCaps } from '../sim/body.ts';
+import type { BodyCaps, SideCaps } from '../sim/body.ts';
 
 export interface Ratings {
   /** Top speed and acceleration. */
@@ -55,8 +55,12 @@ export function capsFor(r: Ratings): BodyCaps {
  * allocations a tick to say the same two things - and pillar 1 names the hardware this runs on. It also
  * says the shape of the rule out loud: every player of a side is as quick as his side.
  */
-export function capsBySide(home: Ratings, away: Ratings): readonly [BodyCaps, BodyCaps] {
-  return [capsFor(home), capsFor(away)];
+export function capsBySide(home: Ratings, away: Ratings): readonly [SideCaps, SideCaps] {
+  return [sideOf(home), sideOf(away)];
+}
+
+function sideOf(r: Ratings): SideCaps {
+  return { body: capsFor(r), controlRadius: controlRadiusOf(r.control) };
 }
 
 /** Radians of error a pass may carry. A perfect passer has none, which is the honest end of the scale. */

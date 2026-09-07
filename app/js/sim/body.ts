@@ -22,6 +22,23 @@ export interface BodyCaps {
 export const DEFAULT_CAPS: BodyCaps = Object.freeze({ maxSpeed: 6.9, accel: 22 });
 
 /**
+ * What one side's bodies can do, which is everything a club changes about the simulation.
+ *
+ * ⚠️ CAPS AND NOT RATINGS, and that is the whole reason `sim/` can be tested with no clubs in it. The seam
+ * turns a club into these numbers; nothing here ever learns that a club exists, that there are six
+ * ratings, or which of them produced which field.
+ *
+ * It is one type rather than a parameter per ability because it grows: `pace` arrived first, `control`
+ * second, and a signature that took each of them separately would be re-plumbed through four files every
+ * time a rating is wired.
+ */
+export interface SideCaps {
+  readonly body: BodyCaps;
+  /** Metres. How close the ball stays to a dribbler on this side. See `sim/possession`. */
+  readonly controlRadius: number;
+}
+
+/**
  * Advance one body toward `desired`, a direction with magnitude 0..1 (a stick, already deadzoned).
  *
  * The body is kept on the pitch. A player pushed at the touchline stops there rather than leaving the
