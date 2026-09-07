@@ -55,13 +55,17 @@ export function capsFor(r: Ratings): BodyCaps {
  * allocations a tick to say the same two things - and pillar 1 names the hardware this runs on. It also
  * says the shape of the rule out loud: every player of a side is as quick as his side.
  */
-export function capsBySide(home: Ratings, away: Ratings): readonly [SideCaps, SideCaps] {
-  return [sideOf(home), sideOf(away)];
+export function capsBySide(home: Ratings, away: Ratings, pace = 1): readonly [SideCaps, SideCaps] {
+  return [sideOf(home, pace), sideOf(away, pace)];
 }
 
-function sideOf(r: Ratings): SideCaps {
+function sideOf(r: Ratings, pace: number): SideCaps {
+  const caps = capsFor(r);
   return {
-    body: capsFor(r),
+    // ⚠️ THE PROFILE'S PACE MULTIPLIES WHAT A BODY CAN DO, and it is how one simulation serves two match
+    //    lengths - see `rules/profile`. It scales the CAPS and not the ratings: a quick club is still
+    //    quicker than a slow one at any pace, which is what keeps the six numbers meaning what they say.
+    body: { maxSpeed: caps.maxSpeed * pace, accel: caps.accel * pace },
     controlRadius: controlRadiusOf(r.control),
     tackleMargin: tackleMarginOf(r.defending),
   };

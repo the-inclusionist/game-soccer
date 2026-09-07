@@ -79,8 +79,8 @@ function foulEvents(state: MatchState, foul: Foul): RuleEvent[] {
  * simulation without skills - and most of them do - would otherwise get a different world from the one the
  * game runs, and the difference would surface as a golden replay that quietly stopped matching.
  */
-function capsOf(skills: Skills | undefined) {
-  return capsBySide(skills?.[0] ?? AVERAGE, skills?.[1] ?? AVERAGE);
+function capsOf(skills: Skills | undefined, pace = 1) {
+  return capsBySide(skills?.[0] ?? AVERAGE, skills?.[1] ?? AVERAGE, pace);
 }
 
 /**
@@ -191,7 +191,7 @@ export function playTick(
   //    would be aimed from where everybody used to be, and at 60Hz that is a metre of lie per tick.
   if (skills !== undefined) think(state, skills, profile.playable);
 
-  step(state, frame, dt, steerAll(state), true, capsOf(skills));
+  step(state, frame, dt, steerAll(state), true, capsOf(skills, profile.pace));
 
   // ⚠️ JUDGED HERE, BETWEEN THE MOVE AND THE NEXT KICK, and the position in the tick is the rule. `step`
   //    is where a touch happens, so this is the first instant the flag can be read - and it has to be read
@@ -307,7 +307,7 @@ function awaitingRestart(
   //    dead ball the ball waits and the players reposition.
   if (skills !== undefined) {
     think(state, skills, profile.playable);
-    step(state, frame, dt, steerAll(state), false, capsOf(skills));
+    step(state, frame, dt, steerAll(state), false, capsOf(skills, profile.pace));
   }
 
   // `restartTaker` is stored as a plain number because `-1` means nobody. Narrowing it once here means

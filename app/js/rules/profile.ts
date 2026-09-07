@@ -31,6 +31,31 @@ export interface RulesProfile {
    */
   readonly playable: { readonly length: number; readonly width: number };
   /**
+   * What every body's top speed and acceleration are multiplied by. `1` is the game as it plays.
+   *
+   * ⚠️ IT IS HOW TWO MATCH LENGTHS GET THE SAME NUMBERS, and it was chosen by measurement rather than by
+   * argument. The Dev asked for football's counts - 40 throw-ins, 2.7 goals, 10 corners, 1.7 bookings - in
+   * BOTH a fifteen-minute match and a ninety-minute one, which is six times fewer events per minute in the
+   * long one. Three ways to get there were measured over ninety-minute matches:
+   *
+   *     lever                       throw-ins   goals   corners   bookings
+   *     as it plays                     206.0    17.3       5.0        1.0
+   *     pitch 112x70                    250.0     5.3       0.3
+   *     pitch 158x98                    418.0     2.3       1.3
+   *     seven a side                    514.0    11.7       5.7        1.3
+   *     five a side                     662.0     4.7       5.3        0.3
+   *     bodies at half pace              89.3     1.0       9.0        1.7
+   *
+   * More space per player - a bigger pitch, or fewer bodies - SPLITS the targets: it takes the goals down
+   * and pushes the throw-ins up, because a loose ball travels further before anybody reaches it. Slowing
+   * the bodies is the only lever that moves all four the same way, and at half pace the corners and the
+   * bookings land on football's numbers exactly.
+   *
+   * ⚠️ AND IT IS NOT THE ASSISTED TEMPO. That scales how much simulated time a real second buys, which
+   * changes nothing about a match's contents; this changes what happens IN a minute of football.
+   */
+  readonly pace: number;
+  /**
    * How many of each squad are on the pitch, indexed by `TeamId`.
    *
    * ⚠️ A PRACTICE PITCH IS NOT A MATCH WITH THE RULES SWITCHED OFF. The feature is "a free-form pitch
@@ -55,6 +80,7 @@ export const MATCH_PROFILE: RulesProfile = Object.freeze({
   clock: 'count',
   periodTicks: TEN_MINUTES,
   playable: Object.freeze({ length: PITCH.length, width: PITCH.width }),
+  pace: 1,
   squads: Object.freeze([SQUAD_SIZE, SQUAD_SIZE]) as readonly [number, number],
 });
 
@@ -66,6 +92,7 @@ export const PRACTICE_PROFILE: RulesProfile = Object.freeze({
   clock: 'none',
   periodTicks: 0,
   playable: Object.freeze({ length: PITCH.length * PRACTICE_SHARE, width: PITCH.width }),
+  pace: 1,
   // Three of ours against a lone keeper: enough for a pass to exist, and nothing that looks like a match.
   squads: Object.freeze([3, 1]) as readonly [number, number],
 });
@@ -92,6 +119,17 @@ const TICKS_PER_MINUTE = 60 * 60;
  * CONSTRUCTION - the same way the 2048 did - and a length chooser that could impose a limit on it would
  * take away the one mode whose conformance needs no argument at all.
  */
+/**
+ * The same profile with the bodies at `k` times their pace.
+ *
+ * ⚠️ HALF IS THE NINETY-MINUTE MATCH and one is the short one, measured rather than argued - see `pace`.
+ * A whole match at half pace produces 89 throw-ins, 1.0 goals, 9.0 corners and 1.7 bookings against
+ * football's 40, 2.7, 10 and 1.7; at full pace it produces 206, 17.3, 5.0 and 1.0.
+ */
+export function withPace(profile: RulesProfile, k: number): RulesProfile {
+  return Object.freeze({ ...profile, pace: k });
+}
+
 export function withPeriod(profile: RulesProfile, minutes: number | 'none'): RulesProfile {
   if (profile.clock === 'none') return profile;
   if (minutes === 'none') return Object.freeze({ ...profile, clock: 'none' as const, periodTicks: 0 });
