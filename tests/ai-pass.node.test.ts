@@ -24,6 +24,7 @@ import { MATCH_PROFILE } from '../app/js/rules/profile.ts';
 import { AWAY, HOME, SQUAD_SIZE, firstOf, teamOf } from '../app/js/sim/ids.ts';
 import { decideKick } from '../app/js/ai/brain.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
+import { NOBODY, resolvePossession } from '../app/js/sim/possession.ts';
 import { createBall, stepBall, DT } from '../app/js/sim/ball.ts';
 
 const sharp = { ...AVERAGE, passing: 0.95 };
@@ -52,6 +53,94 @@ function pressed(passing = AVERAGE) {
   s.possession.lastTouch = carrier;
   return { s, carrier, mate, skills: { 0: passing, 1: AVERAGE } };
 }
+
+// ========================= AND HE DOES NOT PASS IT TO HIMSELF =========================
+// Measured over a real ninety-minute match: 1,320 passes attempted and only 399 that ever resolved. The
+// other seventy per cent were the SAME pass, issued again a tick later.
+//
+// A pass is weighted to reach its man - `far * rollDrag * 1.25` - so a five-metre ball leaves at ten
+// metres a second, and that is BELOW the twelve at which a body can no longer control a ball running away
+// from it. The passer was inside his own control radius when the ball had barely moved, took it straight
+// back, and passed again. It is the shot defect one door along, and it hid behind the same threshold that
+// fixed the shot: 26 metres a second is caught by it and 10 is not.
+//
+// ⚠️ AND THE PASSES WERE ALREADY FAILING HONESTLY, which is the finding that redirected this. 46% of the
+// ones that resolved were INTERCEPTED - the sim has never needed a rule for that, because a ball passing
+// within a body's reach of an opponent is his. The defect was never that a pass could not fail.
+describe('a pass, once struck', () => {
+  it('[Right] is not taken straight back by the man who played it', () => {
+    const { s, carrier, skills } = pressed();
+
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills)!;
+    s.ball.v = { x: kick.vx, y: kick.vy, z: kick.vz };
+    s.possession.holder = NOBODY;
+    s.possession.lastTouch = carrier;
+    s.lastStruck = carrier;
+
+    resolvePossession(s);
+
+    expect(s.possession.holder, 'he took his own pass back on the next tick').not.toBe(carrier);
+  });
+
+  // ⚠️ AND THE LOCK LIFTS THE MOMENT IT IS AWAY FROM HIM, which is what stops it deadlocking a ball nobody
+  //    else can reach: once it is outside his own radius he is an ordinary player again, and a clearance
+  //    into space is still his to chase.
+  it('[Zero] but a ball that has got away from him is his again', () => {
+    const { s, carrier } = pressed();
+    s.ball.p = { x: s.players[carrier].p.x + 6, y: s.players[carrier].p.y, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = NOBODY;
+    s.lastStruck = carrier;
+
+    resolvePossession(s);
+
+    expect(s.lastStruck, 'he is still locked out of a ball six metres away').toBe(NOBODY);
+  });
+});
+
+// ========================= AND HE DOES NOT PASS IT TO HIMSELF =========================
+// Measured over a real ninety-minute match: 1,320 passes attempted and only 399 that ever resolved. The
+// other seventy per cent were the SAME pass, issued again a tick later.
+//
+// A pass is weighted to reach its man - `far * rollDrag * 1.25` - so a five-metre ball leaves at ten
+// metres a second, and that is BELOW the twelve at which a body can no longer control a ball running away
+// from it. The passer was inside his own control radius when the ball had barely moved, took it straight
+// back, and passed again. It is the shot defect one door along, and it hid behind the same threshold that
+// fixed the shot: 26 metres a second is caught by it and 10 is not.
+//
+// ⚠️ AND THE PASSES WERE ALREADY FAILING HONESTLY, which is the finding that redirected this. 46% of the
+// ones that resolved were INTERCEPTED - the sim has never needed a rule for that, because a ball passing
+// within a body's reach of an opponent is his. The defect was never that a pass could not fail.
+describe('a pass, once struck', () => {
+  it('[Right] is not taken straight back by the man who played it', () => {
+    const { s, carrier, skills } = pressed();
+
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills)!;
+    s.ball.v = { x: kick.vx, y: kick.vy, z: kick.vz };
+    s.possession.holder = NOBODY;
+    s.possession.lastTouch = carrier;
+    s.lastStruck = carrier;
+
+    resolvePossession(s);
+
+    expect(s.possession.holder, 'he took his own pass back on the next tick').not.toBe(carrier);
+  });
+
+  // ⚠️ AND THE LOCK LIFTS THE MOMENT IT IS AWAY FROM HIM, which is what stops it deadlocking a ball nobody
+  //    else can reach: once it is outside his own radius he is an ordinary player again, and a clearance
+  //    into space is still his to chase.
+  it('[Zero] but a ball that has got away from him is his again', () => {
+    const { s, carrier } = pressed();
+    s.ball.p = { x: s.players[carrier].p.x + 6, y: s.players[carrier].p.y, z: 0 };
+    s.ball.v = { x: 0, y: 0, z: 0 };
+    s.possession.holder = NOBODY;
+    s.lastStruck = carrier;
+
+    resolvePossession(s);
+
+    expect(s.lastStruck, 'he is still locked out of a ball six metres away').toBe(NOBODY);
+  });
+});
 
 describe('a carrier under pressure', () => {
   it('[Right] lets go of it, where before he dribbled for ever', () => {

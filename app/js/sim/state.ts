@@ -95,6 +95,20 @@ export interface MatchState {
    * of 220 were inside two seconds. Football forbids exactly this, and for the same reason.
    */
   tookRestart: number;
+  /**
+   * Who last struck the ball, while it is still inside his own reach, or `-1`.
+   *
+   * ⚠️ IT STOPS A MAN PASSING TO HIMSELF. A pass is weighted to reach its man, so a five-metre ball
+   * leaves at ten metres a second - below the twelve at which a body can no longer control a ball
+   * running away from it - and the passer took it straight back and passed again. Measured over a real
+   * ninety-minute match: 1,320 passes attempted and 399 that ever resolved.
+   *
+   * ⚠️ AND IT IS NOT `tookRestart`, WHICH IT RESEMBLES. Law 15 locks the taker out until SOMEBODY ELSE
+   * plays it, which is a rule about a restart; this lifts the moment the ball is out of his reach,
+   * which is a fact about a foot. Two lifetimes, and merging them would either free the restart taker
+   * too early or freeze a clearance nobody else can chase.
+   */
+  lastStruck: number;
 }
 
 /**
@@ -161,6 +175,7 @@ export function createMatchState(
     offsidePasser: -1,
     offsideMask: 0,
     tookRestart: -1,
+    lastStruck: -1,
   };
 }
 
@@ -188,6 +203,7 @@ export const SCALAR_FIELDS: ReadonlyArray<(s: MatchState) => number> = Object.fr
   (s) => s.offsidePasser,
   (s) => s.offsideMask,
   (s) => s.tookRestart,
+  (s) => s.lastStruck,
 ]);
 
 export const BODY_FIELDS: ReadonlyArray<(b: Body) => number> = Object.freeze([

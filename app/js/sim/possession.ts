@@ -163,10 +163,22 @@ export function resolvePossession(state: MatchState, sides?: readonly [SideCaps,
   let best = NOBODY;
   let bestD2 = Infinity;
 
+  // ⚠️ THE LOCK LIFTS WHEN THE BALL IS AWAY FROM HIM, and that is what keeps it from deadlocking a ball
+  //    nobody else can reach: a clearance into space is still his to chase. It only has to survive the few
+  //    ticks in which the ball has not yet left his feet, which is the whole of the defect.
+  const struck = state.lastStruck;
+  if (struck !== NOBODY) {
+    const away = dist2(players[struck].p, ball.p);
+    const r = reachOf(struck);
+    if (away >= r * r) state.lastStruck = NOBODY;
+  }
+
   for (let i = 0; i < players.length; i++) {
     if (!onPitch(state, i)) continue;
     // Law 15: the man who took the restart may not play it again until somebody else has.
     if (i === state.tookRestart) continue;
+    // And nobody passes to himself: see `lastStruck`.
+    if (i === state.lastStruck) continue;
     const d2 = dist2(players[i].p, ball.p);
     const r = reachOf(i);
     if (d2 >= r * r) continue;

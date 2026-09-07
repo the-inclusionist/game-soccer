@@ -175,7 +175,14 @@ describe('what a match contains', () => {
     //    FROZEN - a parried ball marked grounded in mid-air switched gravity off, see `tests/ball` - and a
     //    rate measured over ten minutes does not survive being stretched to ninety in this game anyway. A
     //    real ninety-minute match gives 122.
-    expect(across('crossedTouchline'), 'the ball is going out constantly again').toBeLessThan(90);
+    // ⚠️ RE-BASED WHEN A MAN STOPPED PASSING TO HIMSELF, and the direction is the uncomfortable one. Six
+    //    ten-minute matches went from 55 throw-ins to 136, because 70% of all passes used to be the SAME
+    //    pass issued again a tick later - the passer took his own ball back before it had left his feet -
+    //    and a ball that never travels is a ball that never goes out. The low count was the defect.
+    //
+    //    This is a LOOP detector and not a football-rate gate: the loop it exists for produced hundreds a
+    //    match. The rate against football lives in the table above and is far out, which is stated there.
+    expect(across('crossedTouchline'), 'the ball is going out constantly again').toBeLessThan(260);
   });
 
   // ⚠️ MET, AND BY THE SHOT RATHER THAN BY THE RULES. A shot aimed at the exact centre of the mouth can
