@@ -65,6 +65,26 @@ export interface MatchState {
    * it in one loop, and a map's iteration order is a thing that would have to be pinned by hand.
    */
   cards: number[];
+  /**
+   * Who played the ball last time a snapshot was taken, or `NOBODY`.
+   *
+   * ⚠️ OFFSIDE IS TWO MOMENTS AND THIS IS THE FIRST ONE. The line is measured when the ball is PLAYED
+   * and the flag goes up when it is TOUCHED, which is the law and not a convenience: a striker standing
+   * behind the defence while the ball is at the other end has committed nothing. So the verdict has to
+   * survive between the two, and it survives HERE - in the state, where the digest can see it and a
+   * replay reproduces it, rather than in a variable beside the loop.
+   *
+   * It also answers "has anybody else touched it yet", which is what makes the snapshot expire: the
+   * passer being the last toucher means the pass is still travelling.
+   */
+  offsidePasser: number;
+  /**
+   * Bit `k` set means squad index `k` of the passer's side was offside when the ball was played.
+   *
+   * A number and not an array of booleans, because eleven bits fit in one and the digest walks it as a
+   * single field. `0` with a passer set is a legal pass whose snapshot is still armed.
+   */
+  offsideMask: number;
 }
 
 /**
@@ -128,6 +148,8 @@ export function createMatchState(
     // Both squads, always - a body that is not playing can still have been sent off, and an array that
     // only covered the players on the pitch would change length when somebody left it.
     cards: new Array(SQUAD_SIZE * 2).fill(0),
+    offsidePasser: -1,
+    offsideMask: 0,
   };
 }
 
@@ -150,6 +172,10 @@ export const SCALAR_FIELDS: ReadonlyArray<(s: MatchState) => number> = Object.fr
   (s) => s.onPitch[1],
   (s) => s.controlled[0],
   (s) => s.controlled[1],
+  // The offside snapshot is state like any other: a replay that reproduced every position but not the
+  // armed flag would diverge at the next touch and the digest would call the two worlds identical.
+  (s) => s.offsidePasser,
+  (s) => s.offsideMask,
 ]);
 
 export const BODY_FIELDS: ReadonlyArray<(b: Body) => number> = Object.freeze([

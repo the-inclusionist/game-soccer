@@ -15,6 +15,7 @@
 import { evaluate, applyEvents, defenderOf } from './rules/referee.ts';
 import { applyRestart } from './rules/restart.ts';
 import { judgeTackle, type Foul } from './rules/foul.ts';
+import { judgeOffside, markOffside } from './rules/offside.ts';
 import { book, cardFor, RED } from './rules/cards.ts';
 import type { RuleEvent } from './rules/events.ts';
 import { PHASES } from './rules/phase.ts';
@@ -169,6 +170,11 @@ export function playTick(
 
   step(state, frame, dt, steerAll(state));
 
+  // ⚠️ JUDGED HERE, BETWEEN THE MOVE AND THE NEXT KICK, and the position in the tick is the rule. `step`
+  //    is where a touch happens, so this is the first instant the flag can be read - and it has to be read
+  //    BEFORE anybody plays the ball again, because the next kick overwrites the very fact it asks about.
+  const flag = judgeOffside(state, profile);
+
   // ⚠️ A CHILD'S VERB BEATS THE AI'S, and the order is how that is enforced rather than hoped for. If the
   //    AI struck first, a seat's shot would be silently discarded on exactly the ticks where the two
   //    disagree - which is every tick that matters.
@@ -199,6 +205,10 @@ export function playTick(
       continue;
     }
     applyStrike(state, strike);
+    // ⚠️ EVERY KICK ARMS THE SNAPSHOT, not only a pass. A shot that rebounds to a team-mate who was behind
+    //    the defence is offside exactly as a pass to him would be, and asking the verb here would make the
+    //    law depend on what the child MEANT rather than on where the ball went.
+    markOffside(state, strike.id, profile);
     struck = true;
     break; // one ball
   }
@@ -223,12 +233,16 @@ export function playTick(
       state.ball.grounded = false;
       state.possession.holder = NOBODY;
       state.possession.lastTouch = kick.id;
+      markOffside(state, kick.id, profile);
     }
   }
 
   // The foul comes FIRST: it stopped play, so nothing the referee would have said about the world after
   // it is true any more - a ball that went out on the same tick went out after the whistle.
-  const events = fouls.length > 0 ? fouls : evaluate(state, profile);
+  //
+  // ⚠️ AND THE FLAG COMES BEFORE BOTH, for the same reason one step further back: it was raised at the
+  //    touch, which happened before either the lunge or anything the ball did afterwards.
+  const events = flag !== null ? [flag] : fouls.length > 0 ? fouls : evaluate(state, profile);
   if (events.length === 0) return events;
 
   applyEvents(state, events, profile);
@@ -237,6 +251,10 @@ export function playTick(
     const taker = takerFor(event, state);
     if (taker === -1) continue;
     state.restartTaker = taker;
+    // The passage of play is over, so the snapshot is too. Left armed, it would go up at the first touch
+    // after the restart - an offence belonging to a passage of play that ended before it.
+    state.offsidePasser = NOBODY;
+    state.offsideMask = 0;
     applyRestart(state, event);
     break; // one ball, one placement: a tick that is both a throw-in and half time restarts once
   }

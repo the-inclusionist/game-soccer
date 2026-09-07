@@ -45,6 +45,13 @@ export function restartSpot(event: RuleEvent, period: number): Vec2 {
       };
     }
 
+    // ⚠️ AND AN OFFSIDE IS TAKEN WHERE THE OFFENCE WAS, which is where the flagged player TOUCHED it and
+    //    not where the pass came from. Without this case it fell to the default below - a kickoff - so an
+    //    offside forty metres from goal restarted the match on the centre spot, and it would have read as
+    //    the referee losing the ball rather than as a missing branch.
+    case 'offsideGiven':
+      return { x: clamp(at?.x ?? 0, 0, PITCH.length), y: clamp(at?.y ?? 0, 0, PITCH.width) };
+
     case 'crossedTouchline':
       // Clamped along the pitch: a ball crossing the touchline beyond the goal line would otherwise put
       // the throw-in outside the field entirely.
@@ -84,6 +91,11 @@ function takerOf(event: RuleEvent, period: number): TeamId | null {
   // A foul names the side it was given TO, so the taker is on the event and needs no derivation. The two
   // above need one because a ball leaving the pitch says nothing about whose restart it is.
   if (event.kind === 'foulGiven' || event.kind === 'penaltyGiven') return (event.team ?? null) as TeamId | null;
+  // ⚠️ AND AN OFFSIDE IS FLIPPED, because it is the one event given AGAINST the side it names. A foul is
+  //    given TO somebody and an offside is given AGAINST somebody; reading both the same way hands the
+  //    free kick to the side that was caught. `play.takerFor` makes the same flip, and it has to: the two
+  //    answer the same question for two different consumers.
+  if (event.kind === 'offsideGiven') return event.team === undefined ? null : ((1 - event.team) as TeamId);
   return null;
 }
 

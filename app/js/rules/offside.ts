@@ -5,6 +5,13 @@
 // offside". The flag is RAISED elsewhere, by the touch - which is what stops a striker loitering behind
 // the defence from being penalised while the ball is at the other end.
 
+import { SQUAD_SIZE, firstOf, teamOf, type PlayerId, type TeamId } from '../sim/ids.ts';
+import { onPitch } from '../sim/squads.ts';
+import type { MatchState } from '../sim/state.ts';
+import { PITCH } from '../sim/units.ts';
+import type { RuleEvent } from './events.ts';
+import type { RulesProfile } from './profile.ts';
+
 export interface OffsideQuery {
   /** Attacker positions along the pitch. Only `x` matters: offside is about a LINE. */
   readonly attackers: readonly number[];
@@ -65,4 +72,97 @@ export function offsideMask(q: OffsideQuery): number {
   }
 
   return mask;
+}
+
+// ========================= AND THE TWO HALVES THAT REACH THE MATCH =========================
+// Everything above is arithmetic on numbers and was gated as such for months, while nothing in the game
+// ever called it. These two functions are the wire, and they live here rather than in `play.ts` because
+// they are offside knowledge: the seam should know that a ball was played and that a ball was touched,
+// and nothing else about the law.
+
+/**
+ * Which way `team` attacks: `+1` along increasing `x`, `-1` the other way.
+ *
+ * ⚠️ IT IS A FACT ABOUT THE PERIOD, because the ends swap at half time. Reading a fixed direction off the
+ * team id gives every second-half offside to the wrong side, and there is nothing on the screen that
+ * would say why.
+ */
+function attackDirOf(team: TeamId, period: number): 1 | -1 {
+  const defendsFar = (team === 0) === (period === 2);
+  return defendsFar ? -1 : 1;
+}
+
+/**
+ * The moment the ball is played: freeze who was offside.
+ *
+ * Called for every kick and not only for a pass, which is the law rather than a simplification - a shot
+ * that rebounds to a team-mate who was behind the defence is offside exactly as a pass to him would be.
+ */
+export function markOffside(state: MatchState, passer: PlayerId, profile: RulesProfile): void {
+  if (!profile.offside) return;
+
+  const team = teamOf(passer);
+  const first = firstOf(team);
+  const dir = attackDirOf(team, state.period);
+  // ⚠️ AN ABSENT ATTACKER STANDS ON HIS OWN GOAL LINE, and the sentinel is chosen rather than convenient.
+  //    `offsideMask` skips anybody in his own half, so this is a position that can never be flagged - and
+  //    a hole in the list, or a `NaN`, would be flagged by EVERY comparison, because every comparison
+  //    against `NaN` is false and the function reaches the bit unconditionally.
+  const ownLine = dir === 1 ? 0 : PITCH.length;
+
+  const attackers: number[] = [];
+  const defenders: number[] = [];
+  for (let k = 0; k < SQUAD_SIZE; k++) {
+    // ⚠️ A BODY THAT IS NOT PLAYING IS NOT A DEFENDER, and a sent-off man left in the array would hold an
+    //    offside line from the touchline where nobody can see him. `sim/squads` opens by saying an absent
+    //    body must be absent EVERYWHERE, and this is one of the places that has to mean it.
+    //
+    //    The attacker list keeps its INDEX, though: bit `k` has to mean squad index `k` when the flag is
+    //    read back, so an absent attacker keeps his slot and is given a position that is never offside.
+    attackers.push(onPitch(state, first + k) ? state.players[first + k].p.x : ownLine);
+    const foe = firstOf(team === 0 ? 1 : 0) + k;
+    if (onPitch(state, foe)) defenders.push(state.players[foe].p.x);
+  }
+
+  state.offsidePasser = passer;
+  state.offsideMask = offsideMask({
+    attackers,
+    defenders,
+    ball: state.ball.p.x,
+    passer: passer - first,
+    dir,
+    halfwayX: PITCH.length / 2,
+  });
+}
+
+/**
+ * The moment the ball is touched: raise the flag, or put it away.
+ *
+ * ⚠️ THE SNAPSHOT DIES ON THE FIRST TOUCH WHOEVER MAKES IT, and that is not tidiness. A flag left armed
+ * goes up at some unrelated moment later in the match - a striker who was offside two passes ago jogging
+ * back onto a loose ball - and an offence nobody can connect to anything is worse than no offence at all.
+ */
+export function judgeOffside(state: MatchState, profile: RulesProfile): RuleEvent | null {
+  const passer = state.offsidePasser;
+  if (!profile.offside || passer === -1) return null;
+
+  const who = state.possession.lastTouch;
+  // Nobody else has touched it: the ball is still travelling and there is nothing to judge yet.
+  if (who === -1 || who === passer) return null;
+
+  const team = teamOf(passer);
+  const mask = state.offsideMask;
+  state.offsidePasser = -1;
+  state.offsideMask = 0;
+
+  // ⚠️ NO TEST CAN KILL THIS LINE, AND IT STAYS. Removing it leaves every gate in
+  //    `tests/offside-in-play` green - measured, by mutation - because an opponent's index shifted into
+  //    an eleven-bit mask can never land on a set bit while both squads have eleven players. That is an
+  //    arithmetic coincidence between the squad size and the width of a machine word, not a fact about
+  //    football, and the day a profile plays seven-a-side it stops being true. The question the code has
+  //    to ask is "was the toucher on the passer's side", so the code asks it.
+  if (teamOf(who) !== team) return null;
+  if ((mask & (1 << (who - firstOf(team)))) === 0) return null;
+
+  return { kind: 'offsideGiven', team, at: { x: state.players[who].p.x, y: state.players[who].p.y } };
 }

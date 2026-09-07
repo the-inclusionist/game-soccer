@@ -77,12 +77,33 @@ describe('the digest', () => {
     expect(digest(b)).not.toBe(digest(a));
   });
 
+  // ⚠️ AND THE OFFSIDE SNAPSHOT IS STATE FOR THE SAME REASON POSSESSION IS. It is armed on one tick and
+  //    read on another, so two worlds identical in every position can be one flag apart - and the side
+  //    that gets the free kick depends on which of the two you are in.
+  it('[Boundary] an armed offside flag alone changes the hash', () => {
+    const a = createMatchState();
+    const b = createMatchState();
+    b.offsidePasser = 9;
+
+    expect(digest(b)).not.toBe(digest(a));
+  });
+
+  it('[Boundary] and so does WHO it flags, which is the half that decides the offence', () => {
+    const a = createMatchState();
+    a.offsidePasser = 9;
+    const b = createMatchState();
+    b.offsidePasser = 9;
+    b.offsideMask = 1 << 10;
+
+    expect(digest(b)).not.toBe(digest(a));
+  });
+
   // ⚠️ THE GATE THAT CATCHES THE NEXT FIELD SOMEBODY ADDS. A comment asking future authors to remember
   //    the digest is a comment; this fails the build. A `MatchState` grows a field, nobody adds a row to
   //    the field lists, and from that day the digest silently stops covering part of the world - the
   //    golden replay still passes, the cross-check gate still passes, and both are now lying.
   it('[Interface] every field of a match state is covered by the digest', () => {
-    const covered = new Set(['tick', 'ball', 'players', 'possession', 'phase', 'period', 'goals', 'restartTaker', 'onPitch', 'controlled', 'cards']);
+    const covered = new Set(['tick', 'ball', 'players', 'possession', 'phase', 'period', 'goals', 'restartTaker', 'onPitch', 'controlled', 'cards', 'offsidePasser', 'offsideMask']);
     const actual = Object.keys(createMatchState());
 
     expect(actual.filter((k) => !covered.has(k))).toEqual([]);

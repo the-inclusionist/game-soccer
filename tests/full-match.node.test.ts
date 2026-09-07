@@ -120,16 +120,17 @@ describe('what a match contains', () => {
     expect(played.seen.crossedGoalLineByAttacker ?? 0, 'no goal kick in a whole match').toBeGreaterThan(0);
   });
 
-  // ⚠️ MEASURED AND NOT MET, AND IT IS NOT AN AI SHORTCOMING LIKE THE OTHERS. `rules/offside` is written,
-  //    gated hard by `tests/offside`, and imported by `declaration.ts` - for the `gate` role that tints
-  //    the offside zone - and BY NOTHING THAT PLAYS THE MATCH. No code ever takes the snapshot at the
-  //    moment of a pass, so no flag is ever raised, so `offsideGiven` is an event with a case in
-  //    `takerFor` and no producer anywhere.
+  // ⚠️ MET, AND IT WAS A MISSING WIRE RATHER THAN A MISSING RULE. `rules/offside` was written, gated hard
+  //    by `tests/offside`, and imported by `declaration.ts` - for the `gate` role that tints the offside
+  //    zone - and by nothing that played the match. `offsideGiven` was an event with a case in `takerFor`
+  //    and no producer anywhere. The sixth time here that a module was right, its gate was right, and
+  //    nobody called it; and once again only a whole match asked the second question.
   //
-  //    That is the sixth time in this repository that a module was right, its gate was right, and the
-  //    wire was missing - and the shape is always the same: the unit test proves the arithmetic and
-  //    nothing proves anybody calls it. Only a whole match asks the second question.
-  it.todo('[Right] and offsides, which need the flag to be raised by a touch');
+  //    One offside in a five-minute-half match, and no ceiling for the same reason as the corners above:
+  //    how often it should happen is a question about the AI, not about the law.
+  it('[Right] and offsides, once the flag is raised by a touch', () => {
+    expect(played.seen.offsideGiven ?? 0, 'no offside in a whole match').toBeGreaterThan(0);
+  });
 
   // ⚠️ ALSO MEASURED AND NOT MET: five sendings-off in one ten-minute match, after the presser was taught
   //    to contain rather than dive in - which cut it from what had been a side reduced to six. Real
