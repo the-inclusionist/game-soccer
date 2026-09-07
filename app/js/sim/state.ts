@@ -53,6 +53,18 @@ export interface MatchState {
    * of the world and not a fact the boot keeps beside it.
    */
   controlled: [number, number];
+  /**
+   * A card per player: 0, `YELLOW`, `RED`. Indexed by `PlayerId`, dense, one entry for every body in both
+   * squads whether they are playing or not.
+   *
+   * ⚠️ IT IS STATE AND NOT A LIST OF EVENTS. "Who has been booked" is asked on every tick by
+   * `squads.onPitch`, and deriving it by replaying a list of cards would put a loop over the match's
+   * history inside the hottest question in the simulation.
+   *
+   * ⚠️ AND A DENSE ARRAY RATHER THAN A MAP, for the same reason `goals` is an array: the digest walks
+   * it in one loop, and a map's iteration order is a thing that would have to be pinned by hand.
+   */
+  cards: number[];
 }
 
 /**
@@ -113,6 +125,9 @@ export function createMatchState(
     restartTaker: -1,
     onPitch: [profile.squads[0], profile.squads[1]],
     controlled: [9, 10],
+    // Both squads, always - a body that is not playing can still have been sent off, and an array that
+    // only covered the players on the pitch would change length when somebody left it.
+    cards: new Array(SQUAD_SIZE * 2).fill(0),
   };
 }
 

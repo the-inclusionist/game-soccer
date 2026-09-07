@@ -60,6 +60,10 @@ export function digest(state: MatchState): number {
     for (const field of BODY_FIELDS) h = mixNumber(h, field(body));
   }
   for (const field of POSSESSION_FIELDS) h = mixNumber(h, field(state.possession));
+  // ⚠️ THE CARDS, and a sending-off is the largest single change a match can undergo - one side plays
+  //    the rest of it a man down. A digest that could not see them would let a golden replay pass while
+  //    describing a different game entirely, which is the exact failure this whole file exists against.
+  for (const card of state.cards) h = mixNumber(h, card);
 
   return h >>> 0;
 }
