@@ -29,6 +29,16 @@ const cmd = (over: Partial<Command> = {}): Command => ({
 });
 
 /** A seat-driven home player lunging at an away player, ball far away. */
+/**
+ * Metres a second. A lunge hard enough to be a booking and not hard enough to be a sending-off.
+ *
+ * ⚠️ IT USED TO BE 7, AND THE SCALE MOVED UNDER IT. Severity is judged against a share of the tackler's own
+ * top speed now - 0.95 of it for a booking, where it used to be a flat 5.5 metres a second - so 7 sits
+ * barely above the line and the tick's own deceleration carries it back under before the referee looks.
+ * A fixture that close to a threshold is measuring the integrator, not the law.
+ */
+const BOOKABLE = 7.5;
+
 function setUp(speed: number, at = { x: 45, y: 28 }) {
   const s = createMatchState(MATCH_PROFILE);
   s.phase = 'live';
@@ -99,7 +109,7 @@ describe('the card that comes with it', () => {
   });
 
   it('[Right] a reckless one is a booking, and he plays on', () => {
-    const { s, by } = setUp(7);
+    const { s, by } = setUp(BOOKABLE);
 
     tackle(s);
 
@@ -122,11 +132,11 @@ describe('the card that comes with it', () => {
   });
 
   it('[Right] a second booking in the same match is a red', () => {
-    const { s, by } = setUp(7);
+    const { s, by } = setUp(BOOKABLE);
     tackle(s);
     s.phase = 'live';
 
-    const again = setUp(7);
+    const again = setUp(BOOKABLE);
     again.s.cards[by] = YELLOW;
     tackle(again.s);
 
@@ -184,7 +194,7 @@ describe('the card is announced', () => {
   // ⚠️ THE WHISTLE FIRST AND THE CARD SECOND, because that is the order it happens in and therefore the
   //    order she hears it. Reversed, she is told somebody was sent off before she is told there was a foul.
   it('[Right] a booking is its own event, after the foul', () => {
-    const { s } = setUp(7);
+    const { s } = setUp(BOOKABLE);
 
     const kinds = tackle(s).map((e) => e.kind);
 
@@ -193,7 +203,7 @@ describe('the card is announced', () => {
   });
 
   it('[Right] and the card names the OFFENDER side, where the kick named the other one', () => {
-    const { s } = setUp(7);
+    const { s } = setUp(BOOKABLE);
 
     const events = tackle(s);
     const kick = events.find((e) => e.kind === 'foulGiven');
@@ -215,7 +225,7 @@ describe('the card is announced', () => {
   // ⚠️ THE CASE THE SEVERITY ALONE GETS WRONG. A second reckless challenge is still 'reckless', and what
   //    actually happened is a sending-off. Only asking the state what CHANGED gets this right.
   it('[Right] a second booking is announced as a sending-off, not as a booking', () => {
-    const { s, by } = setUp(7);
+    const { s, by } = setUp(BOOKABLE);
     s.cards[by] = YELLOW;
 
     const kinds = tackle(s).map((e) => e.kind);

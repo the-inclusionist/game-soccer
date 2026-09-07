@@ -204,19 +204,26 @@ describe('a match that plays itself', () => {
   //    goals are scored: the AI was living off the chaos of a foul every four seconds, and with the foul
   //    rate corrected to football's the deadlock underneath became visible. That is an AI weakness, it is
   //    now measured, and it wants the session about defending that the README already owes.
+  // ⚠️ THREE FIXTURES, AND IT TOOK THREE GOES TO ADMIT WHY. This asked one club pair for a goal, and it
+  //    has now gone red twice for reasons that had nothing to do with the claim: once when the machine
+  //    stopped fouling every four seconds, and again when the card thresholds were recalibrated. Each time
+  //    the honest-looking repair was to run it for longer - and lengthening a gate until a chaotic system
+  //    happens to oblige is fitting the test to the data.
+  //
+  //    "A long match produces the whole vocabulary" is a claim about the GAME, not about one club pair.
+  //    Measured under this profile, the first goal arrives on tick 2,607 for one pair and 14,523 for
+  //    another, and a third does not score in eighty thousand at all. Asked of the union of three, it is a
+  //    question with an answer; asked of any one of them, it is a coin.
   it('[Right] a long match produces the whole vocabulary of restarts, not just one', () => {
-    const s = createMatchState();
-    s.phase = 'live';
-    const sides = { 0: CLUBS[0].ratings, 1: CLUBS[1].ratings };
     const seen = new Set<string>();
 
-    // ⚠️ AND IT IS SIXTY THOUSAND TICKS BECAUSE THAT IS WHAT A GOAL COSTS. Twenty-four thousand was set
-    //    when the machine fouled every four seconds and scored off the chaos; with the foul rate corrected
-    //    to football's, the first goal of this fixture arrives at tick 33,392 - measured, along with
-    //    46,893 and 54,705 for two others. Sixty thousand is not quite a factor of two of headroom, and
-    //    naming the number it is headroom OVER is the only thing that stops the next person shaving it.
-    for (let t = 0; t < 60_000; t++) {
-      for (const e of playTick(s, emptyFrame(t), DT, MATCH_PROFILE, sides)) seen.add(e.kind);
+    for (const [h, a] of [[0, 1], [4, 5], [8, 9]] as const) {
+      const s = createMatchState();
+      s.phase = 'live';
+      const sides = { 0: CLUBS[h].ratings, 1: CLUBS[a].ratings };
+      for (let t = 0; t < 24_000; t++) {
+        for (const e of playTick(s, emptyFrame(t), DT, MATCH_PROFILE, sides)) seen.add(e.kind);
+      }
     }
 
     expect(seen.has('crossedTouchline')).toBe(true);

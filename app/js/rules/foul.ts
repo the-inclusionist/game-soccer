@@ -20,6 +20,7 @@
 import { SQUAD_SIZE, firstOf, teamOf, type PlayerId } from '../sim/ids.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { MatchState } from '../sim/state.ts';
+import { DEFAULT_CAPS } from '../sim/body.ts';
 import { BOX, PITCH } from '../sim/units.ts';
 import { dist2, type Vec2 } from '../sim/vec.ts';
 import type { RulesProfile } from './profile.ts';
@@ -46,30 +47,40 @@ export interface Foul {
 const CONTACT = 1.6;
 
 /**
- * The speed at which a challenge stops being careless.
+ * The share of his own top speed at which a challenge stops being careless.
  *
- * ⚠️ THIS COMMENT USED TO NAME TWO CASES AND THE CODE ONLY HANDLED ONE. It said: *"a player standing still
- * whom somebody runs into has not committed anything; two players jogging together at the same pace have
- * not either"* - and it measured plain RELATIVE speed, which gets the second right and the first exactly
- * backwards. A defender who has not moved a centimetre was booked for an attacker running into him at
- * seven metres a second, because a subtraction cannot say which of the two was moving.
+ * ⚠️ IT IS A FRACTION AND NOT A SPEED, and both halves of that were paid for by measurement.
  *
- * See `wentIn` below for what is measured instead, and why it takes two bounds rather than one.
+ * The number USED to be 5.5 metres a second, chosen when severity was the plain RELATIVE speed of two
+ * bodies - which adds, so two players meeting head-on at six each made twelve. `wentIn` grades what the
+ * tackler BROUGHT, capped by his own top speed, and no body in this game can exceed 7.6. The thresholds
+ * were never recalibrated to the new quantity, so `9` became unreachable and `5.5` became routine:
+ * measured over six whole matches, ZERO violent challenges and twenty of twenty-eight fouls reckless,
+ * where football books about one foul in twelve.
+ *
+ * ⚠️ AND A FIXED THRESHOLD IN METRES IS UNFAIR. `capsFor` spreads top speed from 6.2 to 7.6, so the same
+ * act is a card for a quick club and a free kick for a slow one - a rating punishing the child who chose
+ * the badge with pace on it, which is exactly what ADR-0049 is about. As a fraction, "flat out" means the
+ * same thing to everybody.
+ *
+ * 0.95 is going in at everything you have. Below it there is a real band - a defender at 85% is going in
+ * hard and is not being reckless with anybody - and that band is where twenty of those twenty-eight fouls
+ * were landing.
  */
-export const RECKLESS_SPEED = 5.5;
+export const RECKLESS_FRACTION = 0.95;
 
 /**
- * And the speed at which it stops being a booking.
+ * And the share at which it stops being a booking.
  *
- * ⚠️ NINE IS ABOVE ANYTHING A BODY CAN DO, and that is deliberate now rather than accidental. `capsFor`
- * tops out at 7.6 metres a second, so a red card can no longer be earned by running - only by arriving at
- * full pace into a man who is coming the other way at full pace, which is the one thing in this game that
- * looks like the offence the card is for.
+ * ⚠️ ABOVE 1.0 ON PURPOSE, because that makes a sending-off mean something a child can be taught in one
+ * sentence. Sprint is the only thing in this game that takes a body past its own top speed - `SPRINT_FREE`
+ * is 1.18 - so a straight red is a SPRINTING lunge and nothing else. Every other red is two bookings,
+ * which is football's usual route to one anyway.
  *
- * It used to be reachable by two ordinary players meeting head-on, because relative speed adds: six each
- * way is twelve. Thirty-one per cent of all fouls measured over three whole matches came out RED.
+ * It also means the machine cannot be sent off directly: the AI never sprints into a challenge. That is
+ * not a gap, it is the rule working - a body that does not fly in does not get a red for flying in.
  */
-export const VIOLENT_SPEED = 9;
+export const VIOLENT_FRACTION = 1.15;
 
 /** Is `at` inside the penalty area `team` defends this period? */
 function insideOwnBox(at: Vec2, team: number, period: number): boolean {
@@ -137,7 +148,12 @@ export function wentIn(at: Vec2, mine: Vec2, his: Vec2, theirs: Vec2): number {
  * MISSING THE BALL, so that condition belongs beside the rest of the judgement and not in whichever
  * caller happens to arrive first.
  */
-export function judgeTackle(state: MatchState, by: PlayerId, profile: RulesProfile): Foul | null {
+export function judgeTackle(
+  state: MatchState,
+  by: PlayerId,
+  profile: RulesProfile,
+  top: number = DEFAULT_CAPS.maxSpeed,
+): Foul | null {
   if (!profile.fouls) return null;
   if (!onPitch(state, by)) return null;
 
@@ -166,8 +182,13 @@ export function judgeTackle(state: MatchState, by: PlayerId, profile: RulesProfi
   const them = state.players[victim];
   const going = wentIn(me.p, me.v, them.p, them.v);
 
+  // ⚠️ AGAINST HIS OWN TOP SPEED, so the same act by a quick club and a slow one gets the same card.
   const severity: Severity =
-    going >= VIOLENT_SPEED ? 'violent' : going >= RECKLESS_SPEED ? 'reckless' : 'careless';
+    going >= VIOLENT_FRACTION * top
+      ? 'violent'
+      : going >= RECKLESS_FRACTION * top
+        ? 'reckless'
+        : 'careless';
 
   return {
     by,

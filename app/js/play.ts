@@ -84,6 +84,17 @@ function capsOf(skills: Skills | undefined) {
 }
 
 /**
+ * One body's top speed, which is the scale a challenge by him is judged against.
+ *
+ * ⚠️ THE REFEREE NEEDS IT AND `rules/` MUST NOT LEARN ABOUT CLUBS, so the seam looks it up - the same
+ * division of labour `sim/step` gets its caps by. `rules/foul` receives a number and never finds out that
+ * there are six ratings behind it.
+ */
+function topOf(who: number, skills: Skills | undefined): number {
+  return capsOf(skills)[teamOf(who)].body.maxSpeed;
+}
+
+/**
  * Phases in which the match is not being played at all.
  *
  * ⚠️ `fullTime` WAS MISSING AND THE WORLD KEPT RUNNING. The referee stops speaking once the phase leaves
@@ -211,7 +222,7 @@ export function playTick(
       //    judged HERE, where the act is, and joins the referee's list as an event like any other.
       if (cmd.verb === 'tackle') {
         const who = state.controlled[cmd.seat];
-        const foul = who === undefined ? null : judgeTackle(state, who, profile);
+        const foul = who === undefined ? null : judgeTackle(state, who, profile, topOf(who, skills));
         if (foul !== null) fouls.push(...foulEvents(state, foul));
       }
       continue;
@@ -231,9 +242,9 @@ export function playTick(
   //    was hers.
   if (skills !== undefined) {
     for (const team of [0, 1] as const) {
-      const who = challenger(state, team);
+      const who = challenger(state, team, capsOf(skills)[team].body.maxSpeed);
       if (who === null) continue;
-      const foul = judgeTackle(state, who, profile);
+      const foul = judgeTackle(state, who, profile, topOf(who, skills));
       if (foul !== null) fouls.push(...foulEvents(state, foul));
     }
   }

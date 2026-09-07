@@ -150,6 +150,39 @@ describe('what must NOT become a foul', () => {
 // running backwards moves the world enough for the foul not to materialise. Two green tests, a defect
 // sitting under them, and a fix that would have shipped on the strength of a test that never looked at it.
 // The claim is about what `challenger` answers, so that is what is asked.
+// ========================= AND IT CAN GIVE AWAY A CARELESS ONE =========================
+// `rules/foul` carried this gap in writing for as long as fouls have existed: *"the asymmetry that
+// survives is that the machine does not give away CARELESS fouls, because it cannot express
+// carelessness."* It could not, because the threshold for having made a challenge AT ALL was the threshold
+// for a card - so every machine foul was a booking, by construction.
+//
+// ⚠️ AND CLOSING IT WAS NOT OPTIONAL ONCE THE CARD SCALE MOVED. Recalibrating severity to a share of the
+// tackler's own top speed carried the challenge threshold up with it, and the machine nearly stopped
+// fouling: measured, seven fouls across six whole matches - ten per ninety minutes where football has
+// twenty-two - with two of the six producing none at all. A referee who never whistles is as wrong as one
+// who never stops.
+//
+// The two answer different questions. "Did he go in" is not "was it a card", and the numbers had no
+// business being equal; what must not drift is HOW going-in is measured, and that is one function.
+describe('the machine can give away a careless foul', () => {
+  // Six metres a second sits in the band the separation opens up: over the challenge line at 0.8 of an
+  // average top speed (5.52) and under the card line at 0.95 of it (6.56). Before the two were separated
+  // that band did not exist - the same number was both.
+  it('[Right] going in below the card line is still a challenge, and still a foul', () => {
+    const { s, chaser } = chase(6);
+    s.players[chaser].v = { x: 6, y: 0 };
+
+    expect(challenger(s, AWAY), 'a challenge at five and a half was not a challenge').toBe(chaser);
+  });
+
+  it('[Zero] but drifting alongside at walking pace is not', () => {
+    const { s, chaser } = chase(2);
+    s.players[chaser].v = { x: 2, y: 0 };
+
+    expect(challenger(s, AWAY)).toBeNull();
+  });
+});
+
 describe('the machine goes in, or it does not', () => {
   it('[Zero] a presser who has not moved has not gone in, whatever runs into him', () => {
     const { s, carrier, chaser } = chase(0);

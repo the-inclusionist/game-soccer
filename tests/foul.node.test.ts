@@ -19,7 +19,8 @@ import { createMatchState } from '../app/js/sim/state.ts';
 import { MATCH_PROFILE } from '../app/js/rules/profile.ts';
 import { AWAY, HOME, SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
 import { BOX, PITCH } from '../app/js/sim/units.ts';
-import { judgeTackle, RECKLESS_SPEED, VIOLENT_SPEED } from '../app/js/rules/foul.ts';
+import { judgeTackle, RECKLESS_FRACTION, VIOLENT_FRACTION } from '../app/js/rules/foul.ts';
+import { DEFAULT_CAPS } from '../app/js/sim/body.ts';
 
 const live = () => {
   const s = createMatchState(MATCH_PROFILE);
@@ -74,6 +75,64 @@ function collide(mine: { x: number; y: number }, theirs: { x: number; y: number 
 // median of 7.2 and a seventy-fifth percentile of 10, while no BODY in the game can exceed 7.2. Those
 // numbers are two players running at each other, and running at each other is what a striker and a
 // defender do. Thirty-one per cent of all fouls came out red.
+// ========================= AND AGAINST WHAT SCALE =========================
+// ⚠️ THE THRESHOLDS WERE CALIBRATED AGAINST A QUANTITY THAT NO LONGER EXISTS. `5.5` and `9` were chosen
+// when severity was the plain RELATIVE speed of two bodies, which adds: two players meeting head-on at six
+// metres a second made twelve. Grading on what the tackler BROUGHT caps the number at his own top speed -
+// and no body in this game can exceed 7.6.
+//
+// So `9` became unreachable and `5.5` became routine. Measured over six whole matches: ZERO violent
+// challenges, and twenty of twenty-eight fouls reckless, where football books about one foul in twelve.
+// The presser's own speed when he fouls has a median of 6.65, so a threshold at 5.5 says "any challenge
+// made at a run is a booking".
+//
+// ⚠️ AND THE SCALE IS THE TACKLER'S OWN TOP SPEED, not a number in metres. A fixed threshold books a quick
+// club more often than a slow one for the identical act, which is a rating punishing the child who chose
+// the badge with pace on it - and `capsFor` spreads top speed from 6.2 to 7.6, so the same challenge is a
+// card for one club and a free kick for another. As a fraction, "flat out" means the same thing to
+// everybody, which is the only version that is fair AND that a child can be taught in a sentence.
+describe('the scale a challenge is judged against', () => {
+  /** The severity of a lunge at `speed` by a body whose own top speed is `top`. */
+  function gradedAt(speed: number, top = DEFAULT_CAPS.maxSpeed) {
+    const { s } = lunge(speed);
+    return judgeTackle(s, TACKLER, MATCH_PROFILE, top)?.severity;
+  }
+
+  it('[Right] going in at three-quarters of your pace is a free kick, not a card', () => {
+    expect(gradedAt(0.75 * DEFAULT_CAPS.maxSpeed)).toBe('careless');
+  });
+
+  // ⚠️ 0.85 IS THE BAND THIS WHOLE CHANGE MOVES. At the old fixed 5.5 a challenge at 5.87 was a booking;
+  //    a defender running at 85% of what he can do is going in hard and is not being reckless with
+  //    anybody, and twenty of twenty-eight machine fouls were landing in exactly this band.
+  it('[Right] and so is going in at eighty-five per cent of it', () => {
+    expect(gradedAt(0.85 * DEFAULT_CAPS.maxSpeed)).toBe('careless');
+  });
+
+  it('[Right] but flat out is a booking', () => {
+    expect(gradedAt(DEFAULT_CAPS.maxSpeed)).toBe('reckless');
+  });
+
+  // ⚠️ AND A SENDING-OFF NEEDS MORE THAN A BODY CAN RUN, which is what makes it mean something. Sprint is
+  //    the only thing in the game that takes a body past its own top speed, so a straight red is a
+  //    SPRINTING lunge and nothing else - one sentence, and a child can be taught it.
+  it('[Right] and only a sprinting lunge is violent', () => {
+    expect(gradedAt(1.1 * DEFAULT_CAPS.maxSpeed)).toBe('reckless');
+    expect(gradedAt(1.2 * DEFAULT_CAPS.maxSpeed)).toBe('violent');
+  });
+
+  // ⚠️ THE FAIRNESS GATE, and the reason the scale is a fraction at all. The same act by a quick club and a
+  //    slow one gets the same card. Against a fixed threshold in metres it does not: 6.4 was a booking for
+  //    the slow club and nothing for the quick one, for identical football.
+  it('[Zero] a quick club and a slow one get the same card for the same act', () => {
+    const quick = 7.6;
+    const slow = 6.2;
+
+    expect(gradedAt(0.9 * quick, quick)).toBe(gradedAt(0.9 * slow, slow));
+    expect(gradedAt(1.0 * quick, quick)).toBe(gradedAt(1.0 * slow, slow));
+  });
+});
+
 describe('and whose speed it was', () => {
   it('[Zero] a defender standing still whom an attacker runs into is not booked', () => {
     const s = collide({ x: 0, y: 0 }, { x: -8, y: 0 });
@@ -172,18 +231,18 @@ describe('how bad it was', () => {
   });
 
   it('[Boundary] at the reckless speed it is reckless, and just under it is not', () => {
-    expect(severityAt(RECKLESS_SPEED)).toBe('reckless');
-    expect(severityAt(RECKLESS_SPEED - 0.01)).toBe('careless');
+    expect(severityAt(RECKLESS_FRACTION * DEFAULT_CAPS.maxSpeed)).toBe('reckless');
+    expect(severityAt(RECKLESS_FRACTION * DEFAULT_CAPS.maxSpeed - 0.01)).toBe('careless');
   });
 
   it('[Boundary] and at the violent speed it is violent', () => {
-    expect(severityAt(VIOLENT_SPEED)).toBe('violent');
-    expect(severityAt(VIOLENT_SPEED - 0.01)).toBe('reckless');
+    expect(severityAt(VIOLENT_FRACTION * DEFAULT_CAPS.maxSpeed)).toBe('violent');
+    expect(severityAt(VIOLENT_FRACTION * DEFAULT_CAPS.maxSpeed - 0.01)).toBe('reckless');
   });
 
   it('[Interface] the three grades are ordered, and both thresholds are reachable', () => {
-    expect(RECKLESS_SPEED).toBeGreaterThan(0);
-    expect(RECKLESS_SPEED).toBeLessThan(VIOLENT_SPEED);
+    expect(RECKLESS_FRACTION).toBeGreaterThan(0);
+    expect(RECKLESS_FRACTION).toBeLessThan(VIOLENT_FRACTION);
   });
 });
 

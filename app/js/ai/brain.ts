@@ -14,6 +14,7 @@
 
 import { SQUAD_SIZE, firstOf, isKeeper, teamOf, type PlayerId, type TeamId } from '../sim/ids.ts';
 import { NOBODY } from '../sim/possession.ts';
+import { DEFAULT_CAPS } from '../sim/body.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { Body, MatchState } from '../sim/state.ts';
 import { BALL, PITCH } from '../sim/units.ts';
@@ -22,7 +23,7 @@ import { homeSpot, type TeamPlan } from './formation.ts';
 import { passErrorOf, pressedAtOf, shotErrorOf, type Ratings } from './ratings.ts';
 import { teamPlan } from './plan.ts';
 import { thinksThisTick } from './schedule.ts';
-import { RECKLESS_SPEED, wentIn } from '../rules/foul.ts';
+import { wentIn } from '../rules/foul.ts';
 
 /** Metres. A supporting player runs this far ahead of the shape when his side has the ball. */
 const SUPPORT_AHEAD = 9;
@@ -313,7 +314,11 @@ const PASS_SPEED_MAX = 24;
  * that, for her and for the machine, out of the same function - which is the only version of fair that
  * survives somebody reading the code.
  */
-export function challenger(state: MatchState, team: TeamId): PlayerId | null {
+export function challenger(
+  state: MatchState,
+  team: TeamId,
+  top: number = DEFAULT_CAPS.maxSpeed,
+): PlayerId | null {
   const holder = state.possession.holder;
   if (holder === NOBODY || teamOf(holder) === team) return null;
 
@@ -346,16 +351,34 @@ export function challenger(state: MatchState, team: TeamId): PlayerId | null {
   //    The asymmetry that survives is that the machine does not give away CARELESS fouls, because it
   //    cannot express carelessness. It is written down rather than hidden, and it is the smallest gap
   //    that keeps a match from being a series of free kicks.
-  return wentIn(me.p, me.v, them.p, them.v) >= WENT_IN ? id : null;
+  return wentIn(me.p, me.v, them.p, them.v) >= WENT_IN_FRACTION * top ? id : null;
 }
 
 /**
- * The speed of going in at which the machine is deemed to have made a challenge rather than to be running
- * beside somebody. It is `rules/foul`'s own reckless threshold, imported rather than repeated - two
- * numbers that had to agree would eventually not - and it is now measured by that file's own function
- * too, because two measurements that had to agree would eventually not either.
+ * The share of his own top speed at which the machine is deemed to have made a challenge rather than to
+ * be running beside somebody.
+ *
+ * ⚠️ IT USED TO BE THE RECKLESS THRESHOLD ITSELF, and that identity is what made every machine foul a
+ * booking. `rules/foul` carried the consequence in writing: *"the asymmetry that survives is that the
+ * machine does not give away CARELESS fouls, because it cannot express carelessness."* If the line for
+ * having challenged at all is the line for a card, then every challenge is a card - and twenty of
+ * twenty-eight fouls over six whole matches came out reckless, where football books about one in twelve.
+ *
+ * ⚠️ AND SEPARATING THEM STOPPED BEING OPTIONAL when severity was recalibrated to a share of the tackler's
+ * top speed: the challenge threshold rose with it and the machine nearly stopped fouling. Measured: seven
+ * fouls across six whole matches, ten per ninety minutes where football has twenty-two, two of the six
+ * with none at all. A referee who never whistles is as wrong as one who never stops.
+ *
+ * What must not drift between the two is HOW going-in is measured, and that is one function. The
+ * thresholds are two questions - "did he go in" and "was it a card" - and they had no business being one
+ * number.
+ *
+ * 0.8 is going in at a run rather than at a jog: below it a body is moving near somebody, above it at him.
+ * Measured across six whole matches at 0.7, 0.8 and 0.95 - the coupled value - it gives 39 fouls per
+ * ninety minutes against football's 22, where 0.7 gives 48 and the coupled value gives 10 with two of the
+ * six matches producing NO FOUL AT ALL. It is the only one of the three that whistles in every match.
  */
-const WENT_IN = RECKLESS_SPEED;
+const WENT_IN_FRACTION = 0.8;
 
 /** Metres. How close the presser has to be to the carrier to count as having gone in at all. */
 const CHALLENGE_RANGE = 2.0;
