@@ -11,6 +11,24 @@
 // the fouls, the cards and the clock, for the length of a real session, with nobody driving. Everything
 // here is deterministic - no clock, no `Math.random` anywhere under `sim/`, `rules/` or `ai/` - so this is
 // a repeatable measurement and not a soak that passes on a good day.
+// ========================= AND WHAT SIX FIXTURES AT TWO LENGTHS SAY =========================
+// Measured per match at the length stated, never extrapolated, against football's 40 throw-ins, 2.7 goals,
+// 10 corners, 1.7 bookings and 0.07 sendings-off:
+//
+//                 throw-ins   goals   corners   bookings   reds
+//   15 minutes         41.3     2.5       0.3        0.5   0
+//   90 minutes        213.0    19.7       2.8        2.0   0.33
+//
+// ⚠️ THE SHORT MATCH IS ALREADY THE SCHOOL MODE the Dev described - three of the five land on the target and
+// the other two are UNDER it - and the long one is uniformly five to seven times too eventful. The ratio
+// between the two columns is 90/15, which is the finding: this game's event density is right for a quarter
+// of an hour and six times too high for an hour and a half.
+//
+// ⚠️ SO THE LONG MODE DOES NOT WANT MORE RULES. Every rule fixed today moved both columns together, because
+// a rule is a fact about a tick and both modes run the same ticks. What differs between fifteen minutes of
+// football and ninety is how much WORLD there is per player, and that is a decision about the game - a
+// bigger pitch for the same bodies, or fewer bodies, or slower play - rather than a defect in it.
+
 import { describe, expect, it } from 'vitest';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { digest } from '../app/js/sim/digest.ts';
