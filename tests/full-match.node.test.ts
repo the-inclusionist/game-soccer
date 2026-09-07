@@ -256,6 +256,26 @@ describe('what a match contains', () => {
   //    It is stated rather than gated because the sample cannot answer it: at 2.7 a match, six ten-minute
   //    fixtures expect about half a corner. The claim is real and the measurement is in `sim/block`, which
   //    also records the two other deflection models that were tried and are worse.
+  // ⚠️ THE SHORT MODE'S CORNERS ARE MEASURED, NOT MET, AND THE LEVERS ARE EXHAUSTED. Every other number
+  //    the Dev asked of a fifteen-minute match lands - 37.3 throw-ins against 40 and 2.7 goals against 2.7
+  //    - and the corners sit at 1.3 against ten.
+  //
+  //    They come almost entirely from the KEEPER, not from the defender who puts it out on purpose:
+  //    measured, a ninety-minute match has 267 parries and 1.3 deliberate corners, and a fifteen-minute one
+  //    has 26.7 and 1.0. Parries scale with time, so the short match simply contains a sixth of them - and
+  //    the Dev's school target asks for a whole match's corners inside a quarter of an hour.
+  //
+  //    ⚠️ AND WIDENING THE DEPTH AT WHICH A DEFENDER PUTS IT OUT DOES NOT REACH IT. From the six-yard
+  //    area to the penalty area, over six fixtures at each length:
+  //
+  //                       90 min: corners   goals        15 min: corners   goals
+  //        5.5 m                     10.8     2.3                     1.3     2.7
+  //        10 m                      13.5     4.3                     1.2     3.0
+  //        14 m                      20.5     4.3                     1.5     3.0
+  //
+  //    The short match does not move at all and the long match's goals get worse, so 5.5 stays. Ten corners
+  //    in fifteen minutes wants a source that fires on attacking play rather than on a keeper's hands -
+  //    a cross, which this AI has no notion of.
   it.todo('[Right] and corners often enough for six short matches to contain one');
 
   // ⚠️ OFFSIDE WAS A MISSING WIRE RATHER THAN A MISSING RULE. `rules/offside` was written, gated
