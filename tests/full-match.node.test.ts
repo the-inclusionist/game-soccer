@@ -257,13 +257,17 @@ describe('what a match contains', () => {
 
   // ⚠️ THE RULE MUST BE RARE ENOUGH TO BE A RULE. A referee that whistles constantly is not a referee, and
   //    the AI challenge threshold is the only thing holding this down.
-  it('[Boundary] fouls happen, and they are not most of the match', () => {
-    const fouls = (played.seen.foulGiven ?? 0) + (played.seen.penaltyGiven ?? 0);
+  // ⚠️ ASKED OF THE SLATE, BECAUSE ONE TEN-MINUTE MATCH LEGITIMATELY HAS NONE. This asked it of a single
+  //    fixture and went red the day fouls came down to football's frequency - the referee did not break,
+  //    the sample got too small for the question. It is the fourth gate in this file to make that mistake
+  //    and the fourth to be moved onto the slate for it.
+  it('[Boundary] fouls happen across a slate, and are not most of the match', () => {
+    const fouls = across('foulGiven') + across('penaltyGiven');
 
-    expect(fouls, 'a whole match with no foul at all').toBeGreaterThan(0);
-    // Ten in a full match, measured. The ceiling is loose on purpose: it is here to catch a referee that
-    // has started whistling every tick, not to pin a number nobody has tuned.
-    expect(fouls, 'the referee never stops whistling').toBeLessThan(120);
+    expect(fouls, 'six whole matches with no foul at all').toBeGreaterThan(0);
+    // The ceiling is loose on purpose: it is here to catch a referee that has started whistling every
+    // tick, not to pin a number nobody has tuned.
+    expect(fouls, 'the referee never stops whistling').toBeLessThan(720);
   });
 
   // ⚠️ MET, AND THE THIRD ATTEMPT WAS THE ONE THAT WAS NOT ABOUT DEFENDING AT ALL. A side used to finish a

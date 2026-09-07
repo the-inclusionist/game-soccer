@@ -213,6 +213,29 @@ function clearIt(state: MatchState, holder: PlayerId, dir: 1 | -1, playable: Pla
 /** How much of a clearance goes across rather than up. A quarter is "out towards the line", not sideways. */
 const CLEAR_WIDE = 0.25;
 
+/** Metres. How close an opponent has to be to the line of a shot to be standing in it. */
+const BLOCKS_AT = 1.0;
+
+/** Can he see the goal from here? The keeper is not a blocker - you shoot AT him. */
+function sightOfGoal(state: MatchState, team: TeamId, from: Vec2, mouth: Vec2): boolean {
+  const dx = mouth.x - from.x;
+  const dy = mouth.y - from.y;
+  const lane = dx * dx + dy * dy;
+  if (lane === 0) return true;
+
+  const first = firstOf(team === 0 ? 1 : 0);
+  for (let k = 1; k < SQUAD_SIZE; k++) {
+    const id = first + k;
+    if (!onPitch(state, id)) continue;
+    const p = state.players[id].p;
+    const along = clamp(((p.x - from.x) * dx + (p.y - from.y) * dy) / lane, 0, 1);
+    const ox = from.x + dx * along - p.x;
+    const oy = from.y + dy * along - p.y;
+    if (Math.sqrt(ox * ox + oy * oy) < BLOCKS_AT) return false;
+  }
+  return true;
+}
+
 /** All the ratings a match needs, by team. */
 export type Skills = Readonly<Record<number, Ratings>>;
 
@@ -516,7 +539,7 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   const dx = mouth.x - state.ball.p.x;
   const dy = mouth.y - state.ball.p.y;
   const d2 = dx * dx + dy * dy;
-  if (d2 <= SHOOT_RANGE * SHOOT_RANGE) {
+  if (d2 <= SHOOT_RANGE * SHOOT_RANGE && sightOfGoal(state, team, state.ball.p, mouth)) {
     const d = Math.sqrt(d2) || 1;
     // ⚠️ THE SECOND RATING THAT REACHES THE PITCH, and the reason there were no goal kicks. A shot struck
     //    at the exact centre of the mouth is a shot that can only be scored or saved - it is never wide,

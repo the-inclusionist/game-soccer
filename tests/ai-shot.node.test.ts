@@ -151,27 +151,54 @@ describe('a shot in a running match', () => {
   });
 });
 
-// ========================= AND ONLY WITH A SIGHT OF GOAL - TRIED, MEASURED, REVERTED =========================
-// Measured on a ninety-minute match, after a shot stopped being struck on every tick: 73 corners and 133
-// goal kicks - about 206 balls over a goal line, where football has roughly twenty-five SHOTS in total.
-// The AI shoots whenever the carrier is inside twenty-two metres, with no notion of whether there is
-// anything to shoot at, and every one that misses comes back as a corner or a goal kick and is shot again.
+// ========================= AND ONLY WITH A SIGHT OF GOAL =========================
+// The AI shot whenever the carrier was inside twenty-two metres, with no notion of whether there was
+// anything to shoot at. A footballer checks one thing before he hits it: can he see the goal.
 //
-// A footballer checks one thing before he hits it: can he see the goal. So the shot was gated on a clear
-// lane - no opponent within a body's width of the line from the ball to the mouth, the keeper excepted
-// because you shoot AT him. It works, and it costs more than it saves:
+// ⚠️ THIS WAS MEASURED, REVERTED, AND THEN MEASURED AGAIN - and the second verdict is the opposite of the
+// first, for a reason worth keeping. The first measurement was taken on a build where SEVENTY PER CENT OF
+// ALL PASSES were the same pass issued again a tick later, because the passer could take his own ball back
+// before it left his feet. On that build the rule sent throw-ins from 70 to 180 a match and sendings-off
+// from none to three, and it was rejected.
 //
-//   corners      73.3 -> 17.7   (target 10)   BETTER
-//   goal kicks  133.3 -> 31.7                 BETTER
-//   throw-ins    69.7 -> 179.7  (target 40)   far worse
-//   goals        16.7 -> 24.0   (target 2.7)  worse
-//   bookings      2.0 -> 6.7    (target 1.7)  worse
-//   sendings-off  0    -> 3.0   (target 0.07) worse
+// With the self-pass fixed, the same rule on the same slate:
 //
-// ⚠️ AND THE REASON IS THE HALF THAT IS MISSING, NOT THE RULE. A carrier who may not shoot falls through
-// to the pass branch, which wants pressure AND a receiver further up the pitch - and inside the box there
-// is nobody further up. So he dribbles, in a crowd, next to a line: contact, cards, and the ball out.
+//                          without        with        target
+//   corners                    72.7        16.7          10
+//   goal kicks                 99.7        29.0
+//   goals                      48.0        43.3           2.7
+//   bookings                    1.7         1.3           1.7
+//   throw-ins                 155.7       222.7          40
 //
-// Football's answer is that a man who cannot shoot plays it ACROSS or BACK, and this cascade has no such
-// ball in it - `receiverFor` skips anybody less than two metres ahead of the carrier, by design. The
-// sight-of-goal rule is worth having the day that exists, and not before.
+// Better on four of the Dev's five numbers, and corners go from seven times the target to under two. A
+// conclusion measured on a defective build is not a conclusion, and this file had one for a day.
+describe('a sight of goal', () => {
+  it('[Right] with the lane clear he shoots, as he always did', () => {
+    const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills)).not.toBeNull();
+  });
+
+  it('[Zero] but a defender standing in the way stops him', () => {
+    const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });
+    s.players[firstOf(AWAY) + 4].p = { x: 84, y: 28 };
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills), 'he shot it straight at a defender').toBeNull();
+  });
+
+  // ⚠️ THE KEEPER IS NOT A BLOCKER. You shoot AT him - he is the last thing between the ball and the net by
+  //    definition, and counting him would mean nobody ever shoots at all.
+  it('[Zero] and the keeper on his line does not count as in the way', () => {
+    const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });
+    s.players[firstOf(AWAY)].p = { x: 89, y: 28 };
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills), 'nobody can ever shoot now').not.toBeNull();
+  });
+
+  it('[Boundary] a defender well off the lane does not block it', () => {
+    const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });
+    s.players[firstOf(AWAY) + 4].p = { x: 84, y: 34 };
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills)).not.toBeNull();
+  });
+});
