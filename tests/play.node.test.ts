@@ -22,6 +22,7 @@ import { NOBODY } from '../app/js/sim/possession.ts';
 import { CONTROLLED_BY_SEAT } from '../app/js/sim/command.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
 import { PITCH } from '../app/js/sim/units.ts';
+import { PHASES } from '../app/js/rules/phase.ts';
 
 function live() {
   const s = createMatchState();
@@ -102,16 +103,28 @@ describe('a tick of a live match', () => {
 });
 
 describe('a stopped match', () => {
-  it('[Zero] the ball does not move while play is stopped', () => {
-    const s = live();
-    s.phase = 'throwIn';
-    s.ball.p = { x: 30, y: 0, z: 0 };
-    s.ball.v = { x: 5, y: 5, z: 0 };
+  // ⚠️ EVERY PHASE, AND IT USED TO BE ONE. This asked the question of `throwIn` only, and `penalty` - the
+  //    newest phase - was not in the seam's list of stopped phases at all. So a penalty was given, the
+  //    ball was placed on the spot, and then the world went on RUNNING under no laws: twenty-two bodies
+  //    chasing a ball that rolled to x = 95.9 on a ninety-metre pitch, with the referee silent because he
+  //    only speaks while the phase is `live`. The match never ended.
+  //
+  //    A hand-picked representative can only ever gate the phase somebody remembered. The phases are a
+  //    list; the question is asked of all of them.
+  for (const phase of PHASES) {
+    if (phase === 'live' || phase === 'preMatch' || phase === 'fullTime') continue;
 
-    playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+    it(`[Zero] the ball does not move while play is stopped for ${phase}`, () => {
+      const s = live();
+      s.phase = phase;
+      s.ball.p = { x: 30, y: 0, z: 0 };
+      s.ball.v = { x: 5, y: 5, z: 0 };
 
-    expect(s.ball.p).toEqual({ x: 30, y: 0, z: 0 });
-  });
+      playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+
+      expect(s.ball.p, `the world kept running in ${phase}`).toEqual({ x: 30, y: 0, z: 0 });
+    });
+  }
 
   it('[Right] the taker touching the ball resumes play', () => {
     const s = live();

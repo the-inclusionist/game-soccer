@@ -17,6 +17,7 @@ import { applyRestart } from './rules/restart.ts';
 import { judgeTackle, type Foul } from './rules/foul.ts';
 import { book, cardFor, RED } from './rules/cards.ts';
 import type { RuleEvent } from './rules/events.ts';
+import { PHASES } from './rules/phase.ts';
 import type { RulesProfile } from './rules/profile.ts';
 import type { TickFrame } from './sim/command.ts';
 import { teamOf, type TeamId } from './sim/ids.ts';
@@ -68,7 +69,6 @@ function foulEvents(state: MatchState, foul: Foul): RuleEvent[] {
   return out;
 }
 
-const STOPPED = new Set(['throwIn', 'corner', 'goalKick', 'freeKick', 'goal', 'halfTime', 'kickoff']);
 
 /**
  * Phases in which the match is not being played at all.
@@ -78,7 +78,26 @@ const STOPPED = new Set(['throwIn', 'corner', 'goalKick', 'freeKick', 'goal', 'h
  * clock counting, the AI deciding, nothing able to happen. A match that does not stop is not a match with
  * a quiet ending; it is a match with no ending.
  */
-const OVER = new Set(['preMatch', 'fullTime']);
+const OVER: ReadonlySet<string> = new Set(['preMatch', 'fullTime']);
+
+/**
+ * Phases in which the ball is on its spot and nothing happens until somebody takes it.
+ *
+ * ⚠️ DERIVED, AND IT USED TO BE A LIST WRITTEN BY HAND. That list said `throwIn, corner, goalKick,
+ * freeKick, goal, halfTime, kickoff` - and `penalty`, the newest phase, was never added to it. So a
+ * penalty fell through this seam into the LIVE path: the ball was placed on the spot and then the world
+ * went on running under a referee who only speaks while the phase is `live`. Measured - the ball ended up
+ * at x = 95.9 on a ninety-metre pitch, two bodies pinned against the goal line chasing it, and the match
+ * never reached full time.
+ *
+ * ⚠️ AND THE SAFE DEFAULT IS STOPPED, which is why this is a subtraction and not an addition. A phase
+ * nobody taught the seam about should freeze the world, not let it run lawless: the failure is then a
+ * match that visibly waits, which somebody notices in the first minute, instead of a match that quietly
+ * stops being football.
+ */
+const STOPPED: ReadonlySet<string> = new Set(
+  PHASES.filter((phase) => phase !== 'live' && !OVER.has(phase)),
+);
 
 /** Who takes the restart this event awards. `-1` when the event awards none. */
 function takerFor(event: RuleEvent, state: MatchState): TeamId | -1 {
