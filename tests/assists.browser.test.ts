@@ -177,3 +177,92 @@ describe('a choice reaching the game', () => {
     expect((document.querySelector('#assist-charge') as HTMLSelectElement).value).toBe('latch-stepped');
   });
 });
+
+// ========================= AND THE CHARGE, IN THE MATCH RATHER THAN IN A MODULE =========================
+// Parity item six is that a shot CARRIES while the button is held and fires on release. `input/charge` is
+// gated hard on its own, the three routes are gated as choices in the assistances screen, and the power
+// that reaches a Command is gated in the TURN panel - and none of those is this. None of them presses a
+// key in a running match and asks whether the ball went further.
+//
+// ⚠️ THIS REPOSITORY HAS FOUND EIGHT MODULES THAT WERE RIGHT, GATED AND CONNECTED TO NOTHING, so the
+// distance between "the charge computes a power" and "holding the key kicks it harder" is exactly the
+// distance this file exists to cover.
+//
+// ⚠️ THE KEY IS READ FROM THE LIVE KEYMAP, never written down here. The first seat's table is the
+// ENGINE'S, a child may have remapped it, and a gate that hard-codes a code is a gate that tests the
+// keyboard this was written on.
+describe('the charge, in a running match', () => {
+  /** Put the ball at the feet of the body seat one is driving, and hand him possession. */
+  function atHisFeet(b: NonNullable<typeof booted>) {
+    const who = b.state.controlled[0];
+    b.state.phase = 'live';
+    b.state.players[who].p = { x: 45, y: 28 };
+    b.state.ball.p = { x: 45, y: 28, z: 0 };
+    b.state.ball.v = { x: 0, y: 0, z: 0 };
+    b.state.possession.holder = who;
+    b.state.possession.lastTouch = who;
+    return who;
+  }
+
+  const speed = (b: NonNullable<typeof booted>) =>
+    Math.sqrt(b.state.ball.v.x * b.state.ball.v.x + b.state.ball.v.y * b.state.ball.v.y);
+
+  // ⚠️ IT DOES NOT BOOT. The first version of this called `bootar` inside itself, in a file whose
+  //    `beforeEach` already boots - so it built a SECOND game over the same document and then set the ball
+  //    at the feet of a player in a state nothing was driving. The tap measured nought, which read exactly
+  //    like the missing wire this gate was written to find. The lesson is the one this repository keeps
+  //    learning from the other side: a red is a claim about the test until the test has been eliminated.
+  async function strike(held: number): Promise<number> {
+    const code = booted!.keymap(0).action2?.[0];
+    expect(code, 'the first seat has no strike key at all').toBeTruthy();
+
+    atHisFeet(booted!);
+    // The engine listens on the game region, not on the window.
+    const region = document.querySelector('#game-region') ?? document.body;
+
+    // ⚠️ THE PEAK, NOT THE SPEED WHEN THE DUST SETTLES. A long hold fires ITSELF partway through - the
+    //    charge has a ceiling, because WCAG 2.1.2 forbids an accessible input that can be held for ever -
+    //    so by the time the key comes up the ball has already been struck, has travelled, and has been
+    //    collected by somebody, which reads as nought. This repository has made the same mistake from the
+    //    other side: a shot counter that measured any velocity change counted the ball LANDING as a shot.
+    let peak = 0;
+    const watch = window.setInterval(() => {
+      const s = speed(booted!);
+      if (s > peak) peak = s;
+    }, 8);
+    region.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    await new Promise((r) => setTimeout(r, held));
+    region.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
+    await new Promise((r) => setTimeout(r, 150));
+    window.clearInterval(watch);
+    return peak;
+  }
+
+  // ⚠️ THE ASSERTION THAT PROTECTS A CHILD, and it is the first one in `input/charge` too. If a tap
+  //    produces nothing, the child who cannot hold a key down receives a pass that does not move and
+  //    concludes the game is broken. `minPower` is why that cannot happen, and this asks it of the match.
+  //
+  //    ⚠️ A TAP IS FORTY MILLISECONDS AND NOT NOUGHT, which is a fact about POLLING rather than about
+  //    the charge. The keyboard is sampled once a frame, so a keydown and keyup dispatched in the same
+  //    task land inside one frame and the key is never seen pressed at all. Nought milliseconds is not a
+  //    press a person can make; the shortest one that exists is longer than a frame.
+  it('[Right] a tap still strikes the ball, because a child who cannot hold must still play', async () => {
+    booted = bootar(document, window);
+    await new Promise((r) => setTimeout(r, 300));
+
+    expect(await strike(40), 'a tap did nothing at all').toBeGreaterThan(0);
+  });
+
+  // ⚠️ AND "HOLDING IT LONGER SENDS IT HARDER" IS NOT GATED HERE, DELIBERATELY. It was written, and it
+  //    was a COIN: two strikes in one match, tap then hold, said the hold was weaker; the same two with
+  //    the order swapped passed. The first strike of a test gets a still world and the second inherits
+  //    twenty-one bodies that have already run at the ball, so the reading is about the ORDER and not
+  //    about the charge. A gate that passes because of the sequence it is written in is worse than no
+  //    gate, because it reports a green about something it never measured.
+  //
+  //    ⚠️ WHAT ACTUALLY HOLDS THE CLAIM: `tests/charge` gates that power never falls as the hold grows,
+  //    that every one of the five steps is reachable, and that a charge held past its window fires itself
+  //    rather than trapping the player; `tests/turn-panel` gates the power arriving in a Command. What is
+  //    missing is only the last centimetre - a live match measuring two holds fairly - and doing it
+  //    honestly needs a fresh world per strike, not two strikes in one.
+});
