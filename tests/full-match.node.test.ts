@@ -166,13 +166,19 @@ describe('what a match contains', () => {
   //    7.6 metres a second, which is exactly a body's touch, and 111 of 136 crossings came inside a second
   //    of a restart.
   //
-  //    ⚠️ THE OBVIOUS FIX WAS TRIED AND REVERTED, and it is the third behaviour this match has rejected
-  //    for the same reason. Clamping the touch so it cannot put the ball out - a footballer running down
-  //    the line knocks it ALONG the line - stopped the ball leaving the pitch AT ALL and produced six
-  //    matches with no goals in them. A rule that fires within a touch's reach of a line fires most of the
-  //    time near the ends, and play collapsed onto the axis it left. Turning INSIDE rather than zeroing the
-  //    component is the next thing to try, and it wants measuring rather than guessing.
-  it.todo('[Right] and not six times as often as football, which is a touch that knocks it out');
+  //    ⚠️ AND THE FIX IS NOT IN THE TOUCH, WHICH TOOK TWO ATTEMPTS TO ESTABLISH. Clamping it so it
+  //    cannot put the ball out - a footballer running down the line knocks it ALONG the line - was tried
+  //    twice: zeroing the across-component PINNED THE BALL TO THE LINE, which stopped it going out, never
+  //    brought it back, and produced six matches with no goals at all; reflecting it inward, which is the
+  //    turn a footballer actually makes, keeps play healthy and takes throw-ins to ZERO.
+  //
+  //    ⚠️ THAT SECOND RESULT IS THE FINDING. If turning the touch inward removes every throw-in, then the
+  //    dribbling touch is the ONLY thing in this game that can put the ball over a touchline. Football has
+  //    several others - a tackle deflecting it, a misplaced pass, a clearance under pressure, a player
+  //    putting it out on purpose - and this game has none of them. So the rate cannot be fixed from this
+  //    end: clamping the touch trades six times too many for none at all, and what is actually missing is
+  //    a legitimate way for the ball to leave the pitch.
+  it.todo('[Right] and not six times as often as football, which needs another way for it to go out');
 
   // ⚠️ MET, AND BY THE SHOT RATHER THAN BY THE RULES. A shot aimed at the exact centre of the mouth can
   //    only be scored or saved, so the ball never crossed a goal line for any other reason and a whole
