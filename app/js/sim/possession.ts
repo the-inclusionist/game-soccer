@@ -83,8 +83,21 @@ const TOUCH_LOOKAHEAD = TOUCH_PERIOD / 60;
  * out is a mistake he does not make. A player with somebody on him puts it out constantly, and that is
  * where throw-ins come from. So the clamp asks whether he is alone, and nothing here is a dice: the same
  * two bodies in the same two places give the same answer for ever.
+ *
+ * ⚠️ ONE AND A HALF METRES, MEASURED. Two was the first number and it is generous: at two metres a man
+ * can still turn away from you. Over six fixtures at each match length, against targets of 40 throw-ins
+ * and 2.7 goals:
+ *
+ *                  90 min: throw-ins   goals        15 min: throw-ins   goals
+ *     2.0 m                     82.5     3.5                      36.8     2.5
+ *     1.5 m                     68.2     4.0                      37.3     2.7
+ *     1.1 m                     74.5     3.3                      30.7     3.5
+ *
+ * One and a half is the best of the three in the long match and puts the short one on football's goal
+ * number exactly. Below it the count goes back UP, because a carrier who is never contested keeps the ball
+ * until somebody arrives properly - and then it goes out anyway, from a worse position.
  */
-const CONTESTED_AT = 2;
+const CONTESTED_AT = 1.5;
 
 /**
  * Metres. How much closer a rival must be before he takes the ball off the current carrier, when nobody

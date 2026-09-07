@@ -151,6 +151,12 @@ export const SHORT_MATCH: RulesProfile = withPeriod(MATCH_PROFILE, 7.5);
  * ⚠️ AND SLOWING THE BODIES IS THE ONLY LEVER THAT WORKS. A bigger pitch and fewer players were both
  * measured and both SPLIT the targets: goals down, throw-ins up, because a loose ball travels further
  * before anybody reaches it.
+ *
+ * ⚠️ IT COSTS THE CARDS, AND THAT IS MEASURED AND NOT MET. Six ninety-minute matches at half pace produce
+ * NO booking at all, against football's 1.7 a match. The card thresholds are shares of a body's own top
+ * speed and scale with it, so that is not the cause - but `CONTACT` and `CHALLENGE_RANGE` are DISTANCES
+ * and do not scale, so at half pace a challenge covers half the ground and the geometry of one changes.
+ * A referee who never books anybody is as wrong as one who never stops, and this mode has the first.
  */
 export const FULL_MATCH: RulesProfile = withPeriod(withPace(MATCH_PROFILE, 0.5), 45);
 
