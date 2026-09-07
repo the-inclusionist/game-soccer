@@ -217,6 +217,15 @@ describe('the charge, in a running match', () => {
     return who;
   }
 
+  /** Wait until the match loop has actually run a tick, rather than for a fixed number of milliseconds. */
+  async function settled(): Promise<void> {
+    const until = Date.now() + 3000;
+    while (Date.now() < until) {
+      if ((booted?.state.tick ?? 0) > 2) return;
+      await new Promise((r) => setTimeout(r, 16));
+    }
+  }
+
   const speed = (b: NonNullable<typeof booted>) =>
     Math.sqrt(b.state.ball.v.x * b.state.ball.v.x + b.state.ball.v.y * b.state.ball.v.y);
 
@@ -246,7 +255,14 @@ describe('the charge, in a running match', () => {
     region.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
     await new Promise((r) => setTimeout(r, held));
     region.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
-    await new Promise((r) => setTimeout(r, 150));
+
+    // ⚠️ IT WAITS FOR THE BALL, NOT FOR THE CLOCK. A fixed sleep after the key comes up passed alone and
+    //    FAILED inside the whole suite, where the browser project runs under load and a hundred and fifty
+    //    milliseconds is not reliably a frame. A gate that turns on how busy the machine is reports a red
+    //    about the machine, so this waits until the ball has actually been struck, with a deadline.
+    const until = Date.now() + 2000;
+    while (peak === 0 && Date.now() < until) await new Promise((r) => setTimeout(r, 16));
+    await new Promise((r) => setTimeout(r, 120));
     window.clearInterval(watch);
     return peak;
   }
@@ -261,7 +277,7 @@ describe('the charge, in a running match', () => {
   //    press a person can make; the shortest one that exists is longer than a frame.
   it('[Right] a tap still strikes the ball, because a child who cannot hold must still play', async () => {
     booted = bootar(document, window);
-    await new Promise((r) => setTimeout(r, 300));
+    await settled();
 
     expect(await strike(40), 'a tap did nothing at all').toBeGreaterThan(0);
   });
@@ -275,7 +291,7 @@ describe('the charge, in a running match', () => {
   //    leaked between the two strikes, one of these two would fail.
   it('[Right] and holding it longer sends the ball harder, whichever is measured first', async () => {
     booted = bootar(document, window);
-    await new Promise((r) => setTimeout(r, 300));
+    await settled();
 
     const tapFirst = await strike(40);
     const heldSecond = await strike(400);

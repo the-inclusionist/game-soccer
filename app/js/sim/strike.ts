@@ -81,7 +81,27 @@ function toward(from: Vec2, to: Vec2, speed: number, dir: 1 | -1): [number, numb
  * `who` is the body the seat is driving. A command from a seat driving nobody, or a verb from a body that
  * cannot reach the ball, is not an error: it is a thing that did not happen.
  */
-export function strikeFor(state: MatchState, cmd: Command, who: PlayerId | undefined): Strike | null {
+/**
+ * The ball as a seat's command leaves it, or `null` if that command strikes nothing.
+ *
+ * ⚠️ `aimError` IS RADIANS AND NOT A RATING, so this file imports nothing from `ai/`: the layering runs
+ * sim below rules below ai, and `shotErrorOf` lives at the top of it. The caller knows the clubs.
+ *
+ * ⚠️ AND WITHOUT IT A CHILD'S SHOT WENT DEAD CENTRE, EVERY TIME. The machine's shot is scattered by its
+ * club's `shooting`; hers was not scattered at all. Measured over six five-minute matches with a scripted
+ * child playing: fourteen goals, ALL of them struck from 18.3 to 23.0 metres - median 22.4, the very edge
+ * of the range where an ordinary club had just been made to miss - and her matches finished 5-0 and 4-0.
+ *
+ * It is the mirror of a defect this repository already fixed, which is what made it hard to see: fouls
+ * used to be judged for a command from a seat and for nothing else, so a law applied to one half of the
+ * pitch and the half was HERS. This was the same shape with the sign flipped.
+ */
+export function strikeFor(
+  state: MatchState,
+  cmd: Command,
+  who: PlayerId | undefined,
+  aimError = 0,
+): Strike | null {
   if (who === undefined || state.players[who] === undefined) return null;
   if (cmd.verb === 'none' || cmd.verb === 'switch') return null;
 
@@ -109,7 +129,11 @@ export function strikeFor(state: MatchState, cmd: Command, who: PlayerId | undef
 
   if (cmd.verb === 'shoot') {
     const [vx, vy] = toward(ball, goalOf(team, state.period), speed, dir);
-    return { id: who, vx, vy, vz: 0 };
+    // ⚠️ LEANED BY THE SHIRT NUMBER, exactly as `ai/brain` leans the machine's. The same club in the same
+    //    position takes the same shot for ever, so a child can learn that her number nine pulls it left -
+    //    and could learn nothing at all from a dice. ADR-0049.
+    const lean = who % 2 === 0 ? aimError : -aimError;
+    return { id: who, vx: vx - vy * lean, vy: vy + vx * lean, vz: 0 };
   }
 
   const mate = nearestMate(state, who);

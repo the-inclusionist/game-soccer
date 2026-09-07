@@ -29,6 +29,7 @@ import { step } from './sim/step.ts';
 import { applyStrike, strikeFor } from './sim/strike.ts';
 import { nextControlled } from './sim/switching.ts';
 import { challenger, decideKick, steerAll, think, type Skills } from './ai/brain.ts';
+import { shotErrorOf } from './ai/ratings.ts';
 import { tackleFor } from './sim/tackle.ts';
 import { AVERAGE, capsBySide } from './ai/ratings.ts';
 import { PITCH } from './sim/units.ts';
@@ -219,7 +220,12 @@ export function playTick(
   let struck = false;
   const fouls: RuleEvent[] = [];
   for (const cmd of frame.cmds) {
-    const strike = strikeFor(state, cmd, state.controlled[cmd.seat]);
+    // ⚠️ HER AIM IS HER CLUB'S, like the machine's. Without this her shot went dead centre from any
+    //    distance while an ordinary club missed from the edge of its range - a rule applied to one half
+    //    of the pitch, and the half was theirs. `sim/strike` carries the measurement.
+    const seated = state.controlled[cmd.seat];
+    const shooting = seated === undefined ? 0.5 : (skills?.[teamOf(seated)]?.shooting ?? 0.5);
+    const strike = strikeFor(state, cmd, seated, shotErrorOf(shooting));
     if (strike === null) {
       // ⚠️ THIS BRANCH USED TO BE `continue`, AND THAT WAS THE WHOLE HOLE. A tackle out of reach of the
       //    ball produced nothing: the lunge cost the child nothing at all. A foul is not a fact about the
