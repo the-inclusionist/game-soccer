@@ -111,8 +111,26 @@ const TOUCH_LOOKAHEAD = TOUCH_PERIOD / 60;
  *     every touch          3.0     2.2      15.0        1.8
  *
  * The clamp puts the bookings on football's number exactly and empties the touchlines. Keeping the
- * contested ball out is the better of the two, and what would be better than either is throw-ins arriving
- * the way football's do - which is a behaviour this AI has not got rather than a threshold it has wrong.
+ * contested ball out is the better of the two.
+ *
+ * ⚠️ AND IT HAS NOW BEEN RE-MEASURED THREE TIMES, ON THREE DIFFERENT BUILDS, and rejected each time -
+ * which is worth writing down so it stops being re-tried. Once when the touch was the only route to a
+ * touchline; once after a block, a clearance and a deliberate corner had been added; and once more after
+ * the cross and the run into the box. The last of the three:
+ *
+ *                  90 min: throw-ins   goals        15 min: throw-ins   goals
+ *     as it is                  77.2     4.5                      36.8     2.8
+ *     every touch                2.7     2.0                       0.0     4.5
+ *
+ * It always does the same thing: it empties the touchlines and moves the goals around. The reason it never
+ * helps is that it removes the game's only working source of throw-ins without adding one, and the sources
+ * football uses - a deflected tackle, a misplaced pass, a clearance charged down - are behaviours this AI
+ * has not got rather than thresholds it has wrong.
+ *
+ * ⚠️ EVERY OTHER LEVER HAS ALSO BEEN MEASURED AND REJECTED: a bigger pitch and fewer players both push
+ * the throw-ins UP while pulling the goals down, and deflecting a block off the blocker rather than
+ * through him gave 972 a match. The count stands at 77.2 against forty, under twice the target, with all
+ * known levers spent.
  */
 const CONTESTED_AT = 1.5;
 
