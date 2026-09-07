@@ -122,9 +122,22 @@ describe('the match ends', () => {
 });
 
 describe('what a match contains', () => {
-  it('[Right] goals are scored and restarts are taken', () => {
-    expect(played.seen.goalScored ?? 0, 'nobody scored in a whole match').toBeGreaterThan(0);
-    expect(played.seen.restartTaken ?? 0).toBeGreaterThan(0);
+  // Every match has restarts in it - that is a property of ten minutes of football and not a frequency.
+  it('[Right] restarts are taken, in every fixture', () => {
+    for (const [i, match] of slate.entries()) {
+      expect(match.seen.restartTaken ?? 0, `${SLATE[i][0]} v ${SLATE[i][1]} never restarted`).toBeGreaterThan(0);
+    }
+  });
+
+  // ⚠️ ASKED OF THE SLATE, BECAUSE A GOALLESS DRAW IS FOOTBALL. This used to assert a goal in ONE ten-minute
+  //    match, which is not a property of anything - and it went red the day the machine stopped fouling
+  //    every four seconds, because that fixture finished nil-nil. Two of the six do.
+  //
+  //    Eleven goals across six matches, measured. A goal arrives roughly every thirty to fifty-five
+  //    thousand ticks, so a ten-minute half-length match producing none is the ordinary case rather than a
+  //    symptom - and what would be a symptom is SIX of them producing none, which is what this asks.
+  it('[Right] and goals are scored across a slate of fixtures', () => {
+    expect(across('goalScored'), 'nobody scored in six whole matches').toBeGreaterThan(0);
   });
 
   // ⚠️ MEASURED AND NOT MET, and left stated rather than quietly dropped. A whole match produced ZERO
@@ -195,24 +208,36 @@ describe('what a match contains', () => {
     expect(fouls, 'the referee never stops whistling').toBeLessThan(120);
   });
 
-  // ⚠️ MEASURED AND NOT MET, AND TRIED TWICE. A side finishes a ten-minute match reduced to four. Stated
-  //    rather than patched, and NOT hidden by loosening the number until it went green.
+  // ⚠️ MET, AND THE THIRD ATTEMPT WAS THE ONE THAT WAS NOT ABOUT DEFENDING AT ALL. A side used to finish a
+  //    ten-minute match reduced to four, and the first two attempts both changed WHERE the presser stood:
+  //    the first stopped play resuming, the second produced a match with no goals at any containing
+  //    distance from 1.1 to 3.0 metres, because a defender who holds his ground is never beaten.
   //
-  //    The cause is structural, not a threshold. The machine can only ever commit a challenge at or above
-  //    the reckless speed, because speed is the only evidence of intent a body can offer - so every AI
-  //    foul is at least a booking and two of them are a red.
+  //    The defect was in the MEASUREMENT. `rules/foul` graded a challenge by the plain relative speed of
+  //    two bodies while its own comment promised that *"a player standing still whom somebody runs into
+  //    has not committed anything"* - which relative speed cannot deliver. Measured over three whole
+  //    matches: every foul was graded on a closing speed with a median of 7.2 and a p75 of 10, while no
+  //    BODY in this game can exceed 7.2. Those numbers were two players running at each other, which is
+  //    what a striker and a defender do, and thirty-one per cent of all fouls came out RED.
   //
-  //    ⚠️ THE FIX WAS ATTEMPTED TWICE AND REVERTED TWICE, and the second time is the interesting one.
-  //    Steering the presser to the containing spot - the same behaviour the game gives a child on the
-  //    jockey button - fixes the cards outright. The first attempt was before the AI could pass, and it
-  //    broke two gates: a presser that never commits never wins the ball back, so play stopped resuming.
-  //    With passing in, that objection is gone and the change was tried again - and at every distance
-  //    from 1.1 to 3.0 metres it produced a match with NO GOALS AT ALL in twenty-four thousand ticks. A
-  //    defender who holds his ground is simply never beaten.
+  //    Grading on what the tackler BROUGHT - his own speed at the man, capped by the speed the gap was
+  //    closing at - took red cards across the slate from thirty-one to three, and no side now finishes
+  //    below ten. Nothing about defending changed.
   //
-  //    So it is not one constant. Containing has to end in a challenge sometimes, and choosing when is a
-  //    decision about defending that deserves its own session and a clear head.
-  it.todo('[Zero] and no side is reduced to fewer than eight, or four, players by cards');
+  //    ⚠️ AND THE RATE IS STILL HIGH, which is stated rather than left to be inferred from a passing test.
+  //    Three red cards in six ten-minute matches is about forty-five per ninety minutes of football, and
+  //    the real game manages roughly one in ten matches. What is fixed is the catastrophe - a side of four
+  //    - and what is not is the frequency.
+  it('[Zero] and no side is reduced by cards to fewer than eight, in any fixture', () => {
+    for (const [i, match] of slate.entries()) {
+      for (const team of [HOME, AWAY]) {
+        let playing = 0;
+        for (let k = 0; k < SQUAD_SIZE; k++) if (onPitch(match.state, firstOf(team) + k)) playing += 1;
+        const who = `${SLATE[i][0]} v ${SLATE[i][1]}: team ${team}`;
+        expect(playing, `${who} finished with ${playing}`).toBeGreaterThanOrEqual(8);
+      }
+    }
+  });
 
   // ⚠️ THE FLOOR THAT IS STILL A REAL GATE. The requirement above is unmet and stated; this is the line
   //    below which the match stops being football at all, and it must never be crossed silently.

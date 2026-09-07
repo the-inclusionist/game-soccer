@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { teamPlan } from '../app/js/ai/plan.ts';
 import { think } from '../app/js/ai/brain.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
+import { CLUBS } from '../app/js/teams/roster.ts';
 import { AWAY, HOME, SQUAD_SIZE } from '../app/js/sim/ids.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
@@ -181,16 +182,41 @@ describe('a match that plays itself', () => {
     }
 
     expect(stoppages).toBeGreaterThan(3);
-    expect(resumptions).toBeGreaterThanOrEqual(stoppages);
+    // ⚠️ ONE OUTSTANDING STOPPAGE IS ALLOWED, AND THE COMMENT ABOVE ALREADY SAID WHY. The run stops at a
+    //    fixed tick, and it can stop DURING a throw-in - measured: at tick 12,000 the phase was `throwIn`,
+    //    fifty-nine stoppages and fifty-eight resumptions. Requiring equality made "the clock ran out mid
+    //    throw-in" indistinguishable from a wedge, and it had been green by luck rather than by argument.
+    //    At most one stoppage can be in flight at any instant, so one is the honest allowance and two
+    //    would still be a wedge.
+    expect(resumptions).toBeGreaterThanOrEqual(stoppages - 1);
   });
 
+  // ⚠️ TWO DIFFERENT CLUBS, AND THAT IS NOT A CONVENIENCE. This used to run `AVERAGE` against `AVERAGE`,
+  //    and once the machine stopped fouling every four seconds those two never scored at all: measured at
+  //    108,000 ticks - thirty minutes - 167 throw-ins, three fouls, no goals, no corners, no goal kicks.
+  //
+  //    The reason is symmetry. The away side is the home side's shape rotated by half a turn, the
+  //    simulation has no randomness in it by design, and two sides with identical ratings therefore play a
+  //    mirror image of each other for ever. Any difference at all breaks it, and `fixtureOf` REFUSES a club
+  //    playing itself - so the configuration this gate used is one the game cannot produce.
+  //
+  //    ⚠️ It is written down rather than quietly swapped, because it says something true about how these
+  //    goals are scored: the AI was living off the chaos of a foul every four seconds, and with the foul
+  //    rate corrected to football's the deadlock underneath became visible. That is an AI weakness, it is
+  //    now measured, and it wants the session about defending that the README already owes.
   it('[Right] a long match produces the whole vocabulary of restarts, not just one', () => {
     const s = createMatchState();
     s.phase = 'live';
+    const sides = { 0: CLUBS[0].ratings, 1: CLUBS[1].ratings };
     const seen = new Set<string>();
 
-    for (let t = 0; t < 24000; t++) {
-      for (const e of playTick(s, emptyFrame(t), DT, MATCH_PROFILE, skills)) seen.add(e.kind);
+    // ⚠️ AND IT IS SIXTY THOUSAND TICKS BECAUSE THAT IS WHAT A GOAL COSTS. Twenty-four thousand was set
+    //    when the machine fouled every four seconds and scored off the chaos; with the foul rate corrected
+    //    to football's, the first goal of this fixture arrives at tick 33,392 - measured, along with
+    //    46,893 and 54,705 for two others. Sixty thousand is not quite a factor of two of headroom, and
+    //    naming the number it is headroom OVER is the only thing that stops the next person shaving it.
+    for (let t = 0; t < 60_000; t++) {
+      for (const e of playTick(s, emptyFrame(t), DT, MATCH_PROFILE, sides)) seen.add(e.kind);
     }
 
     expect(seen.has('crossedTouchline')).toBe(true);

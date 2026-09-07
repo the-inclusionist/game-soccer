@@ -42,6 +42,80 @@ function lunge(speed: number, at = { x: 45, y: 28 }) {
   return { s, on };
 }
 
+/**
+ * A home body and an away body on top of each other, each moving at the velocity given, ball far away.
+ *
+ * The pair above fixes the victim still and moves only the tackler, which cannot ask the question below:
+ * WHOSE speed the card is being written for.
+ */
+function collide(mine: { x: number; y: number }, theirs: { x: number; y: number }) {
+  const s = live();
+  const on = firstOf(AWAY) + 5;
+  for (let k = 0; k < SQUAD_SIZE; k++) s.players[firstOf(AWAY) + k].p = { x: 80, y: 50 };
+  s.players[TACKLER].p = { x: 45, y: 28 };
+  s.players[TACKLER].v = { ...mine };
+  s.players[on].p = { x: 45.4, y: 28 };
+  s.players[on].v = { ...theirs };
+  s.ball.p = { x: 5, y: 5, z: 0 };
+  return s;
+}
+
+// ========================= WHOSE SPEED THE CARD IS WRITTEN FOR =========================
+// This file's own header says severity is "how fast she went in", and the module says it more precisely:
+// *"A player standing still whom somebody runs into has not committed anything; two players jogging
+// together at the same pace have not either."*
+//
+// ⚠️ THE SECOND HALF WAS IMPLEMENTED AND THE FIRST HALF WAS NOT, and nothing asked. Relative closing speed
+// makes two players jogging together harmless, correctly - and it books a defender who is STANDING STILL
+// when an attacker runs into him at seven metres a second, because the subtraction cannot tell which of
+// the two was moving.
+//
+// Measured over three whole matches: every foul the machine gave away was judged on a closing speed with a
+// median of 7.2 and a seventy-fifth percentile of 10, while no BODY in the game can exceed 7.2. Those
+// numbers are two players running at each other, and running at each other is what a striker and a
+// defender do. Thirty-one per cent of all fouls came out red.
+describe('and whose speed it was', () => {
+  it('[Zero] a defender standing still whom an attacker runs into is not booked', () => {
+    const s = collide({ x: 0, y: 0 }, { x: -8, y: 0 });
+
+    const foul = judgeTackle(s, TACKLER, MATCH_PROFILE);
+
+    expect(foul, 'a man who did not move gave nothing away').not.toBeNull();
+    expect(foul?.severity, 'he was booked for somebody else running into him').toBe('careless');
+  });
+
+  it('[Zero] and two players running the same way at the same pace is still nothing', () => {
+    const s = collide({ x: 7, y: 0 }, { x: 7, y: 0 });
+
+    expect(judgeTackle(s, TACKLER, MATCH_PROFILE)?.severity).toBe('careless');
+  });
+
+  // ⚠️ AND THE HEAD-ON CASE IS THE ONE THAT MADE EVERY MATCH A SENDING-OFF FESTIVAL. Two players at six
+  //    metres a second, one each way, close at twelve - past the violent threshold - while neither is
+  //    doing anything a referee would look at twice.
+  it('[Boundary] two players meeting head-on at a normal pace is not violent conduct', () => {
+    const s = collide({ x: 6, y: 0 }, { x: -6, y: 0 });
+
+    expect(judgeTackle(s, TACKLER, MATCH_PROFILE)?.severity).not.toBe('violent');
+  });
+
+  it('[Right] but a man who flies in at full speed is still reckless', () => {
+    const s = collide({ x: 7, y: 0 }, { x: 0, y: 0 });
+
+    const foul = judgeTackle(s, TACKLER, MATCH_PROFILE);
+
+    expect(foul?.severity, 'sprinting into a standing man cost nothing').not.toBe('careless');
+  });
+
+  // ⚠️ AND SIDEWAYS IS NOT GOING IN. A defender crossing the front of an attacker at speed is not
+  //    challenging him; the speed that matters is the part of it aimed AT the man he hits.
+  it('[Boundary] a man running across an opponent is not going in on him', () => {
+    const s = collide({ x: 0, y: 8 }, { x: 0, y: 0 });
+
+    expect(judgeTackle(s, TACKLER, MATCH_PROFILE)?.severity).toBe('careless');
+  });
+});
+
 describe('when a tackle is a foul', () => {
   it('[Right] a lunge that misses the ball and hits a player is a foul', () => {
     const { s, on } = lunge(2);

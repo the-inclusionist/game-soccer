@@ -19,6 +19,7 @@ import { createMatchState } from '../app/js/sim/state.ts';
 import { playTick } from '../app/js/play.ts';
 import { MATCH_PROFILE } from '../app/js/rules/profile.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
+import { challenger } from '../app/js/ai/brain.ts';
 import { AWAY, HOME, SQUAD_SIZE, firstOf, teamOf } from '../app/js/sim/ids.ts';
 import { DT } from '../app/js/sim/ball.ts';
 import { emptyFrame } from '../app/js/sim/command.ts';
@@ -129,6 +130,50 @@ describe('what must NOT become a foul', () => {
     const kinds = playTick(s, emptyFrame(0), DT, MATCH_PROFILE, skills).map((e) => e.kind);
 
     expect(kinds).not.toContain('foulGiven');
+  });
+});
+
+// ========================= AND THE SAME QUESTION GETS THE SAME ANSWER =========================
+// `challenger` decides WHETHER the machine went in and `judgeTackle` decides WHAT IT WAS WORTH, and
+// `ai/brain` already says why they must not drift: it imports `RECKLESS_SPEED` rather than repeating the
+// number, because *"two numbers that had to agree would eventually not"*.
+//
+// ⚠️ THE NUMBER AGREED AND THE MEASUREMENT DID NOT. `judgeTackle` grades a challenge by what the tackler
+// BROUGHT to it - his own speed at the man, capped by the speed the gap was closing at - while
+// `challenger` was still asking about the plain relative speed of two bodies. So a presser who had not
+// moved a centimetre could be deemed to have gone in, because somebody ran into HIM, and then be graded
+// careless: a free kick given away by a man standing still. It is the same defect one door along, and the
+// fix is that both doors call the same function.
+//
+// ⚠️ AND THESE ASK `challenger` DIRECTLY, WHICH THE FIRST VERSION DID NOT. Written through `playTick` they
+// both passed on the broken code - `step` runs before the challenge is asked, and one tick of the carrier
+// running backwards moves the world enough for the foul not to materialise. Two green tests, a defect
+// sitting under them, and a fix that would have shipped on the strength of a test that never looked at it.
+// The claim is about what `challenger` answers, so that is what is asked.
+describe('the machine goes in, or it does not', () => {
+  it('[Zero] a presser who has not moved has not gone in, whatever runs into him', () => {
+    const { s, carrier, chaser } = chase(0);
+    // The carrier turns and runs back into him at full pace. Relative speed says eight; he brought none.
+    s.players[carrier].v = { x: -8, y: 0 };
+    s.players[chaser].v = { x: 0, y: 0 };
+
+    expect(challenger(s, AWAY), 'a man standing still was deemed to have made a challenge').toBeNull();
+  });
+
+  // The positive control for the gate above: the same two bodies, the same relative speed, the other one
+  // doing the moving. Without this pair, deleting the challenge rule outright would pass.
+  it('[Right] and a presser arriving at that pace has', () => {
+    const { s, carrier, chaser } = chase(8);
+    s.players[carrier].v = { x: 0, y: 0 };
+
+    expect(challenger(s, AWAY)).toBe(chaser);
+  });
+
+  it('[Zero] and two of them sprinting side by side is not a challenge either', () => {
+    const { s, carrier } = chase(8);
+    s.players[carrier].v = { x: 8, y: 0 };
+
+    expect(challenger(s, AWAY)).toBeNull();
   });
 });
 

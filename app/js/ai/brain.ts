@@ -22,7 +22,7 @@ import { homeSpot, type TeamPlan } from './formation.ts';
 import { passErrorOf, shotErrorOf, type Ratings } from './ratings.ts';
 import { teamPlan } from './plan.ts';
 import { thinksThisTick } from './schedule.ts';
-import { RECKLESS_SPEED } from '../rules/foul.ts';
+import { RECKLESS_SPEED, wentIn } from '../rules/foul.ts';
 
 /** Metres. A supporting player runs this far ahead of the shape when his side has the ball. */
 const SUPPORT_AHEAD = 9;
@@ -311,6 +311,12 @@ export function challenger(state: MatchState, team: TeamId): PlayerId | null {
   //    beside the carrier on almost every tick of a match; if being there were a challenge, the machine
   //    would concede a free kick every tick and the game would be nothing but restarts.
   //
+  // ⚠️ AND "GONE IN" IS `rules/foul`'S OWN MEASURE, not a second one that happens to share its number.
+  //    This used to compare the plain relative speed of the two bodies, so a presser who had not moved a
+  //    centimetre was deemed to have made a challenge because the CARRIER ran into HIM - and the referee
+  //    then graded it careless and gave a free kick away against a man standing still. The constant was
+  //    already imported for exactly this reason; the measurement had to follow it.
+  //
   // ⚠️ THIS IS AN INTENT TEST AND NOT A SEVERITY ONE, and the difference is why it lives here rather
   //    than in `rules/foul`. The LAW is identical for both sides - `judgeTackle` decides what a challenge
   //    was worth, for her and for the machine, out of the same function. What differs is when each side
@@ -320,15 +326,14 @@ export function challenger(state: MatchState, team: TeamId): PlayerId | null {
   //    The asymmetry that survives is that the machine does not give away CARELESS fouls, because it
   //    cannot express carelessness. It is written down rather than hidden, and it is the smallest gap
   //    that keeps a match from being a series of free kicks.
-  const dx = me.v.x - them.v.x;
-  const dy = me.v.y - them.v.y;
-  return dx * dx + dy * dy >= WENT_IN * WENT_IN ? id : null;
+  return wentIn(me.p, me.v, them.p, them.v) >= WENT_IN ? id : null;
 }
 
 /**
- * Closing speed at which the machine is deemed to have made a challenge rather than to be running beside
- * somebody. It is `rules/foul`'s own reckless threshold, imported rather than repeated - two numbers that
- * had to agree would eventually not.
+ * The speed of going in at which the machine is deemed to have made a challenge rather than to be running
+ * beside somebody. It is `rules/foul`'s own reckless threshold, imported rather than repeated - two
+ * numbers that had to agree would eventually not - and it is now measured by that file's own function
+ * too, because two measurements that had to agree would eventually not either.
  */
 const WENT_IN = RECKLESS_SPEED;
 
