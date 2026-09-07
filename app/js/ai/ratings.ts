@@ -53,6 +53,24 @@ export function passErrorOf(passing: number): number {
   return (1 - passing) * 0.2;
 }
 
+/**
+ * Radians a shot leans off the middle of the mouth.
+ *
+ * ⚠️ AN ANGLE, NOT A DISTANCE, and that is what makes a rating read as skill instead of as a dice. The
+ * same finisher who sprays it from thirty metres puts it away from six yards, because an angle costs more
+ * the further the ball has to travel - which is how finishing actually works.
+ *
+ * ⚠️ AND A PERFECT FINISHER'S ERROR IS ZERO. The honest end of the scale, not a floor somebody chose to
+ * keep the game interesting.
+ */
+export function shotErrorOf(shooting: number): number {
+  // 0.20 rad at the worst rating, and the number was MEASURED rather than picked: the goal is 7m wide, so
+  // missing it from twenty-two metres needs more than 3.5/22 = 0.159 rad. Below that a hopeless finisher
+  // still hits the target from distance and the match still has no goal kicks in it. From three metres
+  // the same error is 0.6m across - comfortably inside the posts, which is the other half of the claim.
+  return (1 - shooting) * 0.2;
+}
+
 /** Metres. How close the ball stays to a dribbler. */
 export function controlRadiusOf(control: number): number {
   return 0.7 + 0.4 * control;

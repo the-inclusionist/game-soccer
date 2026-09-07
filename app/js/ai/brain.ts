@@ -19,7 +19,7 @@ import type { Body, MatchState } from '../sim/state.ts';
 import { PITCH } from '../sim/units.ts';
 import { clamp, dist2, type Vec2 } from '../sim/vec.ts';
 import { homeSpot, type TeamPlan } from './formation.ts';
-import { passErrorOf, type Ratings } from './ratings.ts';
+import { passErrorOf, shotErrorOf, type Ratings } from './ratings.ts';
 import { teamPlan } from './plan.ts';
 import { thinksThisTick } from './schedule.ts';
 import { RECKLESS_SPEED } from '../rules/foul.ts';
@@ -365,7 +365,24 @@ export function decideKick(state: MatchState, playable: Playable = PITCH, skills
   const d2 = dx * dx + dy * dy;
   if (d2 <= SHOOT_RANGE * SHOOT_RANGE) {
     const d = Math.sqrt(d2) || 1;
-    return { id: holder, vx: (dx / d) * SHOT_SPEED, vy: (dy / d) * SHOT_SPEED, vz: SHOT_LIFT };
+    // ⚠️ THE SECOND RATING THAT REACHES THE PITCH, and the reason there were no goal kicks. A shot struck
+    //    at the exact centre of the mouth is a shot that can only be scored or saved - it is never wide,
+    //    so the ball never crosses a goal line for any other reason, and a whole match produced twenty-
+    //    eight throw-ins and not one goal kick.
+    //
+    //    Leaned, not rolled, and by the shirt number like the pass: the same club in the same position
+    //    takes the same shot for ever. A child can learn to get closer before shooting; she could learn
+    //    nothing from a dice.
+    const aim = shotErrorOf(skills?.[team]?.shooting ?? 0.5);
+    const lean = holder % 2 === 0 ? aim : -aim;
+    const nx = dx / d;
+    const ny = dy / d;
+    return {
+      id: holder,
+      vx: (nx - ny * lean) * SHOT_SPEED,
+      vy: (ny + nx * lean) * SHOT_SPEED,
+      vz: SHOT_LIFT,
+    };
   }
 
   // ⚠️ HE ONLY LETS GO UNDER PRESSURE. A carrier who passed whenever a pass existed would produce a
