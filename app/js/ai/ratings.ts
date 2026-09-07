@@ -106,6 +106,23 @@ export function shotErrorOf(shooting: number): number {
   // misses from the edge of its range and 2.4 m at 12 m, so it scores from the edge of the box. The best
   // club the game ships, 0.74, is 2.3 m across at 22 m and still hits - which is what makes the rating
   // readable as skill rather than as a dice.
+  // ⚠️ AND 0.40 IS A CHOICE BETWEEN GOALS AND DEAD BALLS, not an optimum - swept, with a child playing,
+  // six five-minute matches at each value (bands: goals 2-3, corners 1.5-3, goal kicks 3-4.5):
+  //
+  //     error   goals   corners   goal kicks   scorelines
+  //      0.20    4.50      0.17         0.33   7-0  5-0  5-0  1-0  1-0  8-0
+  //      0.30    2.83      0.50         1.83   4-0  1-0  1-0  3-0  5-0  3-0
+  //      0.40    2.67      0.67         2.50   4-0  3-0  1-0  2-0  3-0  2-1
+  //      0.50    1.17      1.50         2.33   3-0  0-0  1-0  0-0  0-1  2-0
+  //      0.60    0.67      1.50         3.00   1-0  0-0  0-0  0-0  0-0  3-0
+  //
+  // ⚠️ NO VALUE SATISFIES ALL THREE, and the reason is football: a shot that misses becomes a goal kick
+  // and a shot on target becomes a save, a rebound and a corner. The same ball cannot be both. Corners and
+  // goal kicks are bought with goals, one for one.
+  //
+  // 0.40 is kept because a children's game with 0.67 goals in it is a worse game than one short of
+  // corners - five of the six fixtures at 0.60 finish goalless or 1-0. It is a PRODUCT decision and it is
+  // the Dev's to change: 0.60 lands three bands and 0.40 lands two, and the third band costs the goals.
   return (1 - shooting) * 0.4;
 }
 
