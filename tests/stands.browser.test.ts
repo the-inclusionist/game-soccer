@@ -84,6 +84,31 @@ describe('where the camera actually goes', () => {
     expect(camY, 'the camera never reached the top of the world').toBeLessThan(GRASS_TOP - STANDS_TOP);
   });
 
+  // ⚠️ THE GATE THAT WOULD HAVE CAUGHT ALL OF THIS ON DAY ONE. `generateTexture` crops to the graphics'
+  //    bounds, so the pitch texture began at the grass and a sprite at (0, 0) put world row 36 on screen
+  //    row 0 - the band left clear for the stands was covered, and the parallax could never be seen.
+  //    The crop is measured and the sprite positioned by it now; this asks that the grass is where the
+  //    projection says, which is the whole of what was wrong.
+  it('[Right] the grass begins where the projection says, not at the top of the screen', async () => {
+    booted = bootar(document, window);
+    booted!.state.phase = 'live';
+
+    await pinBallAt(0.5, 2500);
+
+    const camY = booted!.cameraAt().y;
+    expect(booted!.pitchTopOnScreen(), 'the pitch is drawn at the wrong height').toBeCloseTo(GRASS_TOP - camY, 0);
+  });
+
+  it('[Right] so with the camera at the top of the world there is room for the stands', async () => {
+    booted = bootar(document, window);
+    booted!.state.phase = 'live';
+
+    await pinBallAt(0.5, 2500);
+
+    // The stand band is rows 10..44. Anything the grass does not cover above `STANDS_TOP` is stand.
+    expect(booted!.pitchTopOnScreen()).toBeGreaterThan(STANDS_TOP);
+  });
+
   it('[Boundary] and it never leaves the world, at either end', async () => {
     booted = bootar(document, window);
     booted!.state.phase = 'live';

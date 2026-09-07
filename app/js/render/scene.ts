@@ -74,6 +74,16 @@ export interface Scene {
    * Nothing writes through this, and a debug overlay would want exactly the same handle.
    */
   cameraAt(): { readonly x: number; readonly y: number };
+  /**
+   * The screen row the pitch sprite starts at.
+   *
+   * ⚠️ THIS NOW MEASURES SOMETHING, WHICH THE FIRST VERSION DID NOT. It was asked once before, of a
+   * texture that spanned the world, and answered row 0 whether the top band was transparent or painted -
+   * the same number in both cases, a diagnostic agreeing with itself. The texture is CROPPED to the grass
+   * and the sprite is positioned by that crop, so this row is where the grass begins, and it is the number
+   * that decides whether a stand is covered.
+   */
+  pitchTopOnScreen(): number;
   destroy(): void;
 }
 
@@ -190,20 +200,24 @@ function markerTexture(app: PIXI.Application, seat: number, colour: number): PIX
  * only depth cue an affine projection can offer. The centre circle is an ELLIPSE because the ground plane
  * is squashed - drawing it as a circle would be the one place the projection is visibly contradicted.
  */
-function pitchTexture(app: PIXI.Application): PIXI.Texture {
+/**
+ * The pitch, baked once - and WHERE ITS TOP-LEFT LANDS IN THE WORLD, which is the part that was assumed.
+ *
+ * ⚠️ `generateTexture` CROPS TO THE GRAPHICS' OWN BOUNDS. The first thing painted here is grass at
+ * `grassTop`, so the texture begins THERE and not at the world's origin - and a sprite placed at (0, 0)
+ * puts world row 36 on screen row 0. The pitch sat thirty-six pixels above where `project()` says it is,
+ * and the band deliberately left clear for the stands was covered by grass. That is why the parallax was
+ * never seen.
+ *
+ * Two attempts to stop the crop failed and are recorded so nobody repeats them: a fully transparent
+ * rectangle over the whole world does NOT extend the bounds, and `{ region }` drew every player as a
+ * two-pixel dash. So the crop is not fought - it is MEASURED and handed back, and the caller positions the
+ * sprite by it. Read from the graphics rather than assumed to be `grassTop`, because the day something is
+ * painted higher this keeps working and an assumed constant would not.
+ */
+function pitchTexture(app: PIXI.Application): { texture: PIXI.Texture; at: { x: number; y: number } } {
   const g = new PIXI.Graphics();
   const m = WORLD_PX.margin;
-
-  // ⚠️ THE WHOLE WORLD IS PINNED FIRST, WITH A FULLY TRANSPARENT RECTANGLE, and without it the top band is
-  //    transparent and the parallax is STILL invisible. `generateTexture` crops to the graphics' own
-  //    BOUNDS: with the first painted thing starting at y = 36, the texture began there, and a sprite
-  //    placed at (0, 0) put row 36 of the world at row 0 of the screen. The grass then covered exactly the
-  //    band that had been left clear for the stands - so leaving it transparent achieved nothing, and the
-  //    pitch sat thirty-six pixels above where `project()` says it is.
-  //
-  //    Zero alpha still contributes to bounds, so this costs one rectangle and makes the alignment a fact
-  //    rather than a consequence of what happens to be painted highest.
-  g.beginFill(0x000000, 0).drawRect(0, 0, WORLD_PX.w, WORLD_PX.h).endFill();
 
   // The top of the world is left clear, so the stands behind it show through. Painting grass from edge to
   // edge is what made the parallax invisible the FIRST time.
@@ -259,7 +273,8 @@ function pitchTexture(app: PIXI.Application): PIXI.Texture {
     g.beginFill(0xf4f8f4, 0.5).drawRect(gx, gy, 3, mouth).endFill();
   }
 
-  return app.renderer.generateTexture(g);
+  const bounds = g.getLocalBounds();
+  return { texture: app.renderer.generateTexture(g), at: { x: bounds.x, y: bounds.y } };
 }
 
 /**
@@ -305,7 +320,10 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
   world.sortableChildren = true;
   app.stage.addChild(world);
 
-  const pitch = new PIXI.Sprite(pitchTexture(app));
+  const baked = pitchTexture(app);
+  const pitch = new PIXI.Sprite(baked.texture);
+  // Put the texture back where it was painted. See `pitchTexture`: the crop is measured, not fought.
+  pitch.position.set(baked.at.x, baked.at.y);
   pitch.zIndex = Z.TILES;
   world.addChild(pitch);
 
@@ -380,6 +398,10 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
 
     cameraAt(): { readonly x: number; readonly y: number } {
       return { x: -world.position.x, y: -world.position.y };
+    },
+
+    pitchTopOnScreen(): number {
+      return pitch.getBounds().y;
     },
 
     setFixture(next: Fixture): void {

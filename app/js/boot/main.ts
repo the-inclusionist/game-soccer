@@ -78,6 +78,8 @@ export interface Booted {
   readonly onSigned: (fn: (text: string) => void) => void;
   /** Where the camera is, in world pixels. See `Scene.cameraAt`. */
   readonly cameraAt: () => { readonly x: number; readonly y: number };
+  /** The screen row the grass begins at. See `Scene.pitchTopOnScreen`. */
+  readonly pitchTopOnScreen: () => number;
   readonly stop: () => void;
 }
 
@@ -778,6 +780,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       signed = fn;
     },
     cameraAt: () => scene.cameraAt(),
+    pitchTopOnScreen: () => scene.pitchTopOnScreen(),
     stop: () => {
       scene.app.ticker.stop();
       scene.destroy();
