@@ -99,6 +99,45 @@ export function step(
     stepBody(state.players[i], desired[i], dt, caps[i]);
   }
 
+  // 2b - AND NOBODY STANDS INSIDE ANYBODY - WHICH IS NOT TRUE HERE, MEASURED, AND BUILT AND REVERTED ONCE.
+  //
+  //      ⚠️ THE DEFECT IS REAL AND IS MOST OF A MATCH. Every pair of the twenty-two, every tick, over a
+  //      whole match: the closest two bodies ever got was 0.000 metres - EXACTLY the same point - there
+  //      were 13,058 pair-observations closer than 0.2 m, and 21,160 of 36,000 ticks (58.8%) had at least
+  //      one pair inside 0.8 m. Football does not allow it and pillar 5 does not survive it: two
+  //      twelve-pixel figures on one spot are ONE figure.
+  //
+  //      ⚠️ AND THE FIX COSTS THE MATCH ITS GOALS. A pairwise push apart, both bodies equally, clamped
+  //      to the pitch, was written with seven gates and wired here. It works - the closest pair went from
+  //      0.000 m to 0.532 m - and six fixtures at each length said this, against football's 40 throw-ins,
+  //      2.7 goals, 10 corners and 1.7 bookings:
+  //
+  //          build                    length   throw-ins   goals   corners   bookings
+  //          as committed             90 min        77.2     4.5      11.5        1.7
+  //          whole overlap per tick   90 min        63.7    0.33       7.8       0.67
+  //          a quarter per tick       90 min        69.7    0.33       9.8       0.67
+  //          as committed             15 min        36.8     2.8       1.2        0.5
+  //          whole overlap per tick   15 min        16.7     4.5       1.5        0.0
+  //          a quarter per tick       15 min        18.7     4.5       0.3        0.0
+  //
+  //      A ninety-minute match with a third of a goal in it is a worse game than one with overlapping
+  //      sprites, and body contact is not in the parity list this game is measured against.
+  //
+  //      ⚠️ AND IT IS NOT CHAOS, WHICH WAS CHECKED BEFORE CONCLUDING. Nudging one player's kickoff spot
+  //      by 1 cm and by 2 cm left every count identical to two decimal places, so these numbers are a
+  //      signal and not a re-rolled match. The two push rates giving the SAME 0.33 goals says the same
+  //      thing from the other side: it is not a matter of degree.
+  //
+  //      ⚠️ WHAT THE NEXT ATTEMPT SHOULD MEASURE FIRST is whether the shots collapse or only the goals.
+  //      If the shots hold and the goals fall, it is the keeper being displaced off his line; if the
+  //      shots fall too, separation is breaking the attack before it arrives. That was not measured, and
+  //      guessing between the two is how this file has acquired wrong explanations before.
+  //
+  //      ⚠️ THE PLAN'S `broadphase` IS NOT WHAT ANY OF THIS NEEDS. It budgeted an 8x8 metre grid so the
+  //      pair queries would be affordable; twenty-two bodies are 231 pairs, and the measurements above
+  //      walked 36,000 ticks of exactly those comparisons in seconds. The plan was right that contact was
+  //      missing and wrong about what finding it would cost.
+
   // 3 - BALL. Skipped while play is stopped: at a dead ball the players walk into position and the ball
   //     stays on its spot, which is football and is also what stops a restart from being taken by the
   //     ball rolling away from the spot it was just placed on.

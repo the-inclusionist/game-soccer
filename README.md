@@ -111,6 +111,16 @@ Three things of the reference game are deliberately **absent**:
   construction* with `tick: 'player'`. Real-time football cannot, so the three modes are how this game
   pays that criterion: turn-based satisfies it by construction, assisted satisfies it by adjustment, and
   pure real time exists because an adult can choose it with the other two beside it.
+- **Two players may stand inside each other, and that is measured rather than overlooked.** Every pair of
+  the twenty-two, every tick, over a whole match: the closest two ever got was **0.000 m - exactly the
+  same point** - and **21,160 of 36,000 ticks (58.8%)** had at least one pair inside 0.8 m. The fix was
+  built with seven gates and wired: it works, taking the closest pair to 0.532 m, and it takes a
+  ninety-minute match from 4.5 goals to **0.33**. A match with a third of a goal in it is a worse game
+  than one with overlapping sprites, and body contact is not in the parity list. Reverted, with the whole
+  table and the next measurement to take written into `sim/step` where the wire would go. ⚠️ It is not
+  chaos: nudging one player's kickoff spot by 1 cm and 2 cm left every count identical, so those numbers
+  are a signal. ⚠️ And the plan's `broadphase` is not what it needed - 22 bodies are 231 pairs, and the
+  measurements walked 36,000 ticks of them in seconds.
 - **2.5.1 is cited by analogy and says so.** A gamepad chord is not a pointer gesture. What governs
   literally is 2.1.1, 2.1.2 and 2.2.1, and the difference is marked rather than claimed away.
 
