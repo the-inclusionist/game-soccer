@@ -157,6 +157,23 @@ describe('what a match contains', () => {
     expect(played.seen.crossedTouchline ?? 0, 'the ball never left the pitch').toBeGreaterThan(0);
   });
 
+  // ⚠️ AND FAR TOO OFTEN, WHICH IS MEASURED AND NOT MET. About 267 throw-ins per ninety minutes of
+  //    football, against roughly forty in the real game - the largest deviation left in this match.
+  //
+  //    The cause is known and named: the dribbling touch knocks the ball with the CARRIER'S OWN VELOCITY,
+  //    and a body chasing a ball near a touchline is running at that touchline. Measured after restarts
+  //    were fixed, the median gap between play resuming and the ball going out again was still six ticks at
+  //    7.6 metres a second, which is exactly a body's touch, and 111 of 136 crossings came inside a second
+  //    of a restart.
+  //
+  //    ⚠️ THE OBVIOUS FIX WAS TRIED AND REVERTED, and it is the third behaviour this match has rejected
+  //    for the same reason. Clamping the touch so it cannot put the ball out - a footballer running down
+  //    the line knocks it ALONG the line - stopped the ball leaving the pitch AT ALL and produced six
+  //    matches with no goals in them. A rule that fires within a touch's reach of a line fires most of the
+  //    time near the ends, and play collapsed onto the axis it left. Turning INSIDE rather than zeroing the
+  //    component is the next thing to try, and it wants measuring rather than guessing.
+  it.todo('[Right] and not six times as often as football, which is a touch that knocks it out');
+
   // ⚠️ MET, AND BY THE SHOT RATHER THAN BY THE RULES. A shot aimed at the exact centre of the mouth can
   //    only be scored or saved, so the ball never crossed a goal line for any other reason and a whole
   //    match produced no corners and no goal kicks at all. With `shooting` scattering the aim it produces
