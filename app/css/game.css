@@ -1,0 +1,216 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+ * THE SHELL'S OWN STYLE. The engine's `style.css` carries the panels and the live-region helper; this
+ * file carries only what is this game's - the stage, the pitch surface and the text mirror.
+ *
+ * Everything inside `#game-region` scales with the engine's integer factor `k`; everything outside it
+ * stays at real size, because a menu that scales is a menu whose touch targets stop being 44px.
+ */
+
+:root {
+  color-scheme: light dark;
+  --turf: #2f7a3f;
+  --ink: #0d1b10;
+}
+
+body {
+  margin: 0;
+  background: #10160f;
+  color: #eef3ec;
+  font-family: system-ui, sans-serif;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.stage-wrap {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+}
+
+.game-region {
+  display: grid;
+  gap: 8px;
+  place-items: center;
+}
+
+/* The world. Its size is set by the boot, to a whole multiple of 320x180. */
+.pitch {
+  background: var(--turf);
+  line-height: 0;
+  image-rendering: pixelated;
+}
+
+.pitch canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.mirror {
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+}
+
+.mirror__line {
+  margin: 2px 0;
+}
+
+/* The caption of an earcon: what a deaf child reads in place of a tone.
+ *
+ * It holds a fixed line of height even when empty, because a caption that appears and disappears makes
+ * the pitch jump every time the ball goes out - and a pitch that jumps is unreadable at 320x180 for
+ * exactly the child this whole projection was tilted for.
+ *
+ * The colours are literal rather than the turf variables: this is the one line on the page that must stay
+ * legible when a colour-blindness filter is applied to the world above it, and a filter that swallowed
+ * the caption would take the sound AND its replacement in one move. */
+.caption {
+  min-height: 1.4em;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 4px;
+}
+
+/* Outside the world: real size, always. */
+/* ⚠️ IT WRAPS, and it did not until there were six controls in it. A row of controls that runs off the
+ * side of the page takes the whole document with it: the body scrolls sideways, the pitch slides out of
+ * frame, and the first control - the one that chooses match or practice - is the one that goes first. */
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin: 8px auto;
+  padding: 0 8px;
+  max-width: 100%;
+  font-size: 16px;
+}
+
+.turn-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 8px auto;
+  max-width: 640px;
+}
+
+.turn-panel fieldset {
+  border: 1px solid #4a5a48;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.turn-panel button {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 15px;
+  margin: 2px;
+}
+
+.crest {
+  image-rendering: pixelated;
+  vertical-align: -3px;
+}
+
+.end-panel {
+  text-align: center;
+  margin: 8px auto;
+}
+
+.end-panel h2 {
+  margin: 4px 0;
+  font-size: 20px;
+}
+
+.end-panel button {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* THE REMAP SCREEN. Outside `#game-region`, so it never scales with the integer factor - a 44px target
+ * that got multiplied by three would be a 132px button, and one multiplied by nothing on a small screen
+ * would be a 44px button in a world drawn at 1x. Real size, always, for anything a finger touches. */
+.panel {
+  max-width: 640px;
+  margin: 8px auto;
+  padding: 12px;
+  border: 2px solid #eef3ec;
+  border-radius: 6px;
+  background: #10160f;
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.panel .ctrl-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 16px;
+}
+
+/* A key is READ as much as it is pressed, so it is not allowed to be small print. */
+.panel kbd {
+  padding: 1px 6px;
+  border: 1px solid #8fa08b;
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+}
+
+.panel__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.panel button,
+#open-controls {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* A row of the assistances screen: a label and its control, side by side and readable at real size. */
+.panel__row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0;
+  font-size: 16px;
+}
+
+.panel__row select {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* The sentence under the charge chooser. It is not small print: the three route names mean nothing to a
+ * child who has not met them, and this is what makes choosing one possible. */
+.panel__hint {
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #cfe0cb;
+}

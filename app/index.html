@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Futebol</title>
+<!--
+  THE SHELL, and it is a contract before it is a page.
+
+  The engine REQUIRES markup with fixed ids, and when it is missing the borrowed panels open EMPTY, with
+  no error - which is why `createGame` returns a `problems` list rather than leaving each game to
+  rediscover the gap. What this file owes:
+
+    - `#sr-status` / `#sr-alert` - the polite and assertive live regions `core/a11y-sr` looks for.
+    - `#stage-wrap` / `#stage` / `#game-region` - what `ui/layout` measures and scales to a whole multiple
+      of 320x180.
+    - `#cvd` - an EMPTY `<svg>`. `installCvdFilters()` fills it at runtime, so this game copies no markup
+      from the engine.
+    - `#pitch` - the element the declaration's `world()` names. It is declared and not defaulted, because
+      blindfold chess is the proof that a game without a visible space is not a game where empathy makes
+      no sense.
+
+  The canvas is NOT in the HTML: `boot/main.ts` mounts it, because the renderer and the accessible text
+  mirror read the same state and duplicating a second source of it here is how they come to disagree.
+-->
+<link rel="stylesheet" href="/vendor/fonts.css">
+<link rel="stylesheet" href="./css/game.css">
+</head>
+<body>
+  <p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
+  <p id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></p>
+
+  <main>
+    <div id="stage-wrap" class="stage-wrap">
+      <div id="stage" class="stage">
+        <section id="game-region" class="game-region" tabindex="-1" aria-label="Futebol">
+          <!-- THE WORLD. `world()` names this element, and the engine applies to it what belongs to the
+               world - the vision filters, the empathy simulations - and only to it. -->
+          <div id="pitch" class="pitch"></div>
+
+          <!-- THE CAPTION OF THE SOUND. Every earcon this game plays carries a caption key, and this is
+               where the word lands - the deaf half of a feature whose other half is a tone.
+
+               `aria-hidden` IS DELIBERATE AND IS NOT A MISTAKE. The same fact already reaches a screen
+               reader through `#sr-status` as a whole sentence; a second live region carrying "Goal for
+               you!" would make every goal arrive twice, and an assertive one would cut the first
+               announcement off halfway. This element is for EYES that cannot hear, not for a reader. -->
+          <p id="caption" class="caption" aria-hidden="true"></p>
+
+          <!-- THE TEXT MIRROR. Pillar 2: text is ALWAYS in the DOM. Football has no grid to mirror, so
+               what is published here is the state of play - score, phase, whose ball - as real text a
+               screen reader can read and a switch user can reach. -->
+          <div id="mirror" class="mirror">
+            <p class="mirror__line" id="m-fixture">-</p>
+            <p class="mirror__line"><b id="m-score">0 - 0</b> <span id="m-clock">00:00</span></p>
+            <p class="mirror__line" id="m-phase">-</p>
+            <p class="mirror__line" id="m-ball">-</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- OUTSIDE `#game-region`, so these do NOT scale with the integer factor: text stays at 16px and a
+         touch target stays at 44px, which is what `ui/layout` decided for everything that is not the
+         world. The clock mode is here and not in a pause menu because it is the choice that decides
+         whether this game has a time limit at all, and it must be reachable before a child starts. -->
+    <div class="tools">
+      <label class="tools__label" for="session" id="session-label">Jogo</label>
+      <select id="session" aria-labelledby="session-label">
+        <option value="match">Partida</option>
+        <option value="practice">Treino</option>
+      </select>
+
+      <label class="tools__label" for="mode" id="mode-label">Ritmo</label>
+      <select id="mode" aria-labelledby="mode-label">
+        <option value="realtime">Tempo real</option>
+        <option value="assisted">Tempo real com ajuda</option>
+        <option value="turn">Por lances</option>
+      </select>
+
+      <label class="tools__label" for="seats" id="seats-label">Jogadores</label>
+      <select id="seats" aria-labelledby="seats-label">
+        <option value="solo">1 jogador</option>
+        <option value="coop">2 jogadores - mesmo time</option>
+        <option value="versus">2 jogadores - um contra o outro</option>
+      </select>
+
+
+      <label class="tools__label" for="home-club" id="home-club-label">Seu clube</label>
+      <select id="home-club" aria-labelledby="home-club-label"></select>
+
+      <label class="tools__label" for="away-club" id="away-club-label">Adversario</label>
+      <select id="away-club" aria-labelledby="away-club-label"></select>
+      <button id="open-controls" type="button">Teclado</button>
+      <button id="open-assists" type="button">Ajudas</button>
+    </div>
+
+    <!-- THE KEYBOARD, AS A SCREEN. The engine draws the rows; this game tells it what its keyboard IS,
+         because the engine's own remappable table carries the platformer's eight positions and this game
+         has fourteen. See `app/js/ui/controls-panel.ts` and `docs/ENGINE-AUDIT.md`. -->
+    <!-- THE ADJUSTMENTS. Three limits on time, all of them already implemented and none of them reachable
+         until this screen existed. WCAG 2.2.1 is paid twice here: every limit is an option, and one of
+         the options in each list is that there is no limit. -->
+    <div id="assist-panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="assist-title" hidden>
+      <h2 id="assist-title">Ajudas</h2>
+      <div class="panel__row">
+        <label for="assist-charge" id="assist-charge-label">Forca do chute</label>
+        <select id="assist-charge" aria-labelledby="assist-charge-label" aria-describedby="assist-charge-hint"></select>
+      </div>
+      <p class="panel__hint" id="assist-charge-hint"></p>
+      <div class="panel__row">
+        <label for="assist-tempo" id="assist-tempo-label">Ritmo com ajuda</label>
+        <select id="assist-tempo" aria-labelledby="assist-tempo-label"></select>
+      </div>
+      <div class="panel__row">
+        <label for="assist-period" id="assist-period-label">Duracao de cada tempo</label>
+        <select id="assist-period" aria-labelledby="assist-period-label"></select>
+      </div>
+      <div class="panel__actions">
+        <button id="assist-close" type="button">Fechar</button>
+      </div>
+    </div>
+
+    <div id="controls-panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="ctrl-title" hidden>
+      <h2 id="ctrl-title">Teclado</h2>
+      <div id="ctrl-players"></div>
+      <div id="ctrl-list"></div>
+      <div class="panel__actions">
+        <button id="ctrl-reset" type="button">Restaurar padroes</button>
+        <button id="ctrl-close" type="button">Fechar</button>
+      </div>
+    </div>
+
+    <!-- THE END OF THE MATCH. Hidden until the final whistle, and it is real DOM rather than something
+         painted on the canvas: a result a child cannot read is not a result (pillar 2). -->
+    <div id="end-panel" class="end-panel" role="group" aria-labelledby="end-title" hidden>
+      <h2 id="end-title">-</h2>
+      <p id="end-score">-</p>
+      <button id="end-again" type="button">Jogar outra vez</button>
+    </div>
+
+    <div id="turn-host"></div>
+
+    <svg id="cvd" aria-hidden="true" focusable="false" width="0" height="0" style="position:absolute"></svg>
+  </main>
+
+  <script type="module" src="./js/boot/boot.ts"></script>
+</body>
+</html>
