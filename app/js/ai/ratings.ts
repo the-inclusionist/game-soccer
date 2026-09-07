@@ -87,11 +87,26 @@ export function passErrorOf(passing: number): number {
  * keep the game interesting.
  */
 export function shotErrorOf(shooting: number): number {
-  // 0.20 rad at the worst rating, and the number was MEASURED rather than picked: the goal is 7m wide, so
-  // missing it from twenty-two metres needs more than 3.5/22 = 0.159 rad. Below that a hopeless finisher
-  // still hits the target from distance and the match still has no goal kicks in it. From three metres
-  // the same error is 0.6m across - comfortably inside the posts, which is the other half of the claim.
-  return (1 - shooting) * 0.2;
+  // 0.40 rad at the worst rating. The goal is 7 m wide and the AI shoots from at most `SHOOT_RANGE` = 22 m,
+  // so missing needs an angle above 3.5/22 = 0.159 rad.
+  //
+  // ⚠️ IT WAS 0.20, AND 0.20 IS THE THRESHOLD COMPUTED FOR A RATING NO CLUB HAS. The twelve clubs are
+  // generated with a swing of 0.10 to 0.24 either side of the middle, so their shooting runs 0.26 to 0.74
+  // and never reaches either end. At 0.26 the old error was 0.148 rad - 3.26 m across at 22 m, INSIDE the
+  // 3.5 m post - so no club could miss the target from any distance it was willing to shoot from, and the
+  // gates said otherwise only because they asked at shooting 0.
+  //
+  // Measured before this changed, six five-minute matches: 6.00 shots a match, of which 2.17 scored, 2.17
+  // were blocked by a body, 0.67 went out for a corner, 0.67 stopped on the grass, and NOUGHT went out for
+  // a goal kick. Football sends about a third of its shots off target and goal kicks are what those turn
+  // into; the count sat at 0.67 a match against a band of 3 to 4.5.
+  //
+  // ⚠️ AND A PERFECT FINISHER STILL HAS NONE, which keeps the honest end of the scale honest and is the
+  // same shape `passErrorOf` uses. At 0.5 the error is 0.2 rad: 4.4 m across at 22 m, so an ordinary club
+  // misses from the edge of its range and 2.4 m at 12 m, so it scores from the edge of the box. The best
+  // club the game ships, 0.74, is 2.3 m across at 22 m and still hits - which is what makes the rating
+  // readable as skill rather than as a dice.
+  return (1 - shooting) * 0.4;
 }
 
 /** Metres. How close the ball stays to a dribbler. */

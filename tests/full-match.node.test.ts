@@ -21,14 +21,19 @@
 // once, all six reaching full time:
 //
 //                     throw-ins   goals   corners   goal kicks   offsides   fouls   yellows   pens
-//     nobody playing         1.33    2.50      0.67         0.67       0.33    1.50      0.33   0.67
-//     a child playing        2.83    3.50      0.00         0.00       0.83    3.33      1.33   0.83
+//     nobody playing         2.00    1.50      2.17         2.83       0.33    2.50      1.00   0.50
+//     a child playing        4.33    2.33      0.50         1.00       0.33    3.83      1.50   0.33
 //     the band (mine)       3.5-6     2-3     1.5-3        3-4.5    0.5-1.5   2-3.5   0.5-1.5   rare
 //
-//     scores, nobody playing    2-1   0-1   2-0   3-2   0-1   2-1
-//     scores, a child playing   2-0   3-0   1-0   8-0   2-0   5-0
+//     scores, nobody playing    2-0   0-1   1-3   0-0   1-1   0-0
+//     scores, a child playing   1-1   0-0   2-0   5-0   1-0   4-0
 //
-//     balls into the box 7.33 a match, the ball controlled 39.2% of ticks, possession changing 140 times
+//     balls into the box: 10.33 a match with nobody playing, 7.00 with a child
+//
+// ⚠️ FOUR OF THE NINE ARE INSIDE THEIR BANDS WITH A CHILD PLAYING - throw-ins, goals, yellows, and reds
+// and penalties both rare - and with nobody playing the corners, fouls and yellows land. What is still
+// short is corners and goal kicks in the PLAYED match, where the child's own attack is direct enough that
+// the ball rarely goes out at the end of the pitch.
 //
 // ⚠️ FOOTBALL'S PER-MATCH COUNTS ARE NOT THIS MATCH'S TARGET, and reading them as one cost days. Forty
 // throw-ins and 2.7 goals belong to ninety minutes of football; seven minutes of arcade is a different

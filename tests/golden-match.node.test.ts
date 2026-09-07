@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  718792295, 1473486568, 379641673, 564188432, 500720738, 2595970656, 2101373545, 967020269, 3368125197,
-  1519792296,
+  718792295, 1473486568, 379641673, 1821086427, 3411146813, 1113250407, 425466731, 3595401569, 3337923044,
+  3337923044,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -94,14 +94,24 @@ const GOLDEN: readonly number[] = [
 //               14.33 down to 1.33. Scorelines went from 1-0 and 0-0 to 2-1, 3-2, 0-1. In these ninety
 //               seconds: a goal, a corner and a goal kick where there had been none, and full time moved
 //               from tick 5400 to 5406 - which is why the window above is 6000 now.
+//
+//   2026-09-07  A shot that can miss. `shotErrorOf` was calibrated for a rating no club has: the twelve
+//               are generated between 0.26 and 0.74, and at 0.26 the error was 3.26 m across at the 22 m
+//               shooting range - inside the 3.5 m post. No club could miss the target from any distance
+//               it would shoot from, and six matches produced NOUGHT goal kicks from shots. Doubled to
+//               0.40 at the worst rating, which leaves a perfect finisher at zero. Nobody playing:
+//               corners 0.67 to 2.17, goal kicks 0.67 to 2.83, fouls 1.50 to 2.50, yellows 0.33 to 1.00,
+//               balls into the box 7.33 to 10.33, goals 2.50 to 1.50. A child playing now lands four of
+//               the nine counts inside their bands. In these ninety seconds: the goal is gone and a
+//               corner is there instead.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
   phase: 'fullTime',
-  goals: [1, 0],
-  goalScored: 1,
+  goals: [0, 0],
+  goalScored: 0,
   crossedGoalLineByDefender: 1,
-  crossedGoalLineByAttacker: 1,
+  crossedGoalLineByAttacker: 0,
 };
 
 function play() {

@@ -92,6 +92,56 @@ describe('the finisher', () => {
     expect(across, 'he cannot score from three metres out').toBeLessThan(GOAL.width / 2);
   });
 
+
+  // ⚠️ AND THE GATES ABOVE PROVE THE RULE AT RATINGS NO CLUB HAS, which is how a match ended up with
+  //    NO SHOT EVER MISSING THE TARGET. `poor` is shooting 0 and `sharp` is 1; the twelve clubs are
+  //    generated with a swing of 0.10 to 0.24 either side of the middle, so their shooting runs 0.26 to
+  //    0.74 and never touches either end.
+  //
+  //    The arithmetic is not an opinion. The goal is 7 m wide and the AI shoots from at most
+  //    `SHOOT_RANGE` = 22 m, so missing needs an angle above 3.5/22 = 0.159 rad. The worst club, at
+  //    0.26, had an error of 0.148 rad - 3.26 m across at 22 m, INSIDE the 3.5 m post. No club could
+  //    miss from any distance it was willing to shoot from.
+  //
+  //    Measured before this changed, six five-minute matches: 6.00 shots a match, of which 2.17 scored,
+  //    2.17 were blocked by a body, 0.67 went out for a corner, 0.67 stopped on the grass - and NOUGHT
+  //    went out for a goal kick. Football sends about a third of its shots off target, and goal kicks are
+  //    what they turn into: the count sat at 0.67 a match against a band of 3 to 4.5.
+  //
+  //    ⚠️ SO THE GATE IS ASKED OF A REAL CLUB, at the middle of the range the game actually ships.
+  it('[Right] an ORDINARY finisher misses from the edge of his range', () => {
+    const from = { x: PITCH.length - 22, y: 28 };
+    const { s, skills } = chance(AVERAGE, from);
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills)!;
+
+    const across = Math.abs(crossesAt(from, kick) - PITCH.width / 2);
+    expect(across, 'an average club hits the target from the farthest it will shoot').toBeGreaterThan(
+      GOAL.width / 2,
+    );
+  });
+
+  // ⚠️ AND THE OTHER HALF, WITHOUT WHICH THE FIRST IS A DISASTER. If raising the error made an ordinary
+  //    player miss from close in as well, the game would have no goals at all - which is the failure this
+  //    repository has measured twice from other directions.
+  it('[Right] and the same ordinary finisher scores from the edge of the box', () => {
+    const from = { x: PITCH.length - 12, y: 28 };
+    const { s, skills } = chance(AVERAGE, from);
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills)!;
+
+    const across = Math.abs(crossesAt(from, kick) - PITCH.width / 2);
+    expect(across, 'he cannot score from twelve metres').toBeLessThan(GOAL.width / 2);
+  });
+
+  // ⚠️ THE BEST CLUB THE GAME SHIPS STILL HITS FROM RANGE, so the rating stays readable as skill.
+  it('[Right] and the best club the game ships still hits the target from twenty-two metres', () => {
+    const from = { x: PITCH.length - 22, y: 28 };
+    const { s, skills } = chance({ ...AVERAGE, shooting: 0.74 }, from);
+    const kick = decideKick(s, MATCH_PROFILE.playable, skills)!;
+
+    const across = Math.abs(crossesAt(from, kick) - PITCH.width / 2);
+    expect(across).toBeLessThan(GOAL.width / 2);
+  });
+
   it('[Zero] and the same club shoots the same way every time - no dice', () => {
     const a = decideKick(chance(poor).s, MATCH_PROFILE.playable, { 0: poor, 1: AVERAGE })!;
     const b = decideKick(chance(poor).s, MATCH_PROFILE.playable, { 0: poor, 1: AVERAGE })!;
