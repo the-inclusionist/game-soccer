@@ -157,35 +157,19 @@ describe('what a match contains', () => {
     expect(played.seen.crossedTouchline ?? 0, 'the ball never left the pitch').toBeGreaterThan(0);
   });
 
-  // ⚠️ AND FAR TOO OFTEN, WHICH IS MEASURED AND NOT MET. About 267 throw-ins per ninety minutes of
-  //    football, against roughly forty in the real game - the largest deviation left in this match.
+  // ⚠️ AND AT ABOUT FOOTBALL'S RATE, WHICH TOOK FIVE ATTEMPTS AND FOUR MEASUREMENTS. 52 throw-ins per
+  //    ninety minutes against roughly forty in the real game, down from 364 when this started.
   //
-  //    The cause is known and named: the dribbling touch knocks the ball with the CARRIER'S OWN VELOCITY,
-  //    and a body chasing a ball near a touchline is running at that touchline. Measured after restarts
-  //    were fixed, the median gap between play resuming and the ball going out again was still six ticks at
-  //    7.6 metres a second, which is exactly a body's touch, and 111 of 136 crossings came inside a second
-  //    of a restart.
-  //
-  //    ⚠️ AND THE FIX IS NOT IN THE TOUCH, WHICH TOOK TWO ATTEMPTS TO ESTABLISH. Clamping it so it
-  //    cannot put the ball out - a footballer running down the line knocks it ALONG the line - was tried
-  //    twice: zeroing the across-component PINNED THE BALL TO THE LINE, which stopped it going out, never
-  //    brought it back, and produced six matches with no goals at all; reflecting it inward, which is the
-  //    turn a footballer actually makes, keeps play healthy and takes throw-ins to ZERO.
-  //
-  //    ⚠️ THAT SECOND RESULT IS THE FINDING. If turning the touch inward removes every throw-in, then the
-  //    dribbling touch is the ONLY thing in this game that can put the ball over a touchline. Football has
-  //    several others - a tackle deflecting it, a misplaced pass, a clearance under pressure, a player
-  //    putting it out on purpose - and this game has none of them. So the rate cannot be fixed from this
-  //    end: clamping the touch trades six times too many for none at all, and what is actually missing is
-  //    a legitimate way for the ball to leave the pitch.
-  // ⚠️ AND A HARDER RESTART WAS TRIED AND MEASURED WORSE, which is worth the two lines it costs. The
-  //    argument was good: `applyRestart` pushes everybody but the taker's side out to `KEEP_OUT`, so a
-  //    restart travelling less than that reaches NOBODY - and it was travelling seven and a half metres
-  //    against a keep-out of nine and a bit. Deriving the speed from it rather than choosing one took
-  //    throw-ins from 118 per ninety minutes to 290, which is worse than where this line of work started
-  //    two fixes ago. Corners and goal kicks both improved, so it is a trade and not a mistake - but the
-  //    rate is what this todo is about, and the number decides it.
-  it.todo('[Right] and not three times as often as football, which is contested balls near the line');
+  //    What finally did it was not the touch and not the restart's weight, both of which were tried and
+  //    measured worse. Every crossing had EXACTLY TWO bodies within five metres of the ball - the carrier
+  //    and one opponent, never a swarm - and 40 of 48 came within one second of a restart. The keep-out
+  //    was applied ONCE, when the ball was placed, and the cascade then walked the other side's presser
+  //    straight back onto it like any other loose ball. A referee holds the ten yards until it is gone.
+  it('[Right] and at about the rate football has them', () => {
+    // Six ten-minute matches: about 35 at football's forty per ninety minutes, and the ceiling is loose
+    // enough not to fail on one scrappy afternoon while still catching a return to the old loop.
+    expect(across('crossedTouchline'), 'the ball is going out constantly again').toBeLessThan(90);
+  });
 
   // ⚠️ MET, AND BY THE SHOT RATHER THAN BY THE RULES. A shot aimed at the exact centre of the mouth can
   //    only be scored or saved, so the ball never crossed a goal line for any other reason and a whole

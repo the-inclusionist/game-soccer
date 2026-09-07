@@ -180,14 +180,23 @@ describe('a match that plays itself', () => {
     let stoppages = 0;
     let resumptions = 0;
 
-    for (let t = 0; t < 12000; t++) {
+    // ⚠️ LONG ENOUGH FOR STOPPAGES TO EXIST AT ALL. Twelve thousand ticks was set when this game had
+    //    364 throw-ins per ninety minutes; holding the ten yards until a restart is taken brought that
+    //    to 52 - about football's rate - and three minutes of football legitimately contains two or
+    //    three stoppages. The claim is unchanged; the window is long enough to meet its precondition.
+    for (let t = 0; t < 36000; t++) {
       for (const e of playTick(s, emptyFrame(t), DT, MATCH_PROFILE, sides)) {
         if (e.kind.startsWith('crossed') || e.kind === 'goalScored') stoppages += 1;
         if (e.kind === 'restartTaken' || e.kind === 'ballMoved') resumptions += 1;
       }
     }
 
-    expect(stoppages).toBeGreaterThan(3);
+    // ⚠️ THE PRECONDITION, NOT THE CLAIM. This gate is about a stoppage that never ends, and it needs at
+    //    least one stoppage to look at - it does not have an opinion about how many there should be. It
+    //    asked for four when the game produced 364 throw-ins per ninety minutes; at football's rate a
+    //    ten-minute window contains one or two, and the FREQUENCY is gated on the slate in
+    //    `tests/full-match` where six whole matches can answer it.
+    expect(stoppages, 'nothing stopped play at all, so nothing was checked').toBeGreaterThan(0);
     // ⚠️ ONE OUTSTANDING STOPPAGE IS ALLOWED, AND THE COMMENT ABOVE ALREADY SAID WHY. The run stops at a
     //    fixed tick, and it can stop DURING a throw-in - measured: at tick 12,000 the phase was `throwIn`,
     //    fifty-nine stoppages and fifty-eight resumptions. Requiring equality made "the clock ran out mid
@@ -227,7 +236,9 @@ describe('a match that plays itself', () => {
       const s = createMatchState();
       s.phase = 'live';
       const sides = { 0: CLUBS[h].ratings, 1: CLUBS[a].ratings };
-      for (let t = 0; t < 24_000; t++) {
+      // ⚠️ AND FORTY THOUSAND EACH, for the same reason: goals fell to three per ninety minutes -
+      //    football's own rate - once restarts stopped being contested the instant they were taken.
+      for (let t = 0; t < 40_000; t++) {
         for (const e of playTick(s, emptyFrame(t), DT, MATCH_PROFILE, sides)) seen.add(e.kind);
       }
     }

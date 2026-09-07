@@ -139,6 +139,28 @@ function pushOut(p: Vec2, spot: Vec2): void {
  * The taker's side keeps its shape; everyone else is given the ten yards. Both halves matter: without the
  * keep-out a corner is a turnover, and without leaving the taker alone there is nobody to take it.
  */
+/**
+ * Hold the ten yards until it is actually taken.
+ *
+ * ⚠️ THE KEEP-OUT WAS APPLIED ONCE, AT PLACEMENT, AND THE AI WALKED STRAIGHT BACK IN. `applyRestart`
+ * pushes everybody out when the ball is put down, and then the cascade sends the other side's presser to
+ * the ball like any other loose one - so by the time somebody reaches it to take it, an opponent is
+ * standing on it. A referee does not place the ball and then let them close; he holds them back until it
+ * is gone.
+ *
+ * ⚠️ AND IT IS THE THROW-IN RATE. Measured across three whole matches: every touchline crossing had
+ * EXACTLY TWO bodies within five metres of the ball - the carrier and one opponent, not a swarm - and 40
+ * of 48 came within one second of a restart. A restart contested the instant it is taken goes straight
+ * back out, which is the loop this game has been in all along.
+ */
+export function holdTheLine(state: MatchState, taker: TeamId): void {
+  const spot = { x: state.ball.p.x, y: state.ball.p.y };
+  for (let i = 0; i < state.players.length; i++) {
+    if (teamOf(i) === taker) continue;
+    pushOut(state.players[i].p, spot);
+  }
+}
+
 export function applyRestart(state: MatchState, event: RuleEvent): void {
   const spot = restartSpot(event, state.period);
 

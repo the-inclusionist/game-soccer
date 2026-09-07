@@ -13,7 +13,7 @@
 // every consumer reading both would describe a world that is internally inconsistent.
 
 import { evaluate, applyEvents, defenderOf } from './rules/referee.ts';
-import { applyRestart } from './rules/restart.ts';
+import { applyRestart, holdTheLine } from './rules/restart.ts';
 import { judgeTackle, type Foul } from './rules/foul.ts';
 import { judgeOffside, markOffside } from './rules/offside.ts';
 import { book, cardFor, RED } from './rules/cards.ts';
@@ -312,6 +312,9 @@ function awaitingRestart(
   // every use below is a `TeamId` and no consumer needs a cast of its own.
   const taker = state.restartTaker as TeamId | -1;
   if (taker === -1) return [];
+
+  // The ten yards are held until it is taken, not only when the ball is put down. See `holdTheLine`.
+  holdTheLine(state, taker);
 
   // ⚠️ IT USED TO ASK WHETHER THE GLOBALLY NEAREST PLAYER WAS ON THE TAKING SIDE, and that hands any
   //    opponent a veto: stand on the ball and the match never restarts. Measured across six whole
