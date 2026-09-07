@@ -14,6 +14,8 @@
 
 import { evaluate, applyEvents, defenderOf } from './rules/referee.ts';
 import { applyRestart } from './rules/restart.ts';
+import { judgeTackle, type Foul } from './rules/foul.ts';
+import { book, cardFor } from './rules/cards.ts';
 import type { RuleEvent } from './rules/events.ts';
 import type { RulesProfile } from './rules/profile.ts';
 import type { TickFrame } from './sim/command.ts';
@@ -26,6 +28,27 @@ import { applyStrike, strikeFor } from './sim/strike.ts';
 import { nextControlled } from './sim/switching.ts';
 import { decideKick, steerAll, think, type Skills } from './ai/brain.ts';
 import { PITCH } from './sim/units.ts';
+
+/**
+ * A judged foul, as the event the rest of the game already knows how to read.
+ *
+ * ⚠️ `team` IS THE SIDE THAT WAS FOULED, not the offender. `rules/events` says the field is the side an
+ * event is ABOUT, and it is what decides who takes the restart - about the offender, the kick would go to
+ * the side that committed it.
+ *
+ * ⚠️ AND THE CARD IS APPLIED HERE rather than in `applyEvents`, because it is a fact about a PLAYER and
+ * the event carries a team. Putting a player id on the event only for this would widen the type every
+ * other consumer reads for the one that needs it.
+ */
+function foulEvent(state: MatchState, foul: Foul): RuleEvent {
+  book(state, foul.by, cardFor(foul.severity));
+  const against = teamOf(foul.by) === 0 ? 1 : 0;
+  return {
+    kind: foul.inBox ? 'penaltyGiven' : 'foulGiven',
+    team: against as TeamId,
+    at: foul.at,
+  };
+}
 
 const STOPPED = new Set(['throwIn', 'corner', 'goalKick', 'freeKick', 'goal', 'halfTime', 'kickoff']);
 
@@ -58,6 +81,14 @@ function takerFor(event: RuleEvent, state: MatchState): TeamId | -1 {
       return defenderOf(end, state.period);
     case 'offsideGiven':
       return (1 - (event.team ?? 0)) as TeamId;
+
+    // ⚠️ READ STRAIGHT OFF THE EVENT, and NOT flipped like offside. An offside is given AGAINST the
+    //    side named on it; a foul is given TO the side named on it, because `foulEvent` puts the fouled
+    //    side there. Two events, two readings, and the difference is on the event rather than in a rule
+    //    somebody has to remember.
+    case 'foulGiven':
+    case 'penaltyGiven':
+      return (event.team ?? 0) as TeamId;
     case 'goalScored':
       // The side that conceded kicks off.
       return (1 - (event.team ?? 0)) as TeamId;
@@ -101,9 +132,22 @@ export function playTick(
   }
 
   let struck = false;
+  const fouls: RuleEvent[] = [];
   for (const cmd of frame.cmds) {
     const strike = strikeFor(state, cmd, state.controlled[cmd.seat]);
-    if (strike === null) continue;
+    if (strike === null) {
+      // ⚠️ THIS BRANCH USED TO BE `continue`, AND THAT WAS THE WHOLE HOLE. A tackle out of reach of the
+      //    ball produced nothing: the lunge cost the child nothing at all. A foul is not a fact about the
+      //    world - the same two bodies in the same two places are a foul if she lunged and nothing if she
+      //    did not - so `evaluate`, which reads the world a tick later, could never have found it. It is
+      //    judged HERE, where the act is, and joins the referee's list as an event like any other.
+      if (cmd.verb === 'tackle') {
+        const who = state.controlled[cmd.seat];
+        const foul = who === undefined ? null : judgeTackle(state, who, profile);
+        if (foul !== null) fouls.push(foulEvent(state, foul));
+      }
+      continue;
+    }
     applyStrike(state, strike);
     struck = true;
     break; // one ball
@@ -119,7 +163,9 @@ export function playTick(
     }
   }
 
-  const events = evaluate(state, profile);
+  // The foul comes FIRST: it stopped play, so nothing the referee would have said about the world after
+  // it is true any more - a ball that went out on the same tick went out after the whistle.
+  const events = fouls.length > 0 ? fouls : evaluate(state, profile);
   if (events.length === 0) return events;
 
   applyEvents(state, events, profile);

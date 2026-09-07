@@ -81,6 +81,9 @@ function takerOf(event: RuleEvent, period: number): TeamId | null {
   if (event.kind === 'crossedGoalLineByAttacker') {
     return defenderOf(endOf(at?.x ?? 0), period);
   }
+  // A foul names the side it was given TO, so the taker is on the event and needs no derivation. The two
+  // above need one because a ball leaving the pitch says nothing about whose restart it is.
+  if (event.kind === 'foulGiven' || event.kind === 'penaltyGiven') return (event.team ?? null) as TeamId | null;
   return null;
 }
 
