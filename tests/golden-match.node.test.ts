@@ -131,9 +131,7 @@ const GOLDEN: readonly number[] = [
 //               went to the other side, and a possession lasted seven ticks. A challenger now has to keep
 //               the pressure up for PRESSURE_WINS ticks, scaled by `defending`, and `sim/tackle` stays
 //               the deliberate route that wins it at once. The Dev chose this over four alternatives.
-//               What it bought: `passing` went from FLAT at 31% completion across every rating to 34.9%
-//               at 0.9 against 24.5% at 0.1 - the plan's own verification item, which had been measured
-//               and found false. Changes of possession fell 140 to 117 a match. Nobody playing: offsides
+//               What it bought: changes of possession fell 140 to 117 a match. Nobody playing: offsides
 //               0.33 to 0.50, fouls 2.83 to 3.08 and yellows 0.58 to 1.00, all three into band. A child
 //               playing: throw-ins 3.92 to 5.92 and goals 2.50 to 2.67, both in band. In these ninety
 //               seconds: a foul and a goal kick where there had been a goal.

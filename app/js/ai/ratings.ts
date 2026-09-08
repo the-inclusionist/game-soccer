@@ -88,6 +88,24 @@ export function passErrorOf(passing: number): number {
   //
   // Flat. The 0.7 row is noise rather than a trend - nothing either side of it moves.
   //
+  // ⚠️ AND SUSTAINED-CONTACT POSSESSION DID NOT FIX IT, which was the whole reason the Dev chose that
+  // model. Re-measured the same way afterwards, twelve opponents at each rating:
+  //
+  //     passing   completed   of   rate
+  //       0.9         44      126   34.9%
+  //       0.7         24      120   20.0%
+  //       0.5         43      159   27.0%
+  //       0.3         45      134   33.6%
+  //       0.1         36      147   24.5%
+  //
+  // The SPREAD widened - 20% to 35% against a flat 31% before - and the ORDER did not appear: 0.9 and 0.3
+  // are within a point of each other and 0.7 is the worst of the five. More variance is not more signal.
+  //
+  // ⚠️ I REPORTED THIS AS FIXED FROM TWO POINTS OF A FIVE-POINT SWEEP. Having measured 0.9 and 0.1 and
+  // seen 34.9 against 24.5, I wrote that the rating now mattered. It was the endpoints of a noisy set read
+  // as a trend, and the middle three say otherwise. The correction is here rather than only in a commit
+  // message because the wrong version was in one of those too.
+  //
   // ⚠️ AND WIDENING THIS NUMBER WOULD NOT FIX IT, which is why it is written here instead of tuned. At
   // 0.5 the error is already 0.1 rad, which over a fifteen-metre pass is 1.5 metres - well outside the
   // 0.9 m control radius - and the receiver collects it anyway, because he moves to it and the pass is
