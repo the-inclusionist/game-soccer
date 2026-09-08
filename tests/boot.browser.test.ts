@@ -616,6 +616,14 @@ describe('what a child sees', () => {
     expect(booted!.state.phase).toBe('live');
   });
 
+  // ⚠️ AND IT ASSERTS WHAT THE PICTURE MUST CONTAIN, which it did not until 2026-09-07. It checked that
+  //    there was exactly one canvas - a fact about the DOM, not about the photograph - so a shot that
+  //    quietly became one team on an empty pitch would have gone unnoticed for ever.
+  //
+  //    That is not hypothetical. This is the picture that showed BOTH KITS side by side and disproved a
+  //    defect somebody was about to report from the goalmouth shot, which had seven home defenders in it
+  //    and no visitor. A screenshot with no assertion about its content is a file that ages without
+  //    anybody noticing, and the one that ages worst is the one people trust.
   it('[Right] and it looks like something - a picture for the human to judge', async () => {
     booted = bootar(document, window);
 
@@ -624,6 +632,19 @@ describe('what a child sees', () => {
     await page.screenshot({ path: 'pitch.png' });
 
     expect(document.querySelectorAll('#pitch canvas')).toHaveLength(1);
+
+    // The camera is on the ball, which starts on the halfway line, so the frame is the middle of the
+    // pitch. Both sides have to be standing in it or the picture cannot show that the kits read apart.
+    const inFrame = (team: 0 | 1) => {
+      let n = 0;
+      for (let k = 0; k < SQUAD_SIZE; k++) {
+        const p = booted!.state.players[firstOf(team) + k].p;
+        if (p.x > 20 && p.x < 70) n += 1;
+      }
+      return n;
+    };
+    expect(inFrame(0), 'no home player is in the picture').toBeGreaterThan(1);
+    expect(inFrame(1), 'no away player is in the picture, so it cannot show two kits').toBeGreaterThan(1);
   });
 
   // ⚠️ THE THIRD PICTURE, AND THE ONE THE README HAS BEEN ADMITTING IT DID NOT HAVE. `stadium-layers` has
