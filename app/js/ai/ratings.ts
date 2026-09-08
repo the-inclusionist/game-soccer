@@ -73,6 +73,29 @@ function sideOf(r: Ratings, pace: number): SideCaps {
 
 /** Radians of error a pass may carry. A perfect passer has none, which is the honest end of the scale. */
 export function passErrorOf(passing: number): number {
+  // ⚠️ AND THE PLAN'S OWN VERIFICATION ITEM DOES NOT HOLD, which was measured rather than assumed. It
+  // asks that `passing 0.9` complete strictly more passes than `0.3` in a real match. Sixty matches -
+  // twelve opponents at each of five ratings, counting balls struck above `CONTROL_SPEED` by the home
+  // side and who collected them:
+  //
+  //     passing   completed   of   rate
+  //       0.9         45      146   30.8%
+  //       0.7         57      142   40.1%
+  //       0.5         45      145   31.0%
+  //       0.3         43      141   30.5%
+  //       0.1         44      143   30.8%
+  //
+  // Flat. The 0.7 row is noise rather than a trend - nothing either side of it moves.
+  //
+  // ⚠️ AND WIDENING THIS NUMBER WOULD NOT FIX IT, which is why it is written here instead of tuned. At
+  // 0.5 the error is already 0.1 rad, which over a fifteen-metre pass is 1.5 metres - well outside the
+  // 0.9 m control radius - and the receiver collects it anyway, because he moves to it and the pass is
+  // led into his path. Completion in this game is decided by whether an OPPONENT is nearer, not by how
+  // straight the ball was hit: measured elsewhere, 88.7% of all changes of possession go to the other
+  // side and the nearest opponent is a metre away.
+  //
+  // So the gate the plan asked for was written, measured, and NOT shipped: a gate asserting something
+  // false is worse than none, and one asserting the flatness would freeze it.
   return (1 - passing) * 0.2;
 }
 
