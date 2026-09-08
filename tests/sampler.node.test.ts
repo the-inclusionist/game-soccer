@@ -272,3 +272,53 @@ describe('a pad and a keyboard together', () => {
     expect(cmd.dx).toBe(0);
   });
 });
+
+// ========================= AND THE CHORD TOLERANCE THE CHILD CHOSE REACHES THE CHORD =========================
+// `createChord` has taken a `grace` since the day it was written, and its only caller handed it the
+// constant - so the ladder a grown-up now picks from could have been offered, saved, painted on the panel
+// and reached nothing. That is the tenth time this repository has found a module that was right, gated,
+// and given no choice by its one caller, and it was caught here by cutting the wire and watching nothing
+// go red.
+//
+// ⚠️ AT NOUGHT THE REINTERPRETATION IS GONE, which is the whole point of nought being on the ladder: R2
+// alone switches player on the tick it is released, with no window in which R1 could arrive and cancel it.
+// WCAG 2.2.1 satisfied by REMOVAL rather than by adjustment.
+describe('the chord tolerance reaches the chord', () => {
+  const R2 = 'KeyO';
+
+  /** Feed the second seat's trigger down for a tick, then up, and collect the verbs. */
+  function verbs(grace: number): string[] {
+    const sampler = createSampler({ seat: 0, grace });
+    const out: string[] = [];
+    const down = new Set([R2]);
+    const up = new Set<string>();
+    out.push(sampler.sample(down, 0).verb);
+    for (let t = 1; t < 6; t++) out.push(sampler.sample(up, t).verb);
+    return out.filter((v) => v !== 'none');
+  }
+
+  it('[Right] with no waiting, the switch comes at once', () => {
+    expect(verbs(0)).toEqual(['switch']);
+  });
+
+  it('[Right] and with a window it still comes, just later', () => {
+    expect(verbs(3)).toEqual(['switch']);
+  });
+
+  // ⚠️ THE TICK IT LANDS ON IS THE CLAIM, not that it lands. Both ladders produce a switch in the end;
+  //    what the tolerance decides is HOW LONG the child waits to find out, which is the limit 2.2.1 is
+  //    about. Asking only "did a switch happen" would pass with the wire cut, which is how this gate
+  //    came to be written at all.
+  it('[Boundary] and the wait is what the choice actually changes', () => {
+    const at = (grace: number): number => {
+      const sampler = createSampler({ seat: 0, grace });
+      const down = new Set([R2]);
+      const up = new Set<string>();
+      if (sampler.sample(down, 0).verb === 'switch') return 0;
+      for (let t = 1; t < 20; t++) if (sampler.sample(up, t).verb === 'switch') return t;
+      return -1;
+    };
+
+    expect(at(6), 'a longer tolerance did not delay the switch').toBeGreaterThan(at(0));
+  });
+});

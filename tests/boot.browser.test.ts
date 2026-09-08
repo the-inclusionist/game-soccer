@@ -78,6 +78,8 @@ const SHELL = `
         <select id="assist-charge" aria-labelledby="assist-charge-label" aria-describedby="assist-charge-hint"></select>
       </div>
       <p class="panel__hint" id="assist-charge-hint"></p>
+      <label for="assist-grace" id="assist-grace-label">Tolerancia do acorde</label>
+      <select id="assist-grace" aria-labelledby="assist-grace-label"></select>
       <div class="panel__row">
         <label for="assist-tempo" id="assist-tempo-label">Ritmo com ajuda</label>
         <select id="assist-tempo" aria-labelledby="assist-tempo-label"></select>

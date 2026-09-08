@@ -17,7 +17,7 @@
 // criterion satisfied only by adjustment still fails the child who cannot judge how much to adjust by.
 import { describe, expect, it } from 'vitest';
 import { MATCH_PROFILE, PRACTICE_PROFILE, PERIOD_CHOICES, withPeriod } from '../app/js/rules/profile.ts';
-import { chargeRouteFor } from '../app/js/ui/assists-panel.ts';
+import { chargeRouteFor, GRACE_CHOICES } from '../app/js/ui/assists-panel.ts';
 import { TEMPO_CHOICES } from '../app/js/drivers/driver.ts';
 import { CHARGE_MODES } from '../app/js/input/charge.ts';
 
@@ -124,5 +124,39 @@ describe('the charge route a one-switch child is handed', () => {
   it('[Right] and a chosen route wins, because an accommodation that cannot be overridden is a barrier', () => {
     expect(chargeRouteFor(true, 'hold')).toBe('hold');
     expect(chargeRouteFor(false, 'latch-stepped')).toBe('latch-stepped');
+  });
+});
+
+// ========================= AND THE CHORD'S TOLERANCE IS A LIMIT LIKE ANY OTHER =========================
+// The plan sets `CHORD_GRACE` at three ticks and says it is "por jogador, ajustavel de 0 a 12. Em 0 a
+// reinterpretacao some: R2 primeiro sempre troca, R1 primeiro sempre faz acorde."
+//
+// ⚠️ IT IS A TIME LIMIT, AND WCAG 2.2.1 GOVERNS IT. Those fifty milliseconds decide whether pressing R2
+// switches player or waits to see whether R1 follows - which is a window a child has to hit, and a window
+// a child has to hit is exactly what 2.2.1 says must be adjustable or removable. The charge routes and the
+// half length are both offered for the same reason; this one was the constant nobody offered.
+//
+// ⚠️ AND `createChord` HAS TAKEN `grace` SINCE IT WAS WRITTEN. The module was right, gated, and handed a
+// constant by the one caller - the tenth time this repository has found that shape.
+describe('the chord tolerance a grown-up can choose', () => {
+  it('[Interface] the ladder runs from nothing to a fifth of a second', () => {
+    expect(GRACE_CHOICES[0]).toBe(0);
+    expect(Math.max(...GRACE_CHOICES)).toBe(12);
+    expect(GRACE_CHOICES).toContain(3);
+  });
+
+  // ⚠️ ZERO IS THE POINT OF THE LADDER, not its bottom rung. At nought the reinterpretation is gone:
+  //    R2 first always switches and R1 first always makes the chord, so nothing depends on how fast she
+  //    is. That is 2.2.1 satisfied by REMOVAL, which is the stronger half of the criterion.
+  it('[Boundary] and nought is on it, because a limit that can be removed is the stronger answer', () => {
+    expect(GRACE_CHOICES).toContain(0);
+  });
+
+  it('[Interface] every choice is a whole number of ticks a person could count', () => {
+    for (const g of GRACE_CHOICES) {
+      expect(Number.isInteger(g)).toBe(true);
+      expect(g).toBeGreaterThanOrEqual(0);
+      expect(g).toBeLessThanOrEqual(12);
+    }
   });
 });

@@ -104,6 +104,8 @@ function merge(a: Held, b: Held | null | undefined): Held {
  * outside any state is a value no digest can see and no replay can reproduce.
  */
 export function createSampler(opts: {
+  /** Ticks of tolerance on the R1+R2 chord; `0` removes the reinterpretation. See `ui/assists-panel`. */
+  readonly grace?: number;
   seat: number;
   chargeMode?: ChargeMode;
   /**
@@ -115,7 +117,12 @@ export function createSampler(opts: {
    */
   keymap?: () => Keymap;
 }): Sampler {
-  const chord: Chord = createChord({ grace: CHORD_GRACE });
+  // ⚠️ THE GRACE COMES FROM THE CHILD NOW, and it did not until 2026-09-07. `createChord` has taken it
+  //    since the day it was written and this line handed it the constant - the tenth time this repository
+  //    has found a module that was right, gated, and given no choice by its only caller. It is a TIME
+  //    LIMIT: those ticks decide whether R2 switches player at once or waits to see whether R1 follows,
+  //    which is a window a child has to hit, and WCAG 2.2.1 governs windows a child has to hit.
+  const chord: Chord = createChord({ grace: opts.grace ?? CHORD_GRACE });
   const charge: Charge = createCharge({ mode: opts.chargeMode ?? 'hold' });
 
   /**

@@ -228,7 +228,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   let chosenCharge: ChargeMode | null = null;
   let assists: Assists = { ...DEFAULT_ASSISTS, charge: chargeRouteFor(oneButton, chosenCharge) };
   const makeSampler = (seat: number) =>
-    createSampler({ seat, chargeMode: assists.charge as ChargeMode, keymap: () => keymaps[seat] });
+    createSampler({ seat, chargeMode: assists.charge as ChargeMode, grace: assists.grace, keymap: () => keymaps[seat] });
   let samplers = [makeSampler(0)];
 
   // ⚠️ THE PAD GOES THROUGH THE ENGINE, and the alternative was tempting and wrong. Reading
