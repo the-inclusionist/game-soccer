@@ -31,7 +31,7 @@ import {
 } from '../drivers/driver.ts';
 import { createTurnPanel } from '../ui/turn-panel.ts';
 import { clockText } from '../ui/clock.ts';
-import { chargeLine, spotLines, youLine } from '../ui/mirror.ts';
+import { chargeLine, laggingLine, spotLines, youLine } from '../ui/mirror.ts';
 import { attackDirOf } from '../sim/ends.ts';
 import { outcomeFor, outcomeKey } from '../ui/outcome.ts';
 import { crestCanvas } from '../ui/crest-canvas.ts';
@@ -731,6 +731,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     ball: doc.querySelector<HTMLElement>('#m-ball'),
     you: doc.querySelector<HTMLElement>('#m-you'),
     options: doc.querySelector<HTMLElement>('#m-options'),
+    lagging: doc.querySelector<HTMLElement>('#m-lagging'),
     charge: doc.querySelector<HTMLElement>('#m-charge'),
   };
   // ⚠️ THE STEP SHE IS ON, WHILE SHE IS STILL ON IT. The plan asks for a countable power - "three of
@@ -833,6 +834,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       // ⚠️ A TONE PER STEP, AND ONLY WHEN IT CHANGES. A cue that repeats sixty times a second is a
       //    siren; one that sounds as the count goes up is a staircase she can hear, which is what makes
       //    "wait for five" a thing she can do without watching anything.
+      // ⚠️ AND WHETHER THE MACHINE IS KEEPING UP. `drivers/driver` counted the thrown-away wall time
+      //    and its own header said the number was surfaced; nothing read it. On a school tablet - the
+      //    hardware pillar 1 names - a stutter is indistinguishable from a lull if you cannot see, and
+      //    from your own mistake if you can.
+      if (mirror.lagging !== null) {
+        const said = laggingLine(driverFor(mode)?.droppedMs ?? 0, t);
+        if (mirror.lagging.textContent !== said) mirror.lagging.textContent = said;
+      }
       const step = samplers[0]?.charging() ?? 0;
       if (step !== chargeWas) {
         if (step > chargeWas) sound.chargeStep();

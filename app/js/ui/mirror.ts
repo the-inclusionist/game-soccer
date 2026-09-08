@@ -125,3 +125,29 @@ export function chargeLine(step: number, t: Translate): string {
   if (step <= 0) return '';
   return t('hud.charge', { have: step, need: STEPS });
 }
+
+/**
+ * Milliseconds of dropped time past which the page says the machine is losing it. Two seconds.
+ *
+ * ⚠️ ONE DROPPED FRAME IS A HICCUP EVERY DEVICE HAS, and a line that appeared for it would be a line
+ * nobody reads by the second minute. Two seconds of wall time thrown away is a machine that is not
+ * keeping up, which is a different thing and worth saying once.
+ */
+export const LAGGING_AT_MS = 2000;
+
+/**
+ * A sentence for when the machine cannot keep up, or nothing when it can.
+ *
+ * ⚠️ `drivers/driver` COUNTED THIS AND ITS OWN HEADER SAID IT WAS SURFACED. It clamps how many ticks
+ * one frame may run and adds the thrown-away wall time to `droppedMs`, and the file says the number
+ * "exists and is surfaced rather than swallowed" - and nothing read it. A module making a false claim
+ * about itself is worse than a silent one, because the next reader believes it.
+ *
+ * ⚠️ AND PILLAR 1 IS WHY IT MATTERS. The hardware this game is FOR is a school tablet, which is exactly
+ * where a frame runs long and time is dropped. A child who cannot see the screen has no way to tell a
+ * stutter from a lull, and one who can has no way to tell it from her own mistake: saying so is the
+ * difference between "the machine is struggling" and "I pressed the wrong thing".
+ */
+export function laggingLine(droppedMs: number, t: Translate): string {
+  return droppedMs < LAGGING_AT_MS ? '' : t('hud.lagging');
+}

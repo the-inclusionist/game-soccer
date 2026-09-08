@@ -77,6 +77,7 @@ export const en = {
   'hud.spot.label': 'Your options now',
   'hud.spot.none': 'Nothing on',
   'hud.charge': 'Power: {have} of {need}',
+  'hud.lagging': 'This device is struggling to keep up',
   'cue.chargeStep': 'Power up',
   'assist.grace.label': 'Chord tolerance',
   'assist.grace.none': 'No waiting',

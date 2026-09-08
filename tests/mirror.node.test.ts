@@ -15,7 +15,7 @@
 // test could only ever assert that a function was called; this asserts what it says. The same split the
 // earcon captions use, and for the same reason.
 import { describe, expect, it } from 'vitest';
-import { chargeLine, spotLines, youLine } from '../app/js/ui/mirror.ts';
+import { chargeLine, laggingLine, spotLines, youLine } from '../app/js/ui/mirror.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
 import { RED } from '../app/js/rules/cards.ts';
@@ -197,5 +197,34 @@ describe('the line that says how hard it will be hit', () => {
 
   it('[Interface] and the sentence is a dictionary key, like every other', () => {
     expect(chargeLine(2, echo)).toMatch(/^hud\./);
+  });
+});
+
+// ========================= AND WHEN THE MACHINE CANNOT KEEP UP =========================
+// `drivers/driver` clamps how many ticks one frame may run and counts the wall time it throws away, and
+// its own header says `droppedMs` "exists and is surfaced rather than swallowed". Nothing surfaced it.
+// The composition root never read the field, so the file made a claim about itself that was false.
+//
+// ⚠️ AND PILLAR 1 IS THE REASON IT MATTERS. The hardware this game is FOR is a school tablet, which is
+// exactly where a frame runs long and time gets dropped. A child who cannot see the screen has no way to
+// tell a stutter from a lull; a child who can has no way to tell it from her own mistake. Saying so is
+// the difference between "the machine is struggling" and "I pressed the wrong thing".
+describe('the line that says the machine is losing time', () => {
+  it('[Zero] a machine that is keeping up says nothing at all', () => {
+    expect(laggingLine(0, echo)).toBe('');
+  });
+
+  // ⚠️ A THRESHOLD, NOT ANY DROP AT ALL. One dropped frame is a hiccup every device has; a line that
+  //    appeared for it would be a line nobody reads by the second minute.
+  it('[Zero] and neither does one hiccup', () => {
+    expect(laggingLine(30, echo)).toBe('');
+  });
+
+  it('[Right] but a machine that keeps falling behind says so', () => {
+    expect(laggingLine(5000, echo)).toBe('hud.lagging');
+  });
+
+  it('[Interface] and the sentence is a dictionary key, like every other', () => {
+    expect(laggingLine(5000, echo)).toMatch(/^hud\./);
   });
 });

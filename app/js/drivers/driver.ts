@@ -13,7 +13,10 @@
 // clamps here as well, where the dropped time can be COUNTED. Dropping time is safe because the command
 // stream is indexed by TICK and not by wall clock: fewer ticks happened that second, and the simulation
 // is still an exact function of the frames it consumed. Silently falling behind is not safe, which is why
-// `droppedMs` exists and is surfaced rather than swallowed.
+// `droppedMs` exists and is surfaced rather than swallowed - and it WAS NOT, from the day this sentence
+// was written until 2026-09-07. The field was counted and exposed on the driver, this header said it was
+// surfaced, and no caller ever read it. A module making a false claim about itself is worse than a silent
+// one, because the next reader believes it. `ui/mirror.laggingLine` is what makes the sentence true.
 
 import { DT } from '../sim/ball.ts';
 import type { TickFrame, Command } from '../sim/command.ts';

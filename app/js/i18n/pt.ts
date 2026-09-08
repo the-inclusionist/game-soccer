@@ -77,6 +77,7 @@ export const pt = {
   'hud.spot.label': 'Suas opções agora',
   'hud.spot.none': 'Nenhuma opção',
   'hud.charge': 'Força: {have} de {need}',
+  'hud.lagging': 'Este aparelho está com dificuldade de acompanhar',
   'cue.chargeStep': 'Força subindo',
   'assist.grace.label': 'Tolerância do acorde',
   'assist.grace.none': 'Sem espera',

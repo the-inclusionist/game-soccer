@@ -47,6 +47,7 @@ const SHELL = `
           <p id="m-you">-</p>
           <ul id="m-options"></ul>
           <p id="m-charge"></p>
+          <p id="m-lagging"></p>
         </div>
       </section>
     </div></div>
