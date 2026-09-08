@@ -667,3 +667,34 @@ describe('what a child sees', () => {
     expect(booted!.state.ball.p.x).toBeLessThan(20);
   });
 });
+
+// ========================= AND WHEN IT BREAKS, SHE IS TOLD =========================
+// ADR-0054 says a loop that throws must STOP and must SAY SO, and `bootar` wires it: `aoFalhar` sends the
+// error to `srAlert`. Nothing proved it. The handler was written, passed to the engine, and never once
+// exercised - which is the ninth time in this repository that a thing was right and unwitnessed, and the
+// worst place for it: a crash is exactly the moment a child cannot ask anybody what happened.
+//
+// ⚠️ A FROZEN CANVAS IS INDISTINGUISHABLE FROM A DULL MOMENT if you cannot see it. A sighted child sees
+// the players stop; a blind one hears silence, which is also what a throw-in sounds like. The alert is
+// the whole of the difference.
+describe('when a frame throws', () => {
+  it('[Right] the loop stops and the child is told', async () => {
+    booted = bootar(document, window);
+    await new Promise((r) => setTimeout(r, 300));
+
+    const ranBefore = booted!.state.tick;
+    expect(ranBefore, 'the match never started, so stopping it proves nothing').toBeGreaterThan(0);
+
+    // ⚠️ BROKEN FROM THE INSIDE, NOT BY A MOCK. The tick reads `state.players` on every frame; taking it
+    //    away is a fault the real loop meets rather than one a test invented, and it reaches the engine's
+    //    handler by the same path a defect would.
+    (booted!.state as { players: unknown }).players = null;
+
+    await new Promise((r) => setTimeout(r, 400));
+    const ranAfter = booted!.state.tick;
+    await new Promise((r) => setTimeout(r, 300));
+
+    expect(booted!.state.tick, 'the loop kept running after it threw').toBe(ranAfter);
+    expect(document.querySelector('#sr-alert')?.textContent ?? '', 'it broke in silence').not.toBe('');
+  });
+});
