@@ -47,7 +47,8 @@ import { createSound } from '../audio/sound.ts';
 import * as store from '@the-inclusionist/engine/platform/storage.js';
 import { indexOf, loadKeymap, saveKeymap, type Keymap, type Seating } from '../input/keymap.ts';
 import { createControlsPanel } from '../ui/controls-panel.ts';
-import { createAssistsPanel, DEFAULT_ASSISTS, type Assists } from '../ui/assists-panel.ts';
+import { chargeRouteFor, createAssistsPanel, DEFAULT_ASSISTS, type Assists } from '../ui/assists-panel.ts';
+import { oneButton } from '@the-inclusionist/engine/core/state.js';
 import { withPeriod } from '../rules/profile.ts';
 
 export interface Booted {
@@ -218,7 +219,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    was never given one, so `latch-stepped` - the only route with no timing in it at all - could not be
   //    chosen; the assisted driver's tempo was hard-coded at 0.5; the half was frozen at ten minutes. The
   //    README listed the stepped route as done, which was true of the module and false of the game.
-  let assists: Assists = DEFAULT_ASSISTS;
+  // ⚠️ THE ONE-SWITCH CHILD IS HANDED THE ROUTE WITH NO CLOCK IN IT, without an adult knowing to pick
+  //    it. The plan asks for `latch-stepped` as the default whenever one-switch or scanning is on, and
+  //    nothing read the setting - so she was handed `hold`, a route whose whole mechanic is keeping a key
+  //    down, which is exactly what one-switch mode means she cannot do. `ui/assists-panel` carries the
+  //    reasoning; this line is the wire, and `chosen` stays null until she picks something, so her own
+  //    choice always wins over the accommodation.
+  let chosenCharge: ChargeMode | null = null;
+  let assists: Assists = { ...DEFAULT_ASSISTS, charge: chargeRouteFor(oneButton, chosenCharge) };
   const makeSampler = (seat: number) =>
     createSampler({ seat, chargeMode: assists.charge as ChargeMode, keymap: () => keymaps[seat] });
   let samplers = [makeSampler(0)];
@@ -403,6 +411,8 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     onChange: (next) => {
       const paceChanged = next.tempo !== assists.tempo;
       const periodChanged = next.period !== assists.period;
+      // She has chosen, so her choice outranks the one-switch default from here on.
+      chosenCharge = next.charge as ChargeMode;
       assists = next;
 
       // The charge route lives inside each sampler, so the seats are rebuilt. A sampler remembers which

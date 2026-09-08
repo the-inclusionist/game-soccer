@@ -39,6 +39,26 @@ export const DEFAULT_ASSISTS: Assists = Object.freeze({
   period: 2.5,
 });
 
+/**
+ * Which charge route a child is handed, given the engine's one-switch setting and whatever she has chosen.
+ *
+ * ⚠️ `latch-stepped` IS THE ONE WITH NO CLOCK IN IT, and the plan says it is the default whenever
+ * one-switch or scanning is on. The reason is in the same sentence: `latch-timed` takes away the HOLDING
+ * and keeps the TIMING, which is half the barrier. Stepped asks for presses and a pause, and nothing else.
+ *
+ * ⚠️ IT WAS NOT WIRED UNTIL 2026-09-07. Nothing in the composition root read the setting, so a child in
+ * one-switch mode was handed `hold` - a route whose whole mechanic is keeping a key down, which is
+ * exactly what one-switch mode means she cannot do. The three routes were built, gated hard and
+ * selectable; what was missing is the right one arriving WITHOUT an adult knowing to pick it.
+ *
+ * ⚠️ AND IT IS A DEFAULT, NEVER A LOCK. A chosen route wins: an accommodation that refuses to be
+ * overridden is a second barrier wearing the first one's clothes.
+ */
+export function chargeRouteFor(oneButton: boolean, chosen: ChargeMode | null): ChargeMode {
+  if (chosen !== null) return chosen;
+  return oneButton ? 'latch-stepped' : DEFAULT_ASSISTS.charge;
+}
+
 export interface AssistsPanelPorts {
   readonly doc: Document;
   readonly t: (key: string, params?: Record<string, string | number>) => string;

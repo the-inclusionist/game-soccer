@@ -17,6 +17,7 @@
 // criterion satisfied only by adjustment still fails the child who cannot judge how much to adjust by.
 import { describe, expect, it } from 'vitest';
 import { MATCH_PROFILE, PRACTICE_PROFILE, PERIOD_CHOICES, withPeriod } from '../app/js/rules/profile.ts';
+import { chargeRouteFor } from '../app/js/ui/assists-panel.ts';
 import { TEMPO_CHOICES } from '../app/js/drivers/driver.ts';
 import { CHARGE_MODES } from '../app/js/input/charge.ts';
 
@@ -96,5 +97,32 @@ describe('how a charge is made', () => {
   //    2.2.1 claim about removal true rather than aspirational.
   it('[Right] and one of them has no clock in it at all', () => {
     expect(CHARGE_MODES).toContain('latch-stepped');
+  });
+});
+
+// ========================= THE ROUTE A ONE-SWITCH CHILD GETS WITHOUT ASKING =========================
+// The plan says it outright: `latch-stepped` "e o padrao sempre que `oneButton` ou varredura estiver
+// ligado", and it says why in the same breath - `latch-timed` takes away the HOLDING and keeps the
+// TIMING, which is half the barrier. Stepped has no clock in it at all.
+//
+// ⚠️ AND IT WAS NOT WIRED. Nothing in the composition root read the engine's one-button setting, so a
+// child in one-switch mode was handed `hold` - a route whose whole mechanic is keeping a key down, which
+// is exactly what one-switch mode means she cannot do. The three routes were built, gated, and
+// selectable; what was missing is that the right one arrives without an adult knowing to pick it.
+//
+// ⚠️ IT IS A DEFAULT AND NOT A LOCK. An adult who chooses a route keeps it: an accommodation that
+// refuses to be overridden is a second barrier wearing the first one's clothes.
+describe('the charge route a one-switch child is handed', () => {
+  it('[Zero] with one-switch off, nothing changes', () => {
+    expect(chargeRouteFor(false, null)).toBe('hold');
+  });
+
+  it('[Right] with one-switch on, the route with no clock in it', () => {
+    expect(chargeRouteFor(true, null)).toBe('latch-stepped');
+  });
+
+  it('[Right] and a chosen route wins, because an accommodation that cannot be overridden is a barrier', () => {
+    expect(chargeRouteFor(true, 'hold')).toBe('hold');
+    expect(chargeRouteFor(false, 'latch-stepped')).toBe('latch-stepped');
   });
 });
