@@ -171,7 +171,7 @@ The address `the-inclusionist/game-soccer` follows ADR-0082 (a game repository i
 mirrors its package) and ADR-0083 (a game is born in its own repository and consumes the engine as a
 package - no game is built inside the engine to be extracted later).
 
-WARNING: **A game repository holds no `adr/` folder and never will** (ADR-0068 section 5). The records -
+⚠️ **A game repository holds no `adr/` folder and never will** (ADR-0068 section 5). The records -
 the ten non-negotiable pillars, the accessibility contract, the licence posture - live in the engine and
 are inherited. This repository states only what is its own.
 
@@ -205,12 +205,30 @@ read, what was measured, and what the engine is owed are in [docs/ENGINE-AUDIT.m
 The feature set is measured against [modelence/open-soccer](https://github.com/modelence/open-soccer), a
 browser football game. **That repository carries no licence at all**, which means all rights reserved.
 
-WARNING: **No line of its code and no item of its data is inherited.** The features were read from its
-README and from the list of file names in its tree; its source is not read by anyone writing this game.
-The rules of a game are not protected by copyright; an implementation is. A clean reimplementation is the
+⚠️ **No line of its code and no item of its data is inherited.** The features were read from its
+README and from the list of file names in its tree. The rules of a game are not protected by copyright;
+an implementation is. A clean reimplementation is the
 only way the Municipio holds title to the whole of what it owns (`docs/LICENSES.md`), and it is the same
 move the 2048 made with the MIT descendants of Threes! and the chess made with `3D-Hartwig-chess-set` -
 with the difference that here there was no permissive licence to decline, only one to respect.
+
+⚠️ **AND ON 2026-09-08 THE READING AND THE WRITING WERE PUT IN DIFFERENT HEADS.** Until that day
+this paragraph said the source was not read by anyone, full stop, and that the parity list was built from
+prose alone. Both were true and stayed true through every line of this game. Then the Dev asked for the
+reference to be **studied** - not to be copied, but to learn which problems it had already met and what
+class of answer it had found - and that is a different request which the old sentence could not survive.
+
+So a **separate analyst** read it and nobody who writes this game did. What crossed between them is a
+report of features, problems and categories of answer, written under a contract that forbids code,
+pseudocode, identifiers, file names, constants, data and quoted prose - and audited against that contract
+before it was read for content. The report is deliberately **not in this repository**. The full
+arrangement, and the sentence it replaced quoted in full, are in
+[docs/CREDITS.md](docs/CREDITS.md).
+
+⚠️ **A PROVENANCE CLAIM THAT HAS QUIETLY STOPPED BEING TRUE IS WORSE THAN NONE**, which is why this
+is a correction with a date on it and not an edit. Everything this repository says about itself is meant
+to be checkable; the moment a sentence outlives the conditions that made it true, it is doing the
+opposite of its job.
 
 Credit is due and given regardless - see [docs/CREDITS.md](docs/CREDITS.md).
 
