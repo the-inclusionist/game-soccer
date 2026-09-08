@@ -12,6 +12,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 import { bootar } from '../app/js/boot/main.ts';
+import { SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
 import { t } from '@the-inclusionist/engine/core/i18n.js';
 import { padCur } from '@the-inclusionist/engine/input/state.js';
 import { GAMEPAD_STANDARD } from '@the-inclusionist/engine/input/default-bindings.js';
@@ -654,17 +655,42 @@ describe('what a child sees', () => {
   //    looking at. The camera follows the ball and the ball starts on the halfway line, so every
   //    screenshot this repository has taken shows the centre circle and no penalty area at all - which is
   //    exactly where the drawn box and the refereed box disagreed for the whole life of the game, unseen.
+  //    ⚠️ AND IT HAS TO RUN LONG ENOUGH FOR THE OTHER SIDE TO ARRIVE. The first version placed the ball
+  //    and waited a second and a half, which showed a box with SEVEN HOME DEFENDERS in it and not one
+  //    visitor - the away side starts in its own half and forty metres takes longer than that to cover.
+  //    The picture read as though both teams wore the same kit, and it took the halfway-line shot to
+  //    prove they do not. A photograph of a moment nobody plays is worth what it costs to take.
   it('[Right] and so does the goalmouth, which the halfway-line picture can never show', async () => {
     booted = bootar(document, window);
     booted!.state.phase = 'live';
-    booted!.state.ball.p = { x: 12, y: 28, z: 0 };
-    booted!.state.ball.v = { x: 0, y: 0, z: 0 };
 
-    await new Promise((r) => setTimeout(r, 1500));
+    // Pinned every few milliseconds, like the stands shot: a ball placed once and left drifts back to the
+    // middle within a tick, the camera follows it, and the picture is of the centre circle again.
+    const pin = window.setInterval(() => {
+      if (booted === null) return;
+      booted.state.ball.p = { x: 12, y: 28, z: 0 };
+      booted.state.ball.v = { x: 0, y: 0, z: 0 };
+    }, 8);
+    await new Promise((r) => setTimeout(r, 4000));
     await page.screenshot({ path: 'goalmouth.png' });
+    window.clearInterval(pin);
 
     // The camera is smoothed, so this asks that it ARRIVED rather than that it was told to go.
     expect(booted!.state.ball.p.x).toBeLessThan(20);
+
+    // ⚠️ AND THAT BOTH SIDES ARE IN THE PICTURE, which is the whole reason the wait is four seconds.
+    //    Without this the shot silently goes back to being one team in an empty box the day somebody
+    //    shortens the wait.
+    const near = (team: 0 | 1) => {
+      let n = 0;
+      for (let k = 0; k < SQUAD_SIZE; k++) {
+        const p = booted!.state.players[firstOf(team) + k].p;
+        if (p.x < 30) n += 1;
+      }
+      return n;
+    };
+    expect(near(0), 'no home player in the goalmouth shot').toBeGreaterThan(0);
+    expect(near(1), 'the away side never arrived, so the picture is one team').toBeGreaterThan(0);
   });
 });
 
