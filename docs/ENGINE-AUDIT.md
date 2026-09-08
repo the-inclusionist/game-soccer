@@ -25,6 +25,22 @@ git-ignored and shared by every session on this machine. One entry was **appende
 
 ## What the engine is owed
 
+WARNING **RE-VERIFIED AGAINST THE INSTALLED ENGINE 7.0.1 ON 2026-09-07.** An audit of somebody else's
+repository goes stale silently, and a stale one makes false claims about their work. Each finding below
+was read again against `node_modules/@the-inclusionist/engine/dist-pkg`, which is the code this game
+actually consumes:
+
+| finding | as of 7.0.1 |
+|---|---|
+| 1 · the sonar goes mono in metres | **stands** — `audio-sonar.js` still divides by `ctx.LOGICAL_W * 0.55` |
+| 2 · one-button honoured only on the keyboard | **stands** — `oneButton` appears in `keydown.js` and nowhere in `gamepad.js` |
+| 4 · the pad wizard's pt-BR literals | **FIXED** — see below; no issue is owed |
+| 6 · two keyboard tables, never reconciled | **stands** — the runtime table still carries no shoulder, trigger, `start` or `select` row |
+| 8 · a key may hold two positions at once | **stands** — nothing in `keyboard*.js` refuses it |
+
+Findings 3, 5 and 7 are about defaults and about audio shape rather than about code that can be grepped
+for in one line; they are unchanged as written and were not re-read line by line.
+
 Building against the engine is the only thing that measures what it actually delivers. Eight defects
 surfaced, and none of them is this game's to fix.
 
@@ -74,14 +90,21 @@ keyboard has. The layout is also better where a numpad exists: a physical block 
 like a pad, taking nothing from the first child. The engine's fix is to make its own default rebindable,
 not to change which keys it picked.
 
-### 4. The pad wizard speaks hard-coded pt-BR
+### 4. The pad wizard speaks hard-coded pt-BR — FIXED, and this entry is closed
 
 `input/gamepad.ts`'s `PADWIZ_STEPS` held literal strings — `'CIMA'`, `'PULAR'` — inside the engine. That
-is against pillar 3, and against the rule `input/devices.ts` states in its own header about why it stores
+was against pillar 3, and against the rule `input/devices.ts` states in its own header about why it stores
 keys rather than text.
 
-*(Issue #103 landed while this was being written and may have addressed part of this; the observation is
-recorded as it was made, and should be re-read against the engine's current state before being acted on.)*
+WARNING **RE-READ AGAINST THE INSTALLED 7.0.1 ON 2026-09-07, AND IT IS GONE.** The entry itself asked for
+this before anyone acted on it, so the re-reading is the entry finishing rather than a new observation.
+`dist-pkg/input/gamepad.js` now exports `PADWIZ_ORDER` — an ordered list of ACTIONS, `'up'`, `'down'`,
+`'action2'` and the rest — and resolves each prompt through `ctx.rotuloDaAcao(...)`, which is the game's
+own preset. `'CIMA'` and `'PULAR'` appear nowhere in the wizard.
+
+That is precisely the shape this audit proposed, and it fixes both halves at once: the words are the
+game's, so the wizard asks *"press: SHORT PASS"* in the child's language, and the engine stops carrying
+one game's vocabulary. **No issue is owed for this one.**
 
 ### 5. An earcon cannot rise or fall
 
