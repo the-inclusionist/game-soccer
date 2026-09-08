@@ -222,6 +222,43 @@ Three things of the reference game are deliberately **absent**:
 | A persisted best score, a career, progression between matches | ADR-0037: there is no save, and the Inclusionist stores nothing about a child. A match lives and dies with the session. |
 | ~~Fouls, cards and penalties~~ | **No longer absent.** This row claimed they were not in the reference feature list; that was my reading of it and my decision, and writing it beside two genuine third-party-rights exclusions gave it a weight it never had. The Dev reverted it on 2026-09-07. |
 
+## The plan's file list, and where those files went
+
+The plan sketched about fifty-five modules by name. Eighteen of them do not exist under that name, and
+somebody reading the plan beside the tree would find eighteen apparent gaps. They are not gaps: seventeen
+consolidated and three were decided against. This table is the only place that says so.
+
+⚠️ **A file list in a plan is a sketch of the SHAPE, not a contract about names.** What it was right
+about is that these are separate concerns; what it could not know is which of them turn out to be one
+function with two callers.
+
+| The plan asked for | Where it is |
+|---|---|
+| `ai/agent`, `ai/carrier`, `ai/keeper`, `ai/steering` | `ai/brain.ts` - the cascade, the carrier's branch, the keeper's branch and `steerAll`. Splitting them would put four files behind one seven-rule decision that reads top to bottom. |
+| `input/intent`, `input/seats`, `input/switcher`, `input/command-build` | `input/sampler.ts` (keys to actions to one command a tick), `input/keymap.ts` (two seats, remappable) and `sim/switching.ts` (which body a seat is driving - a fact about the WORLD, so it belongs in `sim/`). |
+| `teams/palette`, `teams/crest`, `teams/squad` | `teams/kits.ts` and `render/crest-pixels.ts`. A squad is `sim/state`'s kickoff shape and never needed a file. |
+| `ui/state-mirror`, `ui/setup-scene` | `ui/mirror.ts` decides the sentences and `app/index.html` holds the elements; the setup controls are the tools bar in the same shell. |
+| `rules/clock` | `ui/clock.ts` formats it and `RulesProfile.periodTicks` decides it. There was no third thing for a rules module to do. |
+| `drivers/driver-realtime`, `-assisted`, `-turn`, `decision-point`, `recorder` | `drivers/driver.ts` and `sim/recorder.ts`. The three clocks are three ways of calling one `step`, which is the claim the cross-driver digest gate exists to prove - three files would have made it look like three simulations. |
+
+### And three that were decided against, each with a measurement
+
+- **`sim/broadphase`** - budgeted so that pairwise comparison would not have to happen every tick. It can:
+  twenty-two bodies are 231 pairs, and a measurement walked 36,000 ticks of exactly those comparisons in
+  seconds. A grid would be a data structure with its own bugs solving a cost nobody measured.
+- **`sim/contact`** - built with seven gates and wired, and it works: the closest two bodies went from
+  0.000 m apart to 0.532. It also takes a match from 4.5 goals to 0.33. Reverted, with the table in
+  `sim/step` where the wire would go.
+- **`sim/rng`** - there is no dice in this game and ADR-0049 is why. The seeding the plan wanted it for is
+  in `teams/roster`, which generates twelve clubs once and never again.
+
+### And one that the engine made unnecessary
+
+`input/shim-catorze` was budgeted because the engine's transports still spoke the platformer's eight verbs
+while `core/actions` declared fourteen. Issue #103 landed while this game was being written, so the tables
+are the engine's and `input/sampler` imports them. The expiry test that was to kill the shim was never
+needed either.
+
 ## Deviations, written down rather than buried
 
 - **Two seats share one screen, and pillar 7 permits it.** The pillar forbids *splitting* the screen - at
