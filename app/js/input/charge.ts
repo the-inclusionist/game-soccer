@@ -56,6 +56,8 @@ export interface ChargeOut {
 export interface Charge {
   /** Advance one tick with the button's held state; returns whatever fired. */
   tick(held: boolean): ChargeOut[];
+  /** The step this charge has reached while it is still being held, or 0 when nothing is charging. */
+  charging(): number;
   /** Abandon the charge without firing - a pause, a blur, being switched away from the player. */
   cancel(): void;
 }
@@ -100,6 +102,19 @@ export function createCharge(opts: { mode: ChargeMode }): Charge {
 
   return {
     cancel: reset,
+
+    // ⚠️ THE STEP IN FLIGHT, WHICH NOTHING COULD SEE BEFORE. `tick` returns what FIRED, so a charge that
+    //    has not fired yet returns an empty list - and a child holding the key received nothing at all:
+    //    no bar, no count, no tone. The plan asks for "three of five" with a tone per step precisely
+    //    because a bar does not serve a child who cannot see it, and the one mode that DID show a
+    //    strength is the turn panel, where she is not holding anything down.
+    //
+    //    ⚠️ IT IS THE SAME `stepOf` THE FIRED VALUE USES, so what she is told while she holds and what
+    //    she gets when she lets go are one number, not two that agree by coincidence.
+    charging(): number {
+      if (!open) return 0;
+      return opts.mode === 'latch-stepped' ? step : stepOf(powerOf(ticks));
+    },
 
     tick(held: boolean): ChargeOut[] {
       const down = held && !prev;

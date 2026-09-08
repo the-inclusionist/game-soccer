@@ -282,6 +282,35 @@ describe('the charge, in a running match', () => {
     expect(await strike(40), 'a tap did nothing at all').toBeGreaterThan(0);
   });
 
+
+  // ⚠️ AND SHE IS TOLD HOW FAR IT IS CHARGED WHILE SHE HOLDS IT. The plan asks for a countable power -
+  //    "three of five" - with a tone per step, because a bar does not serve a child who cannot see one.
+  //    The step existed, was gated hard and offered in three routes, and appeared on screen in exactly
+  //    ONE place: the turn panel, which is the mode where she is not holding a key down at all.
+  //
+  //    ⚠️ SO THE MODE THAT NEEDED THE FEEDBACK WAS THE ONE WITHOUT IT, and this drives a real key in a
+  //    real match rather than asking `chargeLine` what it returns - `tests/mirror` does that.
+  it('[Right] the page counts the power up while the key is held', async () => {
+    booted = bootar(document, window);
+    await settled();
+
+    const code = booted!.keymap(0).action2?.[0];
+    atHisFeet(booted!);
+    const region = document.querySelector('#game-region') ?? document.body;
+    region.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+
+    const until = Date.now() + 2000;
+    let said = '';
+    while (Date.now() < until && said === '') {
+      await new Promise((r) => setTimeout(r, 16));
+      said = document.querySelector('#m-charge')?.textContent ?? '';
+    }
+    region.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
+
+    expect(said, 'she held the key and the page said nothing').not.toBe('');
+    expect(said, `no count in "${said}"`).toMatch(/\d/);
+  });
+
   // ⚠️ THE HALF THAT WAS A COIN UNTIL THE PITCH WAS EMPTIED. Written first with the other twenty-one
   //    left where they stood, this said a hold was WEAKER than a tap - and passed when the two were
   //    swapped round, on identical code. A gate that turns on the order it is written in reports a green

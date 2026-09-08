@@ -31,7 +31,7 @@ import {
 } from '../drivers/driver.ts';
 import { createTurnPanel } from '../ui/turn-panel.ts';
 import { clockText } from '../ui/clock.ts';
-import { spotLines, youLine } from '../ui/mirror.ts';
+import { chargeLine, spotLines, youLine } from '../ui/mirror.ts';
 import { attackDirOf } from '../sim/ends.ts';
 import { outcomeFor, outcomeKey } from '../ui/outcome.ts';
 import { crestCanvas } from '../ui/crest-canvas.ts';
@@ -721,7 +721,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     ball: doc.querySelector<HTMLElement>('#m-ball'),
     you: doc.querySelector<HTMLElement>('#m-you'),
     options: doc.querySelector<HTMLElement>('#m-options'),
+    charge: doc.querySelector<HTMLElement>('#m-charge'),
   };
+  // ⚠️ THE STEP SHE IS ON, WHILE SHE IS STILL ON IT. The plan asks for a countable power - "three of
+  //    five" - with a tone per step, because a bar does not serve a child who cannot see one. It was
+  //    built as a `powerStep`, gated hard, offered in three routes and shown to NOBODY: the only
+  //    strength on the screen lived in the turn panel, which is the one mode where she is not holding a
+  //    key down. In real time she held it, got no bar, no count and no tone, and let go blind.
+  let chargeWas = 0;
   // A list of four short phrases with no name on it is four phrases about nothing. The other mirror lines
   // carry their own subject in the words; this one cannot, so the list says what it is a list OF.
   //
@@ -812,6 +819,15 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
             }),
           );
         }
+      }
+      // ⚠️ A TONE PER STEP, AND ONLY WHEN IT CHANGES. A cue that repeats sixty times a second is a
+      //    siren; one that sounds as the count goes up is a staircase she can hear, which is what makes
+      //    "wait for five" a thing she can do without watching anything.
+      const step = samplers[0]?.charging() ?? 0;
+      if (step !== chargeWas) {
+        if (step > chargeWas) sound.chargeStep();
+        chargeWas = step;
+        if (mirror.charge !== null) mirror.charge.textContent = chargeLine(step, t);
       }
       if (mirror.you !== null) {
         const seated = state.controlled.slice(0, seating);

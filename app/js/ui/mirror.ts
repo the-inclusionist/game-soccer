@@ -18,6 +18,7 @@
 import { isKeeper, shirtOf, type PlayerId } from '../sim/ids.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { MatchState } from '../sim/state.ts';
+import { STEPS } from '../input/charge.ts';
 import { PACE_M } from '../sim/units.ts';
 import type { Vec2 } from '../sim/vec.ts';
 
@@ -106,4 +107,21 @@ export function spotLines(from: Vec2, targets: readonly Spot[], dir: 1 | -1, t: 
     //    and no dictionary can repair that from the outside.
     return paces === 1 ? t(`hud.spot.${which}One`) : t(`hud.spot.${which}`, { paces });
   });
+}
+
+/**
+ * How far the shot she is holding has charged, as a countable sentence - or nothing when she is not.
+ *
+ * ⚠️ A BAR DOES NOT SERVE A CHILD WHO CANNOT SEE ONE, which the plan says in as many words: the power
+ * is countable - "three of five" - because a child counts five, and five of five is a thing she can
+ * decide to wait for. A percentage is a number she has to convert.
+ *
+ * ⚠️ AND THE ONE MODE THAT NEEDED IT WAS THE ONE WITHOUT IT. The step was built as a `powerStep` from 1
+ * to 5, gated hard, offered in three routes, and shown to nobody: the only strength on the screen was in
+ * the TURN panel, which is the mode where she is not holding a key down at all. In real time she held the
+ * key, received no bar, no count and no tone, and let go blind.
+ */
+export function chargeLine(step: number, t: Translate): string {
+  if (step <= 0) return '';
+  return t('hud.charge', { have: step, need: STEPS });
 }

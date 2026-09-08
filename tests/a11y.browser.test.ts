@@ -46,6 +46,7 @@ const SHELL = `
           <p id="m-ball">-</p>
           <p id="m-you">-</p>
           <ul id="m-options"></ul>
+          <p id="m-charge"></p>
         </div>
       </section>
     </div></div>

@@ -15,7 +15,7 @@
 // test could only ever assert that a function was called; this asserts what it says. The same split the
 // earcon captions use, and for the same reason.
 import { describe, expect, it } from 'vitest';
-import { spotLines, youLine } from '../app/js/ui/mirror.ts';
+import { chargeLine, spotLines, youLine } from '../app/js/ui/mirror.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
 import { RED } from '../app/js/rules/cards.ts';
@@ -168,5 +168,34 @@ describe('where the ball could go next', () => {
     const many = spotLines(from, [{ x: 60, y: 20 }, { x: 30, y: 40 }], 1, echo);
 
     for (const line of [...many, ...spotLines(from, [], 1, echo)]) expect(line).toMatch(/^hud\.spot\./);
+  });
+});
+
+// ========================= AND HOW FAR THE SHOT IS CHARGED =========================
+// The plan asks for it in as many words: a bar does not serve a child who cannot see one, so the power is
+// COUNTABLE - "three of five" - with a tone per step. It was built as a `powerStep` from 1 to 5, gated
+// hard, offered in three routes, and shown to nobody: the only place a strength appeared on screen was
+// the TURN panel, which is the one mode where she is not holding a key down at all.
+//
+// ⚠️ SO THE ONE MODE THAT NEEDS THE FEEDBACK WAS THE ONE WITHOUT IT. In real time she holds the key and
+// receives nothing - no bar, no count, no tone - and lets go blind.
+describe('the line that says how hard it will be hit', () => {
+  it('[Zero] nothing charging says nothing at all', () => {
+    expect(chargeLine(0, echo)).toBe('');
+  });
+
+  // ⚠️ `{have} OF {need}` AND NOT A PERCENTAGE, which is the 2048's lesson: a child counts five, and
+  //    five of five is a thing she can decide to wait for. A percentage is a number she has to convert.
+  it('[Right] a charge in flight is counted, not measured', () => {
+    expect(chargeLine(3, echo)).toBe('hud.charge {"have":3,"need":5}');
+  });
+
+  it('[Boundary] the first step and the last are both sayable', () => {
+    expect(chargeLine(1, echo)).toBe('hud.charge {"have":1,"need":5}');
+    expect(chargeLine(5, echo)).toBe('hud.charge {"have":5,"need":5}');
+  });
+
+  it('[Interface] and the sentence is a dictionary key, like every other', () => {
+    expect(chargeLine(2, echo)).toMatch(/^hud\./);
   });
 });

@@ -76,6 +76,8 @@ export const pt = {
   'hud.you.sentOff': 'Seu jogador foi expulso',
   'hud.spot.label': 'Suas opções agora',
   'hud.spot.none': 'Nenhuma opção',
+  'hud.charge': 'Força: {have} de {need}',
+  'cue.chargeStep': 'Força subindo',
   'hud.spot.ahead': '{paces} passos à frente',
   'hud.spot.aheadOne': 'Um passo à frente',
   'hud.spot.back': '{paces} passos atrás',

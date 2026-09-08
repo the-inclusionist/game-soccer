@@ -170,3 +170,48 @@ describe('the alternatives to holding', () => {
     expect(fired[0].step).toBe(STEPS);
   });
 });
+
+// ========================= AND SHE HAS TO KNOW HOW FAR IT IS CHARGED =========================
+// The plan says it in as many words: a bar does not serve a child who cannot see it, so the power is
+// COUNTABLE - "three of five" - with a tone per step. Everything below gates what the charge computes and
+// nothing gated what she is TOLD while it happens, because the step in flight was never exposed at all:
+// `tick()` returns what FIRED, and a charge that has not fired yet returns an empty list.
+//
+// ⚠️ SO A CHILD HOLDING THE KEY RECEIVED NOTHING. No bar, no count, no tone - and the turn panel, which
+// does show a strength, is the one mode where she is not holding anything down.
+describe('the step in flight', () => {
+  it('[Zero] nothing held is nothing charging', () => {
+    const c = createCharge({ mode: 'hold' });
+
+    expect(c.charging()).toBe(0);
+  });
+
+  it('[Right] a charge in progress reports the step it has reached', () => {
+    const c = createCharge({ mode: 'hold' });
+    for (let t = 0; t < 4; t++) c.tick(true);
+
+    expect(c.charging()).toBeGreaterThan(0);
+  });
+
+  // ⚠️ IT ONLY EVER GOES UP WHILE SHE HOLDS, which is the same promise `powerOf` makes and the reason a
+  //    count can be trusted: a number that fell back would tell her she had lost something she had not.
+  it('[Right] and it never falls while the key is down', () => {
+    const c = createCharge({ mode: 'hold' });
+    let last = 0;
+    for (let t = 0; t < 60; t++) {
+      c.tick(true);
+      const now = c.charging();
+      expect(now).toBeGreaterThanOrEqual(last);
+      last = now;
+    }
+    expect(last).toBe(STEPS);
+  });
+
+  it('[Zero] and it is back to nothing once it has fired', () => {
+    const c = createCharge({ mode: 'hold' });
+    for (let t = 0; t < 20; t++) c.tick(true);
+    c.tick(false);
+
+    expect(c.charging()).toBe(0);
+  });
+});

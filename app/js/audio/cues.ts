@@ -52,7 +52,8 @@ export type CueName =
   | 'sendingOff'
   | 'halfTime'
   | 'fullTime'
-  | 'restart';
+  | 'restart'
+  | 'chargeStep';
 
 /**
  * The seven sounds a match makes.
@@ -65,6 +66,15 @@ export type CueName =
  * than a limitation of this game.
  */
 export const CUES: Readonly<Record<CueName, CueDef>> = Object.freeze({
+  // ⚠️ THE STAIRCASE, AND THE ONLY CUE HERE THAT IS NOT ABOUT THE MATCH. It sounds once each time the
+  //    power she is holding goes up a step, so "wait for five" is something she can do by ear instead of
+  //    by watching a bar - which is the whole reason the plan asked for a countable power rather than a
+  //    continuous one. Short and quiet-sounding on purpose: it fires up to five times in a second and a
+  //    half, and anything with weight to it would become a siren.
+  //    ⚠️ AND 0.06 IS THE FLOOR THIS FILE ALREADY HAD, not a number I chose. It was written at 0.05 and
+  //    `tests/cues` refused it: a tone of fifty milliseconds or less is not reliably heard, so an earcon
+  //    that short is not an earcon. The gate was right and the cue moved.
+  chargeStep: { t: 'sine', f: 700, d: 0.06, cap: 'cue.chargeStep' },
   // Ours: the highest and the longest thing in the match. Nothing else is allowed to be mistaken for it.
   goalFor: { t: 'triangle', f: 880, d: 0.55, cap: 'cue.goalFor' },
   // Theirs: low, and shorter. Not a sad noise - a different one. ADR-0049 has no room for a game that

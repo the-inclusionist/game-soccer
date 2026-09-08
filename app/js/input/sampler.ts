@@ -77,6 +77,14 @@ export interface Sampler {
    * second one beside it with none of the accessibility in it.
    */
   sample(codes: ReadonlySet<string>, tick: number, pad?: Held | null): Command;
+  /**
+   * The step this seat's charge has reached while it is still held, or 0.
+   *
+   * ⚠️ IT IS HERE SO THE PAGE CAN SAY IT. A charge that only speaks when it FIRES tells a child what
+   * she did after she has stopped being able to change it; the plan asks for "three of five" as she
+   * holds, with a tone per step, because a power bar does not serve a child who cannot see one.
+   */
+  charging(): number;
 }
 
 /** A key and a button both count: a child may steer with one hand and act with the other. */
@@ -119,6 +127,8 @@ export function createSampler(opts: {
   let charging: string | null = null;
 
   return {
+    charging: () => charge.charging(),
+
     sample(codes: ReadonlySet<string>, tick: number, pad?: Held | null): Command {
       const held = merge(heldFrom(codes, opts.keymap?.() ?? FALLBACK), pad);
       const { dx, dy } = steer(held);

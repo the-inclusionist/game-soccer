@@ -57,6 +57,8 @@ export interface Sound {
    * moment she is certainly listening.
    */
   readonly matchComplete: () => void;
+  /** One step of the power gauge, by ear: see `cues.chargeStep`. */
+  readonly chargeStep: () => void;
 }
 
 export function createSound(ports: SoundPorts): Sound {
@@ -97,5 +99,7 @@ export function createSound(ports: SoundPorts): Sound {
     //    a room full of children with one of them autistic is exactly the audience that note was written
     //    for. It is also the honest one here: nobody was defeated, a match was completed.
     matchComplete: () => jingles.playPuzzleSolved(),
+    // One step of the power gauge, by ear. See `cues.chargeStep` for why it is the quietest thing here.
+    chargeStep: () => play('chargeStep'),
   };
 }
