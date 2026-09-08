@@ -103,7 +103,7 @@ describe('the digest', () => {
   //    the field lists, and from that day the digest silently stops covering part of the world - the
   //    golden replay still passes, the cross-check gate still passes, and both are now lying.
   it('[Interface] every field of a match state is covered by the digest', () => {
-    const covered = new Set(['tick', 'ball', 'players', 'possession', 'phase', 'period', 'goals', 'restartTaker', 'onPitch', 'controlled', 'cards', 'offsidePasser', 'offsideMask', 'tookRestart', 'lastStruck']);
+    const covered = new Set(['tick', 'ball', 'players', 'possession', 'phase', 'period', 'goals', 'restartTaker', 'onPitch', 'controlled', 'cards', 'offsidePasser', 'offsideMask', 'tookRestart', 'lastStruck', 'pressure', 'pressedBy']);
     const actual = Object.keys(createMatchState());
 
     expect(actual.filter((k) => !covered.has(k))).toEqual([]);

@@ -38,6 +38,15 @@ export interface SideCaps {
   readonly controlRadius: number;
   /** Metres. How much closer than the carrier this side has to be to take the ball off him. */
   readonly tackleMargin: number;
+  /**
+   * How fast this side builds pressure on a man with the ball. 1 is average; see `sim/possession`.
+   *
+   * ⚠️ WITHOUT THIS, `defending` STOPS MATTERING THE DAY POSSESSION CHANGES. The ball is won by
+   * sustained contact now, so the margin it used to scale is reached far less often - and a rating whose
+   * only wire runs through a branch nobody takes is the exact defect this change was made to fix for
+   * `passing`. Measured there: sixty matches, completion flat at 31% across every rating.
+   */
+  readonly pressureRate: number;
 }
 
 /**

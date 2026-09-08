@@ -15,12 +15,10 @@
 // window, in metres, at the point of action. A good defender needs less of an advantage.
 import { describe, expect, it } from 'vitest';
 import { createMatchState } from '../app/js/sim/state.ts';
-import { playTick } from '../app/js/play.ts';
 import { MATCH_PROFILE } from '../app/js/rules/profile.ts';
 import { AWAY, HOME, SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
-import { DT } from '../app/js/sim/ball.ts';
-import { emptyFrame } from '../app/js/sim/command.ts';
-import { SHIELD_MARGIN } from '../app/js/sim/possession.ts';
+import { capsBySide } from '../app/js/ai/ratings.ts';
+import { resolvePossession, SHIELD_MARGIN } from '../app/js/sim/possession.ts';
 import { AVERAGE, tackleMarginOf } from '../app/js/ai/ratings.ts';
 
 const hard = { ...AVERAGE, defending: 1 };
@@ -45,12 +43,25 @@ function duel(edge: number, away = AVERAGE) {
   s.ball.p = { x: 45, y: 28, z: 0 };
   s.ball.v = { x: 0, y: 0, z: 0 };
   s.ball.grounded = true;
-  s.players[carrier].p = { x: 45 - 0.6, y: 28 };
-  s.players[foe].p = { x: 45 + (0.6 - edge), y: 28 };
   s.possession.holder = carrier;
   s.possession.lastTouch = carrier;
 
-  playTick(s, emptyFrame(0), DT, MATCH_PROFILE, { 0: AVERAGE, 1: away });
+  s.players[carrier].p = { x: 45 - 0.6, y: 28 };
+  s.players[foe].p = { x: 45 + (0.6 - edge), y: 28 };
+
+  // ⚠️ THIRTY RESOLUTIONS, NOT THIRTY TICKS, and the difference is the whole reason this helper works.
+  //    The ball is won by SUSTAINED contact now, so one tick transfers nothing and this used to play
+  //    exactly one - the gates below would have gone red for the change rather than for a defect. But
+  //    driving `playTick` instead moves the bodies INSIDE the tick: the cascade steers them and the
+  //    dribbling touch knocks the ball, so the geometry pinned before the call is not the geometry the
+  //    resolution sees, and the duel stops being the duel being asked about. Measured while chasing it:
+  //    the pressure reached its threshold on tick 19 exactly as designed, and the ball did not change
+  //    hands, because by then the two bodies were somewhere else.
+  //
+  //    It exercises BOTH halves of `defending`, which the single tick could not: the margin decides
+  //    whether he is a challenger at all, and `pressureRateOf` decides how fast he gets there once he is.
+  const caps = capsBySide(AVERAGE, away, MATCH_PROFILE.pace);
+  for (let t = 0; t < 30; t++) resolvePossession(s, caps);
   return { s, carrier, foe };
 }
 

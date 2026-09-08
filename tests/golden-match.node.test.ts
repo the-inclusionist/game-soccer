@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  419974381, 1602172179, 3014074223, 3347260423, 3268414972, 461152861, 2578459204, 3523803320, 3581948453,
-  3581948453,
+  918915267, 2383562994, 600360039, 1504071733, 2916332281, 627692871, 2560235582, 4077394870, 996021677,
+  996021677,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -124,14 +124,27 @@ const GOLDEN: readonly number[] = [
 //               1.00 to 1.75, into band. ⚠️ And offsides fell 0.33 to 0.00, because a forward who
 //               times his run to stay onside is never caught by the line. In these ninety seconds: a
 //               goal, where there had been two throw-ins and a foul.
+//
+//   2026-09-07  The ball is won by SUSTAINED CONTACT. Possession was decided fresh every tick by
+//               proximity, which made it a coin tossed sixty times a second: at the tick an opponent took
+//               it the loser was a median 0.96 m from the ball and the taker 0.86 m, 88.7% of all changes
+//               went to the other side, and a possession lasted seven ticks. A challenger now has to keep
+//               the pressure up for PRESSURE_WINS ticks, scaled by `defending`, and `sim/tackle` stays
+//               the deliberate route that wins it at once. The Dev chose this over four alternatives.
+//               What it bought: `passing` went from FLAT at 31% completion across every rating to 34.9%
+//               at 0.9 against 24.5% at 0.1 - the plan's own verification item, which had been measured
+//               and found false. Changes of possession fell 140 to 117 a match. Nobody playing: offsides
+//               0.33 to 0.50, fouls 2.83 to 3.08 and yellows 0.58 to 1.00, all three into band. A child
+//               playing: throw-ins 3.92 to 5.92 and goals 2.50 to 2.67, both in band. In these ninety
+//               seconds: a foul and a goal kick where there had been a goal.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
   phase: 'fullTime',
-  goals: [1, 0],
-  goalScored: 1,
-  crossedTouchline: 0,
-  foulGiven: 0,
+  goals: [0, 0],
+  goalScored: 0,
+  crossedGoalLineByAttacker: 1,
+  foulGiven: 1,
 };
 
 function play() {
@@ -181,7 +194,7 @@ describe('ninety seconds that must stay the same ninety seconds', () => {
     expect(state.phase, 'the match no longer reaches full time in ninety seconds').toBe(SUMMARY.phase);
     expect([...state.goals]).toEqual(SUMMARY.goals);
     expect(seen.goalScored ?? 0).toBe(SUMMARY.goalScored);
-    expect(seen.crossedTouchline ?? 0).toBe(SUMMARY.crossedTouchline);
+    expect(seen.crossedGoalLineByAttacker ?? 0).toBe(SUMMARY.crossedGoalLineByAttacker);
     expect(seen.foulGiven ?? 0).toBe(SUMMARY.foulGiven);
   });
 

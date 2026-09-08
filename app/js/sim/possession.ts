@@ -167,6 +167,16 @@ const CONTESTED_AT = 1.5;
  */
 export const SHIELD_MARGIN = 0.35;
 
+/**
+ * Ticks of unbroken pressure a challenger needs before the ball is his.
+ *
+ * ⚠️ A THIRD OF A SECOND, AND IT IS THE WHOLE CLAIM RATHER THAN A CONSTANT TO TUNE. The old model gave
+ * the ball to whoever was nearest on the tick, so a possession lasted seven ticks and the game was a
+ * scramble; this asks a defender to STAY there. It is what the reference game does in as many words -
+ * "stay touch-tight, sustained contact wins the ball" - and it is what makes containing worth doing.
+ */
+export const PRESSURE_WINS = 20;
+
 export interface Possession {
   /** Who is dribbling right now, or `NOBODY`. */
   holder: PlayerId;
@@ -262,7 +272,51 @@ export function resolvePossession(state: MatchState, sides?: readonly [SideCaps,
   // The carrier shields: he keeps the ball unless the challenger is CLEARLY closer. Compared in metres
   // rather than in squared metres, because a margin in squared units would mean different things at
   // different distances - and this margin is a body's width, which does not change with range.
+  // ⚠️ AND THE BALL IS WON BY SUSTAINED CONTACT, NOT BY BEING NEARER FOR ONE TICK. Everything below the
+  //    shield used to decide possession afresh sixty times a second, which made the ball a coin: at the
+  //    tick an opponent took it the loser was a median of 0.96 m from it and the taker 0.86 m, 88.7% of
+  //    all changes went to the other side, and a possession lasted SEVEN TICKS.
+  //
+  //    That is also why `passing` did nothing measurable - over sixty matches the completion rate was
+  //    flat at 31% from rating 0.1 to 0.9, because how straight a ball was hit cannot matter when the
+  //    outcome is decided by which body is nearest when it lands - and why CONTAINING was built and
+  //    reverted three times: a defender who holds his ground was never beaten, because holding ground
+  //    IS how the old model won the ball.
+  //
+  //    ⚠️ THE DELIBERATE ROUTE IS STILL THERE AND IS STILL BETTER. `sim/tackle` is a challenge somebody
+  //    MAKES, and it wins the ball at once; this is what merely standing on him does, and it is slower.
   const held = possession.holder;
+
+  // ⚠️ PRESSURE IS FOR A CONTEST, NOT FOR A BALL HE HAS ALREADY LOST. It only applies while the carrier
+  //    is still within a stride of the ball - the same reach the shield uses. Beyond that he is not in
+  //    contact with anything, the ball is loose, and it belongs to whoever gets there: making a defender
+  //    wait twenty ticks for a ball nobody is holding would be a rule about nothing.
+  const stillOnIt =
+    held !== NOBODY &&
+    dist2(players[held].p, ball.p) <
+      (reachOf(held) + (sides === undefined || best === NOBODY ? SHIELD_MARGIN : sides[teamOf(best)].tackleMargin)) **
+        2;
+
+  if (stillOnIt && best !== NOBODY && teamOf(best) !== teamOf(held) && best !== held) {
+    if (state.pressedBy !== best) {
+      state.pressedBy = best;
+      state.pressure = 0;
+    }
+    // ⚠️ A BETTER DEFENDER GETS THERE SOONER, which is what stops this change from quietly unwiring
+    //    `defending`. See `ai/ratings.pressureRateOf`; average is exactly 1.
+    state.pressure += sides === undefined ? 1 : sides[teamOf(best)].pressureRate;
+    if (state.pressure < PRESSURE_WINS) {
+      possession.holder = held;
+      possession.lastTouch = held;
+      return;
+    }
+    state.pressure = 0;
+    state.pressedBy = NOBODY;
+  } else {
+    state.pressure = 0;
+    state.pressedBy = NOBODY;
+  }
+
   if (held !== NOBODY && held !== best) {
     const heldD2 = dist2(players[held].p, ball.p);
     const heldReach = reachOf(held);

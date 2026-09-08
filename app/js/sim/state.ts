@@ -109,6 +109,19 @@ export interface MatchState {
    * too early or freeze a clearance nobody else can chase.
    */
   lastStruck: number;
+
+  /**
+   * Ticks of unbroken pressure the current challenger has built on the man with the ball.
+   *
+   * ⚠️ THE BALL IS WON BY SUSTAINED CONTACT AND NOT BY BEING NEARER, which is the whole of why this
+   * exists - see `sim/possession`. It is STATE and not a variable in a closure because a half-built
+   * pressure is as much of the world as a ball in the air: a replay that reproduced every position and
+   * not this would diverge at the next challenge, and the digest would call the two worlds identical.
+   */
+  pressure: number;
+
+  /** Who is building it. A different challenger starts from nothing, because pressure is not a queue. */
+  pressedBy: number;
 }
 
 /**
@@ -176,6 +189,8 @@ export function createMatchState(
     offsideMask: 0,
     tookRestart: -1,
     lastStruck: -1,
+    pressure: 0,
+    pressedBy: -1,
   };
 }
 
@@ -204,6 +219,8 @@ export const SCALAR_FIELDS: ReadonlyArray<(s: MatchState) => number> = Object.fr
   (s) => s.offsideMask,
   (s) => s.tookRestart,
   (s) => s.lastStruck,
+  (s) => s.pressure,
+  (s) => s.pressedBy,
 ]);
 
 export const BODY_FIELDS: ReadonlyArray<(b: Body) => number> = Object.freeze([

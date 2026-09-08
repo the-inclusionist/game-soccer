@@ -68,6 +68,7 @@ function sideOf(r: Ratings, pace: number): SideCaps {
     body: { maxSpeed: caps.maxSpeed * pace, accel: caps.accel * pace },
     controlRadius: controlRadiusOf(r.control),
     tackleMargin: tackleMarginOf(r.defending),
+    pressureRate: pressureRateOf(r.defending),
   };
 }
 
@@ -171,6 +172,21 @@ export function controlRadiusOf(control: number): number {
  * handicap, so being better at defending means needing LESS of it - and a sign error here would be a
  * rating that quietly made good defenders worse, with nothing on the screen to say so.
  */
+/**
+ * How fast a side builds pressure on the man with the ball. Average is exactly 1.
+ *
+ * ⚠️ IT IS THE WIRE THAT KEEPS `defending` MEANING SOMETHING. The ball is won by sustained contact, so
+ * the margin `tackleMarginOf` scales is reached far less often than it was - and a rating whose only wire
+ * runs through a branch nobody takes is precisely the defect this change was made to fix for `passing`,
+ * which measured flat at 31% completion across every rating over sixty matches.
+ *
+ * ⚠️ AND 0.5 IS EXACTLY ONE, like every other rating here, so a match driven with no clubs at all is
+ * the world every other gate describes.
+ */
+export function pressureRateOf(defending: number): number {
+  return 0.5 + defending;
+}
+
 export function tackleMarginOf(defending: number): number {
   return 0.5 - 0.3 * defending;
 }

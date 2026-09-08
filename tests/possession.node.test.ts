@@ -16,6 +16,7 @@ import {
   MAX_CONTROL_HEIGHT,
   NOBODY,
   TOUCH_PERIOD,
+  PRESSURE_WINS,
   resolvePossession,
 } from '../app/js/sim/possession.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
@@ -194,7 +195,11 @@ describe('shielding', () => {
     expect(s.possession.holder).toBe(5);
   });
 
-  it('[Right] but he loses it to a rival who is clearly closer', () => {
+  // ⚠️ THE CLAIM CHANGED ON 2026-09-07, and this gate changed with it rather than being weakened. The
+  //    ball used to go to whoever was nearest on the tick; it now goes to a challenger who has kept the
+  //    pressure up for `PRESSURE_WINS` ticks - see `sim/possession` for the measurements that forced it.
+  //    "Clearly closer" is still what makes him a challenger; it is no longer what hands him the ball.
+  it('[Right] but he loses it to a rival who is clearly closer AND stays there', () => {
     const s = createMatchState();
     for (const p of s.players) p.p = { x: 1, y: 1 };
     s.ball.p = { x: 45, y: 28, z: 0 };
@@ -204,6 +209,9 @@ describe('shielding', () => {
 
     s.players[16].p = { x: 45, y: 28.02 };
     resolvePossession(s);
+    expect(s.possession.holder, 'one tick of being nearer took it off him').toBe(5);
+
+    for (let t = 0; t < PRESSURE_WINS; t++) resolvePossession(s);
 
     expect(s.possession.holder).toBe(16);
   });

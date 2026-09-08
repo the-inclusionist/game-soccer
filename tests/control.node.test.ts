@@ -21,7 +21,7 @@ import { MATCH_PROFILE } from '../app/js/rules/profile.ts';
 import { AWAY, HOME, SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
 import { DT } from '../app/js/sim/ball.ts';
 import { emptyFrame } from '../app/js/sim/command.ts';
-import { CONTROL_R, NOBODY } from '../app/js/sim/possession.ts';
+import { CONTROL_R, NOBODY, PRESSURE_WINS, resolvePossession } from '../app/js/sim/possession.ts';
 import { AVERAGE, controlRadiusOf } from '../app/js/ai/ratings.ts';
 
 const deft = { ...AVERAGE, control: 1 };
@@ -146,10 +146,19 @@ describe('a dribbler keeps his own knocked-on ball', () => {
   //    not true the ball could never change hands at all - which is the failure this repository already
   //    measured from the other side, when a carrier who was never contested turned the game into a
   //    dribble in the middle third.
-  it('[Boundary] but a rival who is clearly nearer has won it', () => {
+  // ⚠️ THE CLAIM GAINED A WORD ON 2026-09-07: he has won it once he has KEPT it up. The ball used to go
+  //    to whoever was nearest on the tick, which made possession a coin tossed sixty times a second - see
+  //    `sim/possession` for the measurements. Being clearly nearer is still what makes him a challenger;
+  //    it is no longer what hands him the ball.
+  //
+  //    ⚠️ AND IT DRIVES `resolvePossession` RATHER THAN `playTick`, because a whole tick moves the two
+  //    bodies while it runs - the cascade steers them and the dribbling touch knocks the ball - so the
+  //    geometry set up before the call is not the geometry the resolution sees. Chasing that cost an
+  //    hour: the pressure reached its threshold exactly on schedule and the ball did not change hands.
+  it('[Boundary] but a rival who is clearly nearer, and stays there, has won it', () => {
     const { s, rival } = duel(1.2, 0.2);
 
-    playTick(s, emptyFrame(0), DT, MATCH_PROFILE);
+    for (let t = 0; t < PRESSURE_WINS + 1; t++) resolvePossession(s);
 
     expect(s.possession.holder).toBe(rival);
   });
