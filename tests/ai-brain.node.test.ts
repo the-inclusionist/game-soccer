@@ -439,7 +439,15 @@ describe('a match that plays itself', () => {
     expect(seen.has('crossedTouchline')).toBe(true);
     expect(seen.has('goalScored')).toBe(true);
     expect(seen.size).toBeGreaterThanOrEqual(4);
-  });
+    // 🔴 TWENTY SECONDS, AND THE NUMBER RAISED IS THE ONE THAT WAS ARBITRARY. This case timed out at the
+    //    5 000 ms DEFAULT the first time CI ever ran this repository — it finished in 5 292 ms on a shared
+    //    two-core runner and in under four seconds here.
+    //    ⚠️ Raising a limit is usually the wrong answer, and this is the exception that proves why the rule
+    //    exists: the rule refuses it for work that does not CONVERGE. This work is deterministic and bounded
+    //    — 120 000 ticks, three club pairs of forty thousand, and the comment above justifies every one of
+    //    them. Nothing here waits, retries or polls; the default was simply set for cases that do less.
+    //    📌 Per-case rather than global: a global bump would hide the next case that hangs for a real reason.
+  }, 20_000);
 });
 
 describe('a practice session', () => {

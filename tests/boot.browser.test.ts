@@ -9,7 +9,7 @@
 // ========================= AND WHY `problems` IS ASSERTED EMPTY =========================
 // When the shell is missing an id the engine needs, the borrowed panels open EMPTY, with no error. That
 // is why `createGame` returns a list instead of throwing - and a list nobody reads is a comment.
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 import { bootar } from '../app/js/boot/main.ts';
 import { SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
@@ -131,6 +131,29 @@ async function waitFor(what: () => boolean, why: string, timeoutMs = 6000): Prom
 }
 
 let booted: ReturnType<typeof bootar> = null;
+
+// ========================= 🔴 THE LANGUAGE IS PINNED, AND IT WAS NOT =========================
+// CI ran this repository for the first time ever on 2026-09-08 and five cases in this file failed with
+// `expected 'Practice' to be 'Treino'` and `expected 'You won!' to be 'Você ganhou!'`. Nothing was broken:
+// the runner's `navigator.language` is `en-US`, the engine's `pickDefault()` reads it when nothing is
+// stored, and the game came up in English. On the Dev's machine it is pt-BR, so the file had been asserting
+// the MACHINE for as long as it existed.
+//
+// 📌 PINNED RATHER THAN COMPARED THROUGH `t()`, and the difference matters: `t('title.practice')` on both
+// sides would measure the round trip through one table, and the two halves would move together. A literal
+// pins the string a child actually reads — it just has to be the string of a KNOWN language, which is what
+// storing the key does. It is the same fix the engine took for its own boot-language defect the same day.
+const LANG_KEY = 'incl_lang';
+let langAntes: string | null = null;
+
+beforeAll(() => {
+  langAntes = localStorage.getItem(LANG_KEY);
+  localStorage.setItem(LANG_KEY, 'pt');
+});
+afterAll(() => {
+  if (langAntes === null) localStorage.removeItem(LANG_KEY);
+  else localStorage.setItem(LANG_KEY, langAntes);
+});
 
 beforeEach(() => {
   booted?.stop();
@@ -508,7 +531,13 @@ describe('what a child sees', () => {
 
     try {
       booted = bootar(document, window);
-      await new Promise((r) => setTimeout(r, 300));
+      // 🔴 WAIT FOR THE POLL, NOT FOR THE CLOCK. This was `setTimeout(300)`, and it failed the first time
+      //    CI ever ran this repository: on a shared two-core runner the engine had not polled the pad yet,
+      //    so `padCur[0]` was still undefined and the assertion read `expected undefined to be true`.
+      //    ⚠️ A fixed sleep asserts the SPEED of the machine, and the fix is not a bigger number — the next
+      //    slower runner would need a bigger one still. `waitFor` is already this file's answer, used four
+      //    lines below for the second half of this very case; it just had not been used for the first.
+      await waitFor(() => padCur[0]?.right === true, 'the engine to poll the pad it was given');
 
       expect(padCur[0]?.right).toBe(true);
       expect(padCur[0]?.left).toBe(false);
