@@ -38,9 +38,35 @@
 // she was nine metres away from it when it crossed - so it left her and ran out with nobody else involved.
 //
 // ⚠️ WHAT THAT MEANS FOR EVERY NUMBER TAKEN "WITH A CHILD PLAYING": the throw-in count is a fact about
-// this harness before it is a fact about the game, and it must not be tuned against. The other counts are
-// not implicated - her side's share of goals, corners, fouls and offsides tracks the away side's - but
-// this one is hers alone, and `tests/full-match`'s throw-in figure has been carrying it.
+// this harness before it is a fact about the game, and it must not be tuned against.
+//
+// ========================= ⚠️ AND THE SENTENCE THAT USED TO SIT HERE WAS WRONG =========================
+// It said: "the other counts are not implicated - her side's share of goals, corners, fouls and offsides
+// tracks the away side's". That was asserted and not measured, and it is kept here rather than deleted
+// because the correction is the more useful half. Measured over the same six fixtures:
+//
+//     slate              goals home / away   of her side's goals, last touched by HER   corners home / away
+//     nobody playing                13 / 16                                          5                0 / 8
+//     a child playing               27 /  1                                         24               0 / 10
+//
+// ⚠️ THE HARNESS SCORES TWENTY-FOUR OF THE TWENTY-EIGHT GOALS IN THE GAME, and the side it plays against
+// scores ONCE IN SIX MATCHES. With an empty chair the same two sides finish 13-16. One body out of
+// twenty-two, chasing the ball everywhere and shooting inside twenty-two metres, both scores almost
+// everything and flattens the opposing attack.
+//
+// ⚠️ SO THIS HARNESS DOES NOT UNDERSTATE A CHILD, WHICH IS WHAT THE PARAGRAPH ABOVE CLAIMS. It understates
+// her in one way - she never presses switch - and MASSIVELY overstates her in another, because a real
+// child drives one body and this one is always exactly where the ball is. Both halves are true at once and
+// only the first was written down.
+//
+// ⚠️ AND THAT IS WHAT "GOALS 4.00 AGAINST A BAND OF 2 TO 3" HAS BEEN MEASURING. The Dev's bands belong to
+// a played match and this is the only played match this repository can produce, so the number is not
+// wrong so much as it is about the wrong player. Nothing should be tuned against it until there is a
+// harness whose scoring share looks like a child's.
+//
+// ⚠️ AND ONE MORE THING THE SAME MEASUREMENT TURNED UP, unexplained and worth somebody's attention: the
+// HOME side is awarded no corner at all, in either condition, across six fixtures. Eighteen corners in the
+// slate and every one of them away. That is not the harness - it happens with an empty chair too.
 //
 // ⚠️ AND THE MECHANISM IS NOT MEASURED, WHICH IS SAID PLAINLY RATHER THAN GUESSED AT. The shape matches a
 // defect this repository has already recorded once, in `sim/state` beside `tookRestart`: a body that has
