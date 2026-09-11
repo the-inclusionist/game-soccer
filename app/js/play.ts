@@ -424,6 +424,35 @@ export function playTick(
  * ⚠️ AND THAT WAIT IS THE ACCESSIBILITY AFFORDANCE, not a missing feature. A dead ball gives a child
  * using switch scanning all the time in the world to decide, which is WCAG 2.2.1 met by the shape of the
  * game rather than by a setting somebody has to find in a menu.
+ *
+ * ========================= ⚠️ AND THIS FUNCTION IS ALREADY THE CELEBRATION =========================
+ * The absorption plan's item L asks for "a celebration as a timed beat where the conceding side is not
+ * frozen", on the reasoning that a goal does not yet feel like a goal. Measured 2026-09-11 over the
+ * six-fixture slate, counting the length of every stoppage:
+ *
+ *     slate              stoppages   p50   p90   max     GOAL stoppages   p50   max
+ *     nobody playing           140    78   132   198                 22   126   137
+ *     a child playing          193    76   126   216                 19   129   139
+ *
+ * A goal already stops the match for about 130 ticks - two and a fifth seconds - and it is the LONGEST
+ * kind of stoppage the game has, half as long again as the median restart. The beat exists; what it is
+ * made of is the eleven bodies of the conceding side walking back to kick off, which is what football
+ * does and is exactly what item L describes.
+ *
+ * ⚠️ SO ADDING A TIMED CELEBRATION WOULD CREATE THE WCAG PROBLEM THE SAME ITEM WARNS ABOUT. Its own
+ * access clause says «a four-second cutscene she cannot skip is a timing she did not agree to. It needs a
+ * skip, and in turn-based mode it needs to not exist at all.» A fixed minimum on top of this wait is that
+ * cutscene, and it would need a skip and a mode exemption to undo a problem nothing has yet. What is here
+ * instead is bounded by the same mechanism as every other restart - somebody walks to the ball - and
+ * `tests/full-match` holds the ceiling at twenty seconds against a measured maximum of 216 ticks.
+ *
+ * ⚠️ AND IN TURN MODE IT ALREADY DOES NOT EXIST, which was checked rather than assumed:
+ * `drivers/driver.createTurnDriver` advances no time at all except inside a committed burst, so there is
+ * no stoppage a child sits through - the same construction by which that mode satisfies 2.2.1 outright.
+ *
+ * What item L was actually pointing at, and what was found by looking, is in `tests/stoppage` and in the
+ * i18n gate: the penalty phase had no word in any language, so the most dramatic stoppage in football
+ * read `hud.phase.penalty` in the mirror. A rule nobody is told about is weather.
  */
 function awaitingRestart(
   state: MatchState,
