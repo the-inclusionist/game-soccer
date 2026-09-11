@@ -46,6 +46,46 @@ import type { SideCaps } from './body.ts';
  */
 export const KEEPER_REACH = 2.6;
 
+// ========================= AND MAKING IT SITUATIONAL IS NOT THE NEXT MOVE, MEASURED =========================
+// The absorption plan puts "give the keeper a reach that grows with the shooter's distance and shrinks
+// with ball speed" FIRST, on the grounds that a constant is a binary filter sitting downstream of every
+// shooting-side change and unable to feel any of them. That reasoning is right and the conclusion does not
+// follow, which twelve fixtures said before a line of it was written.
+//
+// Every save in the slate, detected by this module's own signature - the keeper becomes `lastTouch` and
+// the ball is held by nobody - with the shooter read from `lastTouch` one tick earlier:
+//
+//                        saves   shooter distance p10/p50/p90   ball speed p10/p50/p90   ticks since last
+//     nobody playing       551          0.2 / 1.3 / 7.6 m         24.0 / 26.2 / 26.9        57
+//     a child playing      696          0.4 / 1.0 / 5.3 m         25.3 / 26.2 / 27.0         5
+//
+// ⚠️ THE SPEED AXIS IS NOT AN AXIS. Every shot arrives at between 24 and 27 metres a second; there is
+// nothing for a reach to discriminate on. Half of the model the plan describes has no live variable
+// behind it, and building it would be building a function of a constant.
+//
+// ⚠️ AND THE MEDIAN SHOT IS STRUCK FROM ONE METRE, which is not a shot - it is a body walking the ball
+// into him. At that range the time available is 38 milliseconds, a little over two ticks. No keeper
+// reacts to that and ours should not pretend to; a reach that shrank honestly at one metre would let
+// through nearly every one of these.
+//
+// ⚠️ AND THE MEDIAN GAP BETWEEN SAVES IS FIVE TICKS, which names what is actually happening. `sim/block`
+// recorded the identical signature for outfield bodies and used the identical words: "he shoots, somebody
+// absorbs it, it comes back, he shoots again", median FIVE ticks apart. So these are not fifty-eight shots
+// a match. They are a handful of attacks caught in a parry loop, counted once per bounce - and the p90 gap
+// of 324 ticks is the genuine, separated shots showing through underneath.
+//
+// ⚠️ SO THE KEEPER IS NOT MAGNETIC SO MUCH AS BESIEGED, and he is currently the only thing standing
+// between the loop and a scoreline nobody would believe. Taking his reach away first would not reveal
+// better football; it would convert a loop that ends in a parry into a loop that ends in a goal. What is
+// upstream is the shot volume at point-blank range - which `sim/block` also named, in writing, as "the
+// next thing, and it is upstream of everything measured here".
+//
+// The plan's ordering argument survives its own conclusion: the keeper DOES flatten every measurement
+// downstream. He is just not the first thing to move.
+//
+// Measured 2026-09-11 with `tests/helpers/scripted-child`, which is committed and gated precisely so the
+// next person can re-run this rather than re-derive it.
+
 /**
  * How much of the ball's forward pace survives being tipped.
  *
