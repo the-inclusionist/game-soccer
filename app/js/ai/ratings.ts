@@ -115,6 +115,41 @@ export function passErrorOf(passing: number): number {
   //
   // So the gate the plan asked for was written, measured, and NOT shipped: a gate asserting something
   // false is worse than none, and one asserting the flatness would freeze it.
+  // ========================= RE-MEASURED 2026-09-11, AND HALF OF THE ABOVE IS DEAD =========================
+  // ⚠️ THE 31% IS GONE AND IT WAS THE NUMBER EVERYTHING ELSE HUNG ON. `sim/possession` names the old
+  // per-tick possession model as the cause of it and then REPLACES that model, and nobody re-measured
+  // afterwards - so the tables above describe a build that no longer exists, and this file has been
+  // telling every later reader a fact about a different game. Same method, word for word: balls struck
+  // above `CONTROL_SPEED` by the home side, and who collected them.
+  //
+  //     passing   completed   of   rate
+  //       0.9         177     211   83.9%
+  //       0.7         150     203   73.9%
+  //       0.5         147     187   78.6%
+  //       0.3         155     198   78.3%
+  //       0.1         139     177   78.5%
+  //
+  // Completion is about FOUR IN FIVE, not one in three. The shield and sustained contact did exactly what
+  // they were chosen to do, and this game has had a passing game in it for days with its own source
+  // saying otherwise.
+  //
+  // ⚠️ AND THE RATING STILL DOES NOT MOVE IT, which is now established rather than merely repeated. The
+  // 0.9 row looked higher, so the two ends were re-run at FOUR TIMES the sample - four home clubs against
+  // eleven opponents each, 1456 passes:
+  //
+  //     passing   completed   of   rate
+  //       0.9         612     750   81.6%
+  //       0.3         554     706   78.5%
+  //
+  // A gap of 3.1 points against a standard error of 2.1: **1.49 standard errors**. And it SHRANK as the
+  // sample grew - 5.6 points at n=200, 3.1 at n=750 - which is the signature of noise rather than of a
+  // small real effect, because a real one holds its size and gains significance.
+  //
+  // ⚠️ SO THE PLAN'S GATE STILL CANNOT SHIP, BUT FOR A CURRENT REASON INSTEAD OF A STALE ONE. What
+  // survives of the old diagnosis is the mechanism: at 0.3 the error is 0.14 rad, which over a
+  // nine-metre pass is 1.26 m, and the receiver RUNS AT THE BALL - so the scatter is absorbed by his
+  // movement before it can decide anything. What dies with the 31% is the "88.7% of possession changes go
+  // to the other side" beside it, which belongs to the same vanished build.
   return (1 - passing) * 0.2;
 }
 
