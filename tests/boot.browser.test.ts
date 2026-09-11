@@ -12,6 +12,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 import { bootar } from '../app/js/boot/main.ts';
+import { msToTicks, quiet, ticks } from './helpers/ticks.ts';
 import { SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
 import { t } from '@the-inclusionist/engine/core/i18n.js';
 import { padCur } from '@the-inclusionist/engine/input/state.js';
@@ -232,7 +233,7 @@ describe('what a child sees', () => {
   it('[Right] the state of play reaches the DOM as text, because pillar 2 says it always does', async () => {
     booted = bootar(document, window);
 
-    await new Promise((r) => setTimeout(r, 350));
+    await ticks(booted, msToTicks(350));
 
     expect(document.querySelector('#m-score')?.textContent).toMatch(/^\d+ - \d+$/);
     expect(document.querySelector('#m-phase')?.textContent).not.toBe('-');
@@ -245,7 +246,7 @@ describe('what a child sees', () => {
   it('[Right] the match actually runs - the mirror is not still on its placeholder', async () => {
     booted = bootar(document, window);
 
-    await new Promise((r) => setTimeout(r, 900));
+    await ticks(booted, msToTicks(900));
 
     const shown = document.querySelector('#m-ball')?.textContent ?? '';
     expect(shown).not.toBe('-');
@@ -264,7 +265,7 @@ describe('what a child sees', () => {
   it('[Right] and which player she is driving, which lived only in pixels before', async () => {
     booted = bootar(document, window);
 
-    await new Promise((r) => setTimeout(r, 350));
+    await ticks(booted, msToTicks(350));
 
     const shown = document.querySelector('#m-you')?.textContent ?? '';
     expect(shown, 'the mirror never said who the child is').not.toBe('-');
@@ -283,7 +284,7 @@ describe('what a child sees', () => {
   //    run, and drift the first time the two were read on different ticks.
   it('[Right] the shirt number drawn on the pitch is the one the mirror names', async () => {
     booted = bootar(document, window);
-    await new Promise((r) => setTimeout(r, 350));
+    await ticks(booted, msToTicks(350));
 
     const shown = document.querySelector('#m-you')?.textContent ?? '';
     const shirt = (booted!.state.controlled[0] % 11) + 1;
@@ -299,7 +300,7 @@ describe('what a child sees', () => {
   //    `input/keymap.codeFromKey` says so. This gate measures the floor, not the hazard.
   it('[Right] a key event carrying no code still moves her body, and is swallowed', async () => {
     booted = bootar(document, window);
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
 
     const region = document.querySelector('#game-region') as HTMLElement;
     const up = booted!.keymap().up[0];
@@ -318,7 +319,7 @@ describe('what a child sees', () => {
   //    every keystroke would take it - silently, and only from the child using the keyboard to get around.
   it('[Boundary] but a key the game does not bind is left to the page', async () => {
     booted = bootar(document, window);
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
 
     const region = document.querySelector('#game-region') as HTMLElement;
     const ev = new KeyboardEvent('keydown', { key: 'Tab', code: '', bubbles: true, cancelable: true });
@@ -340,7 +341,7 @@ describe('what a child sees', () => {
   it('[Right] and who a press of switch would hand her', async () => {
     booted = bootar(document, window);
 
-    await new Promise((r) => setTimeout(r, 350));
+    await ticks(booted, msToTicks(350));
 
     const shown = document.querySelector('#m-hint')?.textContent ?? '';
     expect(shown, 'the mirror never said who a switch would give her').not.toBe('');
@@ -357,7 +358,7 @@ describe('what a child sees', () => {
   it('[Right] and where the ball could go next, as a list a screen reader can step through', async () => {
     booted = bootar(document, window);
 
-    await new Promise((r) => setTimeout(r, 350));
+    await ticks(booted, msToTicks(350));
 
     const list = document.querySelector('#m-options');
     expect(list, 'the options list is not in the page').not.toBeNull();
@@ -386,7 +387,7 @@ describe('what a child sees', () => {
   it('[Zero] in real time the turn panel stays hidden - it is not a second interface always on', async () => {
     booted = bootar(document, window);
 
-    await new Promise((r) => setTimeout(r, 300));
+    await ticks(booted, msToTicks(300));
 
     const panel = document.querySelector('.turn-panel') as HTMLElement;
     expect(panel.hidden).toBe(true);
@@ -401,7 +402,7 @@ describe('what a child sees', () => {
     // The clock advances every tick, so it separates a stopped match from a quiet one.
     const read = () => document.querySelector('#m-clock')?.textContent ?? '';
 
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
     const liveStart = read();
     await waitFor(() => read() !== liveStart, 'real time to move the clock');
     const liveEnd = read();
@@ -410,9 +411,11 @@ describe('what a child sees', () => {
     select.value = 'turn';
     select.dispatchEvent(new Event('change'));
 
-    await new Promise((r) => setTimeout(r, 200));
+    // ⚠️ WALL CLOCK FROM HERE, because the claim is that the world does NOT move. `ticks()` would wait
+    //    for a tick that is never coming and fail its own timeout, which is this assertion inverted.
+    await quiet(200);
     const turnStart = read();
-    await new Promise((r) => setTimeout(r, 900));
+    await quiet(900);
 
     expect(liveEnd, 'real time did not move; the assertion below would prove nothing').not.toBe(
       liveStart,
@@ -430,7 +433,8 @@ describe('what a child sees', () => {
     select.value = 'turn';
     select.dispatchEvent(new Event('change'));
 
-    await new Promise((r) => setTimeout(r, 300));
+    // Wall clock: in the turn mode nothing advances until a decision is committed.
+    await quiet(300);
     const before = document.querySelector('#m-clock')?.textContent ?? '';
 
     // Two decisions, because ONE burst is forty-five ticks - three quarters of a second - and the clock
@@ -444,7 +448,10 @@ describe('what a child sees', () => {
     };
 
     press();
-    await new Promise((r) => setTimeout(r, 120));
+    // Wall clock, and for the PANEL rather than for the world: this gap lets the turn panel rebuild
+    // between two presses. In a clockless match the world moves only on a commit, so waiting for a tick
+    // here would be waiting for the thing the second press is about to cause.
+    await quiet(120);
     press();
     await waitFor(
       () => (document.querySelector('#m-clock')?.textContent ?? before) !== before,
@@ -473,7 +480,7 @@ describe('what a child sees', () => {
 
     session.value = 'practice';
     session.dispatchEvent(new Event('change'));
-    await new Promise((r) => setTimeout(r, 60));
+    await ticks(booted, msToTicks(60));
 
     expect(asMatch).toMatch(/ x /);
     expect(ranFor, 'the match never ran, so the reset below proves nothing').not.toBe('00:00');
@@ -487,9 +494,9 @@ describe('what a child sees', () => {
     session.value = 'practice';
     session.dispatchEvent(new Event('change'));
 
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
     const before = document.querySelector('#m-clock')?.textContent;
-    await new Promise((r) => setTimeout(r, 1200));
+    await ticks(booted, msToTicks(1200));
 
     expect(document.querySelector('#m-clock')?.textContent).not.toBe(before);
   });
@@ -566,13 +573,13 @@ describe('what a child sees', () => {
   it('[Right] asking for the sonar actually sounds it', async () => {
     booted = bootar(document, window);
     const region = document.querySelector('#game-region') as HTMLElement;
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
     const before = booted?.motor.sonar.sonarCount ?? -1;
 
     region.dispatchEvent(
       new KeyboardEvent('keydown', { code: 'KeyF', bubbles: true, cancelable: true }),
     );
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
 
     expect(booted?.motor.sonar.sonarCount).toBeGreaterThan(before);
   });
@@ -582,14 +589,14 @@ describe('what a child sees', () => {
   it('[Boundary] holding the key does not sound it again and again', async () => {
     booted = bootar(document, window);
     const region = document.querySelector('#game-region') as HTMLElement;
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
 
     region.dispatchEvent(
       new KeyboardEvent('keydown', { code: 'KeyF', bubbles: true, cancelable: true }),
     );
-    await new Promise((r) => setTimeout(r, 100));
+    await ticks(booted, msToTicks(100));
     const afterFirst = booted?.motor.sonar.sonarCount ?? -1;
-    await new Promise((r) => setTimeout(r, 600));
+    await ticks(booted, msToTicks(600));
 
     expect(booted?.motor.sonar.sonarCount).toBe(afterFirst);
   });
@@ -720,7 +727,7 @@ describe('what a child sees', () => {
     );
 
     (document.querySelector('#end-again') as HTMLButtonElement).click();
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
 
     expect((document.querySelector('#end-panel') as HTMLElement).hidden).toBe(true);
     expect(booted!.state.goals).toEqual([0, 0]);
@@ -739,7 +746,7 @@ describe('what a child sees', () => {
     booted = bootar(document, window);
 
     // The scale is the boot's own choice - a whole multiple of 320x180, the only one ADR-0001 permits.
-    await new Promise((r) => setTimeout(r, 1500));
+    await ticks(booted, msToTicks(1500));
     await page.screenshot({ path: 'pitch.png' });
 
     expect(document.querySelectorAll('#pitch canvas')).toHaveLength(1);
@@ -776,7 +783,7 @@ describe('what a child sees', () => {
       booted.state.ball.p = { x: 45, y: 18, z: 0 };
       booted.state.ball.v = { x: 0, y: 0, z: 0 };
     }, 8);
-    await new Promise((r) => setTimeout(r, 2500));
+    await ticks(booted, msToTicks(2500));
     await page.screenshot({ path: 'stands.png' });
     window.clearInterval(pin);
 
@@ -803,7 +810,7 @@ describe('what a child sees', () => {
       booted.state.ball.p = { x: 12, y: 28, z: 0 };
       booted.state.ball.v = { x: 0, y: 0, z: 0 };
     }, 8);
-    await new Promise((r) => setTimeout(r, 4000));
+    await ticks(booted, msToTicks(4000));
     await page.screenshot({ path: 'goalmouth.png' });
     window.clearInterval(pin);
 
@@ -838,7 +845,7 @@ describe('what a child sees', () => {
 describe('when a frame throws', () => {
   it('[Right] the loop stops and the child is told', async () => {
     booted = bootar(document, window);
-    await new Promise((r) => setTimeout(r, 300));
+    await ticks(booted, msToTicks(300));
 
     const ranBefore = booted!.state.tick;
     expect(ranBefore, 'the match never started, so stopping it proves nothing').toBeGreaterThan(0);
@@ -848,9 +855,10 @@ describe('when a frame throws', () => {
     //    handler by the same path a defect would.
     (booted!.state as { players: unknown }).players = null;
 
-    await new Promise((r) => setTimeout(r, 400));
+    // Wall clock: the loop has just been made to throw, so waiting for a tick would wait for ever.
+    await quiet(400);
     const ranAfter = booted!.state.tick;
-    await new Promise((r) => setTimeout(r, 300));
+    await quiet(300);
 
     expect(booted!.state.tick, 'the loop kept running after it threw').toBe(ranAfter);
     expect(document.querySelector('#sr-alert')?.textContent ?? '', 'it broke in silence').not.toBe('');
