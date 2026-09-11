@@ -16,6 +16,7 @@
 // does not survive the service worker, and the axe gate stops being "not one exclusion".
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bootar } from '../app/js/boot/main.ts';
+import { msToTicks, ticks } from './helpers/ticks.ts';
 import { t } from '@the-inclusionist/engine/core/i18n.js';
 import { toggleLibras, vlibrasOpen } from '@the-inclusionist/engine/ui/vlibras.js';
 
@@ -151,7 +152,7 @@ describe('what it is given to translate', () => {
 
     scoreAGoal();
     await waitFor(() => (document.querySelector('#sr-alert')?.textContent ?? '') !== '', 'the goal');
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
 
     expect(said).toEqual([]);
   });

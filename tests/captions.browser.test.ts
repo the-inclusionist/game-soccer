@@ -16,6 +16,7 @@
 // announcement in half. The caption is for eyes that cannot hear.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bootar } from '../app/js/boot/main.ts';
+import { msToTicks, ticks } from './helpers/ticks.ts';
 import { t } from '@the-inclusionist/engine/core/i18n.js';
 import { setCaptionsOnValue, captionsOn } from '@the-inclusionist/engine/core/state.js';
 
@@ -136,7 +137,7 @@ describe('what a deaf child reads', () => {
     scoreAGoal();
 
     await waitFor(() => alerted() !== '', 'the goal to be announced');
-    await new Promise((r) => setTimeout(r, 200));
+    await ticks(booted, msToTicks(200));
 
     expect(caption()).toBe('');
   });

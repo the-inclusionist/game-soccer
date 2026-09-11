@@ -12,6 +12,7 @@
 // on the module, which is why these live here.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bootar } from '../app/js/boot/main.ts';
+import { msToTicks, ticks } from './helpers/ticks.ts';
 
 const SHELL_SRC = await import('./boot.browser.test.ts?raw');
 const SHELL = (() => {
@@ -253,7 +254,13 @@ describe('the charge, in a running match', () => {
       if (s > peak) peak = s;
     }, 8);
     region.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
-    await new Promise((r) => setTimeout(r, held));
+    // ⚠️ AND THE HOLD ITSELF IS COUNTED IN TICKS, which is the half this file had not fixed. The note
+    //    below already records that a fixed sleep AFTER the key comes up failed inside the whole suite;
+    //    the hold in front of it was the same bet with the same odds, and it is the one that decides the
+    //    POWER. A charge accumulates once a frame, so holding for a number of milliseconds asks for a
+    //    number of frames the machine may not deliver: measured, a 350 ms window contains 22 ticks alone
+    //    and 6 under the browser project. That is what the 15.04-against-15.33 flake recorded here was.
+    await ticks(booted, msToTicks(held));
     region.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
 
     // ⚠️ IT WAITS FOR THE BALL, NOT FOR THE CLOCK. A fixed sleep after the key comes up passed alone and

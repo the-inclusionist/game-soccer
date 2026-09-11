@@ -23,6 +23,7 @@ import axe from 'axe-core';
 // failure it invents is worse than the one it misses, because somebody will "fix" the component.
 import '../app/css/game.css';
 import { bootar } from '../app/js/boot/main.ts';
+import { msToTicks, quiet, ticks } from './helpers/ticks.ts';
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
@@ -159,7 +160,7 @@ async function waitFor(what: () => boolean, why: string, timeoutMs = 8000): Prom
 describe('the running game', () => {
   it('[Interface] reports ZERO WCAG A and AA violations, with no exclusions at all', async () => {
     booted = bootar(document, window);
-    await new Promise((r) => setTimeout(r, 400));
+    await ticks(booted, msToTicks(400));
 
     expect(await violationsNow()).toEqual([]);
   });
@@ -234,7 +235,9 @@ describe('the running game', () => {
     const select = document.querySelector('#mode') as HTMLSelectElement;
     select.value = 'turn';
     select.dispatchEvent(new Event('change'));
-    await new Promise((r) => setTimeout(r, 400));
+    // Wall clock: in the turn mode no time passes without a commit, so waiting for a tick would wait for
+    // one that is never coming. What this needs is for the PANEL to be on the page, and that is a render.
+    await quiet(400);
 
     expect(await violationsNow()).toEqual([]);
   });
