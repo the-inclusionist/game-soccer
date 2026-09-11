@@ -338,6 +338,32 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     srSay,
     srAlert,
     frontOverlay: () => {},
+    // ========================= ⚠️ THE PAUSE IS A FOUR-PIECE WIRE AND THIS GAME HAS NONE OF IT =========================
+    // These four stubs, the `pauseHost` this shell never passes, and `getPauseActs` - which engine 9.0.0
+    // added on 2026-09-11 - are one feature, and it is worth writing the whole chain down because the new
+    // field reads like the missing piece and is actually the LAST piece.
+    //
+    // 📏 Measured 2026-09-11, in order:
+    //   1. `drivers/driver` declares `paused` and `advance()` reads it - `if (driver.paused) return 0` -
+    //      and NOTHING IN THIS REPOSITORY EVER WRITES IT. A pause that cannot be engaged. That is the
+    //      eleventh instance of a thing that is right with no wire, and this one is ours.
+    //   2. `pausar` and `retomar` below are the engine's door to it, and they are empty.
+    //   3. `host.pauseHost` is never passed, so `createGame` mounts no pause card at all - which is why
+    //      `menuDePausa: () => false` has stayed honest by accident rather than by design.
+    //   4. And only then does `getPauseActs` matter: without a card there is nothing for its table to act
+    //      on. 9.0.0's note says the worst cost of its absence is that `entrarNaBarra` calls
+    //      `acts.resume?.()` to leave the card before handing the directional to the accessibility bar -
+    //      so item 7 of ADR-0044 is unreachable. In THIS game the bar is mounted and the card is not, so
+    //      that particular consequence needs re-measuring here rather than inherited.
+    //
+    // ⚠️ AND THE SEVEN ITEMS ARE A DECISION, NOT A TABLE TO FILL IN. ADR-0106 §5 forbids a dead button and
+    // the engine enforces it - `itensQueAccionam` hides what the game cannot action - so each of the seven
+    // has to be answered honestly. `resume` this game plainly can. `quit` has nowhere to go: there is no
+    // title scene, and a "quit" that restarts the match is a different verb wearing the word. The engine
+    // actions three of them itself (`options`, `pmback`, `acessibilidade`, read from `ITENS_DA_ENGINE`),
+    // which leaves the rest to be decided one at a time against what a child would expect to happen.
+    //
+    // So the order is 1, 2, 3, then 4 - and step 1 is a defect that stands on its own.
     mundoRodando: () => true,
     menuDePausa: () => false,
     pausar: () => {},
