@@ -198,8 +198,16 @@ function skyTexture(app: PIXI.Application, w: number, h: number): PIXI.Texture {
 
 function ballTexture(app: PIXI.Application): PIXI.Texture {
   const g = new PIXI.Graphics();
-  g.beginFill(OUTLINE).drawRect(0, 0, 5 * ART, 5 * ART).endFill();
-  g.beginFill(0xffffff).drawRect(1 * ART, 1 * ART, 3 * ART, 3 * ART).endFill();
+  // ⚠️ IT WAS TWO NESTED SQUARES AND IT READ AS A BOX. At five pixels across, a square with a darker
+  //    border IS a ball - there is no room for it to be anything else, and the eye supplies the curve. At
+  //    ten there is room, and the eye stops supplying it: the first frame captured after the camera
+  //    doubled has a white CRATE sitting on the halfway line. Same plan, twice the size, and the shape
+  //    stopped meaning what it meant - which is the whole argument of `docs/FIGURE-SPEC` for why 26
+  //    pixels is room for a different figure rather than the same one enlarged, arriving early and on
+  //    the one sprite nobody was going to redraw.
+  const r = (5 * ART) / 2;
+  g.beginFill(OUTLINE).drawCircle(r, r, r).endFill();
+  g.beginFill(0xffffff).drawCircle(r, r, r - ART).endFill();
   return app.renderer.generateTexture(g);
 }
 
@@ -260,8 +268,15 @@ function pitchTexture(app: PIXI.Application): { texture: PIXI.Texture; at: { x: 
     g.beginFill(shade).drawRect(m.x + band * 6 * SX, m.top, 6 * SX, PITCH.width * SY).endFill();
   }
 
+  // ⚠️ THE FLOOR IS `ART` AND NOT 1, AND LOOKING AT THE PITCH IS WHAT FOUND IT. A touchline is one
+  //    pixel of a 56-metre width, so the floor is what actually draws it - and at the doubled camera a
+  //    one-pixel line does proportionally half the work it did, which is the same thinning the outline
+  //    around a figure suffers. The markings stopped reading as markings before any gate noticed,
+  //    because no gate asks what a line LOOKS like.
   const line = (x: number, y: number, w: number, h: number) => {
-    g.beginFill(0xe8f0e8, 0.75).drawRect(Math.round(x), Math.round(y), Math.max(1, w), Math.max(1, h)).endFill();
+    g.beginFill(0xe8f0e8, 0.75)
+      .drawRect(Math.round(x), Math.round(y), Math.max(ART, w), Math.max(ART, h))
+      .endFill();
   };
 
   // ⚠️ EVERY LINE COMES FROM `render/pitch-marks`, IN METRES, and none of them is a number typed here.
@@ -281,7 +296,11 @@ function pitchTexture(app: PIXI.Application): { texture: PIXI.Texture; at: { x: 
   }
 
   const circle = centreCircle();
-  g.lineStyle(1, 0xe8f0e8, 0.75);
+  // ⚠️ AND THE CENTRE CIRCLE WAS THE WORST OF IT: a one-pixel stroke on an ellipse this large broke
+  //    into dashes, so the circle read as a dotted line rather than a line. It is the one marking drawn
+  //    with a stroke instead of filled rectangles, which is why it thinned differently and why it went
+  //    first.
+  g.lineStyle(ART, 0xe8f0e8, 0.75);
   g.drawEllipse(m.x + circle.x * SX, m.top + circle.y * SY, circle.r * SX, circle.r * SY);
   g.lineStyle(0);
 
