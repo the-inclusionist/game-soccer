@@ -272,6 +272,42 @@ describe('what a child sees', () => {
     expect(shown, `no shirt number in "${shown}"`).toMatch(/\d/);
   });
 
+  // ⚠️ A KEY EVENT WITH NO PHYSICAL CODE STILL REACHES THE GAME. `code` is the right thing to read and
+  //    this does not stop reading it; the floor is for the case where it arrives EMPTY, which today is
+  //    recognised by nothing and therefore swallowed by nothing - the child gets neither her control nor
+  //    an explanation, and the page keeps the keystroke.
+  // ⚠️ WHETHER REAL ASSISTIVE TECHNOLOGY PRODUCES SUCH AN EVENT IS UNMEASURED, and the header of
+  //    `input/keymap.codeFromKey` says so. This gate measures the floor, not the hazard.
+  it('[Right] a key event carrying no code still moves her body, and is swallowed', async () => {
+    booted = bootar(document, window);
+    await new Promise((r) => setTimeout(r, 200));
+
+    const region = document.querySelector('#game-region') as HTMLElement;
+    const up = booted!.keymap().up[0];
+    const key = up.startsWith('Key') ? up.slice(3).toLowerCase() : up;
+
+    const ev = new KeyboardEvent('keydown', { key, code: '', bubbles: true, cancelable: true });
+    region.dispatchEvent(ev);
+
+    expect(ev.defaultPrevented, `a "${key}" with no code was not claimed by the game`).toBe(true);
+
+    region.dispatchEvent(new KeyboardEvent('keyup', { key, code: '', bubbles: true, cancelable: true }));
+  });
+
+  // ⚠️ AND IT MUST NOT SWALLOW MORE THAN IT PLAYS, which is the assertion that stops the floor becoming
+  //    a trapdoor. Tab is the key a child navigating the page cannot lose, and a fallback that claimed
+  //    every keystroke would take it - silently, and only from the child using the keyboard to get around.
+  it('[Boundary] but a key the game does not bind is left to the page', async () => {
+    booted = bootar(document, window);
+    await new Promise((r) => setTimeout(r, 200));
+
+    const region = document.querySelector('#game-region') as HTMLElement;
+    const ev = new KeyboardEvent('keydown', { key: 'Tab', code: '', bubbles: true, cancelable: true });
+    region.dispatchEvent(ev);
+
+    expect(ev.defaultPrevented, 'the game swallowed Tab, which a child needs to navigate').toBe(false);
+  });
+
   // ⚠️ AND WHO A PRESS OF SWITCH WOULD HAND HER, which on screen is a hollow chevron over another body
   //    and for a blind child is only this line. The mark is the one channel she cannot have, so the
   //    sentence is not a caption beside the picture - it IS the hinted switch, for her.

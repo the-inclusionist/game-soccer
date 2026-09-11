@@ -46,7 +46,7 @@ import * as engineState from '@the-inclusionist/engine/core/state.js';
 import { toggleLibras, vlibrasOpen, vlibrasSay, vlTick } from '@the-inclusionist/engine/ui/vlibras.js';
 import { createSound } from '../audio/sound.ts';
 import * as store from '@the-inclusionist/engine/platform/storage.js';
-import { indexOf, loadKeymap, saveKeymap, type Keymap, type Seating } from '../input/keymap.ts';
+import { codeFromKey, indexOf, loadKeymap, saveKeymap, type Keymap, type Seating } from '../input/keymap.ts';
 import { createControlsPanel } from '../ui/controls-panel.ts';
 import { chargeRouteFor, createAssistsPanel, DEFAULT_ASSISTS, type Assists } from '../ui/assists-panel.ts';
 import { oneButton } from '@the-inclusionist/engine/core/state.js';
@@ -241,17 +241,32 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   const belongsToAGame = (code: string): boolean =>
     keymaps.slice(0, seating).some((m) => indexOf(m).has(code));
 
+  // ⚠️ THE PHYSICAL KEY, OR THE BEST NAME FOR IT WHEN THE EVENT CARRIES NONE. `code` is the right thing
+  //    to read and this is not a retreat from it - it is layout-independent and it is what both of the
+  //    engine's keyboard tables are keyed by. But an event with an EMPTY code is recognised by nothing
+  //    here, so it is also SWALLOWED by nothing: the child gets neither her control nor an explanation,
+  //    and the page quietly keeps the keystroke. `codeFromKey` asks the live map which physical key that
+  //    `key` could only have been, and refuses when more than one answer is bound.
+  // ⚠️ AND WHETHER REAL ASSISTIVE TECHNOLOGY PRODUCES SUCH AN EVENT IS UNMEASURED. Seen once, in a
+  //    browser automation harness driving somebody else's game. It is a floor, not a fix.
+  const codeOf = (ev: KeyboardEvent): string =>
+    ev.code !== '' && ev.code !== undefined ? ev.code : (codeFromKey(ev.key, belongsToAGame) ?? '');
+
   region?.addEventListener('keydown', (e) => {
     const ev = e as KeyboardEvent;
-    if (!belongsToAGame(ev.code)) return;
-    down.add(ev.code);
+    const code = codeOf(ev);
+    if (!belongsToAGame(code)) return;
+    down.add(code);
     // Only keys the game actually reads are swallowed. A blanket preventDefault would take Tab away from
     // a child navigating with it, which is the one key she must never lose.
     ev.preventDefault();
   });
   region?.addEventListener('keyup', (e) => {
     const ev = e as KeyboardEvent;
-    if (belongsToAGame(ev.code)) down.delete(ev.code);
+    // ⚠️ THE SAME RESOLUTION ON THE WAY UP, or a key that arrived by the fallback would never be let go
+    //    of - held for the rest of the match, with her body running in one direction for ever.
+    const code = codeOf(ev);
+    if (belongsToAGame(code)) down.delete(code);
   });
   // A held key with the window unfocused would stay held forever, so the world lets go when it does.
   win.addEventListener('blur', () => down.clear());

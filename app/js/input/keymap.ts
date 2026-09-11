@@ -179,6 +179,65 @@ export function forgetKeymap(store: KeymapStore): Keymap {
 }
 
 /**
+ * The physical keys a `key` value could have come from, in no particular order.
+ *
+ * ⚠️ ONLY THE COLLISIONS NEED A TABLE. A letter is `Key` plus itself and an arrow is already its own
+ * code; what needs writing down is the handful of characters that TWO physical keys produce, because the
+ * main row and the numpad both carry digits and both carry some punctuation. The list is the numpad's
+ * own symbols and nothing else, so it cannot drift from a keyboard it does not describe.
+ */
+const TWO_KEYS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  "/": Object.freeze(["Slash", "Divide"]),
+  "*": Object.freeze(["Multiply"]),
+  "+": Object.freeze(["Add"]),
+  "-": Object.freeze(["Minus", "Subtract"]),
+  ".": Object.freeze(["Period", "Decimal"]),
+  "=": Object.freeze(["Equal"]),
+  ",": Object.freeze(["Comma"]),
+  ";": Object.freeze(["Semicolon"]),
+  "[": Object.freeze(["BracketLeft"]),
+  "]": Object.freeze(["BracketRight"]),
+  "`": Object.freeze(["Backquote"]),
+});
+
+/**
+ * WHICH PHYSICAL KEY A `key` VALUE MEANT, when the event carried no `code` - or `null`.
+ *
+ * ⚠️ READING `code` IS RIGHT AND THIS IS NOT A RETREAT FROM IT. The physical key is layout-independent
+ * and it is what both of the engine's keyboard tables are keyed by. This is a floor under the case where
+ * it arrives EMPTY: `boot/main` recognises nothing, so it swallows nothing, and the child gets neither
+ * her control nor an explanation.
+ *
+ * ⚠️ AND WHETHER REAL ASSISTIVE TECHNOLOGY HITS THIS IS UNMEASURED. It was reasoned about and seen
+ * exactly once, in a browser automation harness driving somebody else's game, which is not a child and
+ * not a switch. Most assistive technology injects at the operating system level and fills `code` in like
+ * any other keyboard. Calling this an accessibility fix would be the overclaim this repository has had to
+ * correct before - it is a floor, and the measurement that would make it a finding is to drive a real
+ * switch-access stack at the game and look.
+ *
+ * ⚠️ THE LIVE KEYBOARD IS THE JUDGE, not a table in here. A candidate is accepted only if this child's
+ * map actually binds it, which is what keeps the guess from claiming keys the game does not use.
+ *
+ * ⚠️ AND AMBIGUITY IS REFUSED RATHER THAN RESOLVED. "7" is `Digit7` or `Numpad7`, and the two-seat
+ * scheme binds both - the first child's shoulders are digits, the second child's are numpad. Picking one
+ * would hand a child the OTHER child's control: a defect that works, and therefore one nobody reports.
+ * Refusing makes the key do nothing, which is visible and can be described out loud.
+ */
+export function codeFromKey(key: string, bound: (code: string) => boolean): string | null {
+  if (key === "") return null;
+
+  const candidates: string[] = [];
+  if (key === " ") candidates.push("Space");
+  else if (key.length === 1 && key >= "0" && key <= "9") candidates.push("Digit" + key, "Numpad" + key);
+  else if (key.length === 1 && key.toLowerCase() !== key.toUpperCase()) candidates.push("Key" + key.toUpperCase());
+  else if (key.length === 1) candidates.push(...(TWO_KEYS[key] ?? []));
+  else candidates.push(key);
+
+  const live = candidates.filter(bound);
+  return live.length === 1 ? live[0] : null;
+}
+
+/**
  * The arrows, as glyphs.
  *
  * ⚠️ THE ENGINE WRITES ALL FOUR AS `↔`, which is the horizontal double arrow - so "move up" and "move
