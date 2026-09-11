@@ -80,6 +80,9 @@ export interface Booted {
    * widget is only one possible translator for her.
    */
   readonly onSigned: (fn: (text: string) => void) => void;
+  /** Hold the world still, and let it go again. The engine's `pausar` and `retomar`, as this game wired them. */
+  readonly pause: () => void;
+  readonly resume: () => void;
   /** Where the camera is, in world pixels. See `Scene.cameraAt`. */
   readonly cameraAt: () => { readonly x: number; readonly y: number };
   /** The screen row the grass begins at. See `Scene.pitchTopOnScreen`. */
@@ -331,6 +334,23 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    taste at the end of a working day is how an accessibility feature ends up serving nobody.
   const latchSeats = [0, 1].map(() => ({ toggleMove: false, walkDir: 0 }));
 
+  /**
+   * Is the world held still?
+   *
+   * ⚠️ DECLARED HERE AND NOT BESIDE THE DRIVERS, four hundred lines further down, and the reason is a
+   * defect this file has already paid for once. `charge: () => assists.charge` closed over a `let`
+   * declared eighty lines below it, `createGame` invoked the declaration during boot, and the temporal
+   * dead zone took all one hundred and twenty-two browser gates at once. `pausar` is only called when a
+   * child asks - so a late `let` would probably survive - and "probably" is what that outage was made of.
+   */
+  let paused = false;
+  const pause = (): void => {
+    paused = true;
+  };
+  const resume = (): void => {
+    paused = false;
+  };
+
   const gamepad = initGamepad({
     getGamepads: () => (win.navigator.getGamepads ? win.navigator.getGamepads() : []),
     $: (sel: string) => doc.querySelector(sel),
@@ -363,11 +383,13 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     // actions three of them itself (`options`, `pmback`, `acessibilidade`, read from `ITENS_DA_ENGINE`),
     // which leaves the rest to be decided one at a time against what a child would expect to happen.
     //
-    // So the order is 1, 2, 3, then 4 - and step 1 is a defect that stands on its own.
-    mundoRodando: () => true,
+    // So the order is 1, 2, 3, then 4 - and STEP 1 AND 2 ARE DONE: `paused` below is written by these two
+    // doors and read by the driver every frame. Steps 3 and 4 - the card and its table - are not, and the
+    // paragraph above is the order they have to happen in.
+    mundoRodando: () => !paused,
     menuDePausa: () => false,
-    pausar: () => {},
-    retomar: () => {},
+    pausar: pause,
+    retomar: resume,
     isAttractActive: () => false,
     stopAttract: () => {},
     isTouchMode: () => false,
@@ -912,7 +934,15 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       if (sonarDown && !sonarWasDown) askSonar();
       sonarWasDown = sonarDown;
 
-      driverFor(mode)?.advance(dtFrames * MS_PER_FRAME);
+      // ⚠️ ASSIGNED EVERY FRAME AND NOT ON THE EDGE, because the driver a frame uses is not always the
+      //    same object: `assisted` is REBUILT when the child changes the pace, and an edge-time write
+      //    would have landed on the instance she just replaced. One assignment a frame costs nothing and
+      //    cannot go stale.
+      const driving = driverFor(mode);
+      if (driving !== undefined) {
+        driving.paused = paused;
+        driving.advance(dtFrames * MS_PER_FRAME);
+      }
       panel?.render(state, 0, mode === 'turn' ? state.controlled[0] : undefined);
       // ⚠️ THE LIVE `controlled`, NOT THE INITIAL VALUE. This read `CONTROLLED_BY_SEAT` - the frozen pair
       //    the match STARTS on - so from the first time a child pressed switch, the marker stayed over the
@@ -1016,6 +1046,16 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     onSigned: (fn) => {
       signed = fn;
     },
+    /**
+     * The two doors the engine was handed, returned for the same reason `state` and `keymap` are.
+     *
+     * ⚠️ THE ENGINE OWNS WHEN THESE ARE CALLED and this game owns what they do. A gate cannot press a
+     * pad's start button through the whole input layer without rebuilding it; what it can do is hold the
+     * very functions the engine was given and ask whether they stop the world. Anything less would gate
+     * a private copy and leave the pair that is actually wired unmeasured.
+     */
+    pause,
+    resume,
     cameraAt: () => scene.cameraAt(),
     pitchTopOnScreen: () => scene.pitchTopOnScreen(),
     stop: () => {

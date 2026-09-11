@@ -199,6 +199,50 @@ describe('the shell and the engine', () => {
   });
 });
 
+// ========================= ⚠️ THE PAUSE, AND IT COULD NOT BE ENGAGED =========================
+// `drivers/driver` declares `paused` and `advance()` reads it - `if (driver.paused) return 0` - and nothing
+// in this repository ever wrote it. A pause that cannot be engaged, which is this project's eleventh
+// instance of a thing that is right with no wire and the first one that is ours rather than the engine's.
+//
+// ⚠️ AND THE DOOR IS THE ENGINE'S, WHICH IS WHY IT IS RETURNED. `initGamepad` takes `pausar` and `retomar`
+// and calls them when a child asks; a test cannot press a pad's start button through the engine's whole
+// input layer without rebuilding it. What it CAN do is hold the very functions the engine was handed and
+// ask whether they stop the world - which is the claim, and the same reason `Booted` already returns the
+// state and the keymap: a composition root that hands back nothing cannot be measured.
+describe('the pause', () => {
+  it('[Right] the door the engine was given stops the world, and opens it again', async () => {
+    booted = bootar(document, window);
+    await ticks(booted, 5);
+
+    booted!.pause();
+    const at = booted!.state.tick;
+    // ⚠️ WALL CLOCK, because the claim is that nothing happens. `ticks()` here would wait for a tick that
+    //    is not coming and fail its own timeout, which is this assertion inverted.
+    await quiet(250);
+
+    expect(booted!.state.tick, 'the world kept running through the pause').toBe(at);
+
+    booted!.resume();
+    await ticks(booted, 5);
+
+    expect(booted!.state.tick, 'the world never came back').toBeGreaterThan(at);
+  });
+
+  // ⚠️ [Zero] AND PAUSING TWICE IS NOT A TOGGLE, which is worth one assertion because the engine calls
+  //    these on edges it owns and a child holding a button can produce two of the same edge.
+  it('[Zero] pausing an already paused world leaves it paused', async () => {
+    booted = bootar(document, window);
+    await ticks(booted, 5);
+
+    booted!.pause();
+    booted!.pause();
+    const at = booted!.state.tick;
+    await quiet(250);
+
+    expect(booted!.state.tick).toBe(at);
+  });
+});
+
 describe('what a child sees', () => {
   // ⚠️ NO CONTROL ON THIS PAGE CARRIES A HARD-CODED WORD ANY MORE, and this is the gate that keeps it so.
   //    The shell's own two selects - match/practice and the clock mode - were Portuguese literals in
