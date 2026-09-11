@@ -279,6 +279,58 @@ describe('the pause', () => {
     }
   });
 
+  // ========================= ⚠️ AND A FROZEN SCREEN WITH NOTHING ON IT IS NOT A PAUSE =========================
+  // The card is mounted already - `createGame` falls back to `#game-region` when no `pauseHost` is
+  // declared, so `#vp-pause-0` has been in this game's DOM all along, hidden, with fifteen items in it.
+  // What was missing was anybody revealing it: holding the world still and showing nothing leaves a child
+  // looking at a stopped game with no menu, no explanation and nothing said to a child who cannot see it.
+  //
+  // `Engine.pausa.mostrar(i)` is the door, and its own doc says it "refaz os itens - o §5 avaliado no
+  // instante em que ela abre": the no-dead-buttons rule of ADR-0106 §5 is applied when the card opens, so
+  // revealing it is also what makes the item filtering run.
+  it('[Right] pausing reveals the card the engine mounted, and resuming hides it again', async () => {
+    booted = bootar(document, window);
+    await ticks(booted, 5);
+    const card = document.querySelector('#vp-pause-0') as HTMLElement | null;
+
+    expect(card, 'the engine mounted no pause card to reveal').not.toBeNull();
+    expect(card!.hidden, 'the card was already open before anything paused').toBe(true);
+
+    booted!.pause();
+    expect(card!.hidden, 'the world stopped and nothing was shown').toBe(false);
+
+    booted!.resume();
+    expect(card!.hidden, 'the card stayed over a running game').toBe(true);
+  });
+
+  // ========================= ⚠️ AND "CONTINUE" HAS TO CONTINUE =========================
+  // ADR-0106 §5 forbids a dead button and the engine enforces it, but only for items a game DECLARES it
+  // cannot action: the dispatch is `const fn = acts[act]; if (fn) fn();`, so an item with no entry is a
+  // button that swallows the press in silence. For a child using a screen reader the menu read out an
+  // option that does not exist.
+  //
+  // `resume` is the one item this game can action without anybody deciding anything, and it is also the
+  // one the engine's own note calls load-bearing: `entrarNaBarra` calls `acts.resume?.()` to leave the
+  // card before handing the directional to the accessibility bar.
+  it('[Right] the Continue item on the card actually continues', async () => {
+    booted = bootar(document, window);
+    await ticks(booted, 5);
+
+    booted!.pause();
+    const at = booted!.state.tick;
+    const card = document.querySelector('#vp-pause-0') as HTMLElement;
+    const item = card.querySelector('[data-act="resume"]') as HTMLButtonElement | null;
+
+    expect(item, 'the card has no Continue item to press').not.toBeNull();
+    expect(item!.hidden, 'Continue was hidden, so this game declared it cannot resume').toBe(false);
+
+    item!.click();
+
+    expect(card.hidden, 'pressing Continue left the card open').toBe(true);
+    await ticks(booted, 5);
+    expect(booted!.state.tick, 'pressing Continue did not restart the world').toBeGreaterThan(at);
+  });
+
   // ⚠️ [Zero] AND PAUSING TWICE IS NOT A TOGGLE, which is worth one assertion because the engine calls
   //    these on edges it owns and a child holding a button can produce two of the same edge.
   it('[Zero] pausing an already paused world leaves it paused', async () => {

@@ -177,6 +177,32 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    read the screen is the child who cannot find the button that starts the game.
       a11yBarHost: doc.querySelector('#a11y-bar'),
     },
+    /**
+     * WHAT THE PAUSE CARD'S ITEMS DO IN THIS GAME — and today that is exactly one of them.
+     *
+     * ⚠️ ONE ENTRY IS NOT A STUB, IT IS THE HONEST TABLE. ADR-0106 §5 forbids a dead button and the engine
+     * enforces it: `itensQueAccionam` hides what the game does not answer for, so an absent entry is a
+     * hidden item rather than a broken one. Measured before this line existed, `resume` itself was
+     * hidden - so the card opened with no way off it but the START button, and a child navigating by
+     * screen reader was read a menu with its own exit missing.
+     *
+     * ⚠️ AND `resume` IS THE ONE THE ENGINE LEANS ON. `entrarNaBarra` calls `acts.resume?.()` to leave the
+     * card before it hands the directional to the accessibility bar, which is item 7 of ADR-0044.
+     *
+     * ⚠️ THE OTHER SIX OF ADR-0044'S ROOT LIST ARE DECISIONS AND NOT OMISSIONS, and they are named so the
+     * next person decides rather than discovers. Measured from the mounted card: `acessibilidade`,
+     * `options` and `pmback` the engine actions itself (`ITENS_DA_ENGINE`). That leaves `addplayer` -
+     * this game changes seats through a selector that RESTARTS the match, which is not what a child
+     * pressing "add player" mid-match expects; `ajuda`, which would need a help screen that does not
+     * exist; `print`, a screenshot this game has no route to; and `quit`, which has nowhere to go,
+     * because there is no title scene and a "quit" that restarts the match is a different verb wearing
+     * the word.
+     *
+     * ⚠️ READ LIVE AND NOT CAPTURED, for the reason `ui/pause-icons` gives: a game's table changes during
+     * a match - a "quit" that only works after the first half - and freezing it at boot has already
+     * broken a case inside the engine.
+     */
+    getPauseActs: () => ({ resume: () => resume() }),
     declines: {
       semAssistenteDePad: true,
       // ⚠️ DECLINED, AND DECLINING IS THE HONEST ANSWER RATHER THAN THE CONVENIENT ONE. Engine 8.0
@@ -344,11 +370,26 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
    * child asks - so a late `let` would probably survive - and "probably" is what that outage was made of.
    */
   let paused = false;
+  /**
+   * Hold the world still AND show the card, because a frozen screen with nothing on it is not a pause.
+   *
+   * ⚠️ THE CARD WAS ALREADY MOUNTED AND NOBODY EVER OPENED IT. `createGame` falls back to `#game-region`
+   * when no `pauseHost` is declared - `o.host.pauseHost ?? $('#game-region')` - so `#vp-pause-0` has been
+   * in this game's DOM from the first boot, hidden, with fifteen items in it. An earlier note here said
+   * the card was never mounted at all, which was wrong and is corrected where it stood.
+   *
+   * ⚠️ AND `mostrar` IS ALSO WHAT APPLIES ADR-0106 §5. Its own doc says it "refaz os itens - o §5 avaliado
+   * no instante em que ela abre", so the no-dead-buttons filtering runs when the card opens and not
+   * before. Opening it is therefore the step that makes `getPauseActs` mean anything - which is why the
+   * table below is supplied in the same breath.
+   */
   const pause = (): void => {
     paused = true;
+    motor.pausa.mostrar(0);
   };
   const resume = (): void => {
     paused = false;
+    motor.pausa.esconder(0);
   };
 
   const gamepad = initGamepad({
@@ -368,13 +409,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     //      and NOTHING IN THIS REPOSITORY EVER WRITES IT. A pause that cannot be engaged. That is the
     //      eleventh instance of a thing that is right with no wire, and this one is ours.
     //   2. `pausar` and `retomar` below are the engine's door to it, and they are empty.
-    //   3. `host.pauseHost` is never passed, so `createGame` mounts no pause card at all - which is why
-    //      `menuDePausa: () => false` has stayed honest by accident rather than by design.
-    //   4. And only then does `getPauseActs` matter: without a card there is nothing for its table to act
-    //      on. 9.0.0's note says the worst cost of its absence is that `entrarNaBarra` calls
-    //      `acts.resume?.()` to leave the card before handing the directional to the accessibility bar -
-    //      so item 7 of ADR-0044 is unreachable. In THIS game the bar is mounted and the card is not, so
-    //      that particular consequence needs re-measuring here rather than inherited.
+    //   3. ⚠️ AND THIS STEP WAS WRONG AS WRITTEN, so the correction stays where the claim was. It said
+    //      `host.pauseHost` is never passed so `createGame` mounts no card at all. Measured: `createGame`
+    //      does `o.host.pauseHost ?? $('#game-region')`, and this game HAS a `#game-region`, so the card
+    //      `#vp-pause-0` has been in the DOM from the first boot - hidden, with fifteen items in it.
+    //      Nothing was missing but somebody to open it, which `Engine.pausa.mostrar` does.
+    //   4. `getPauseActs`, which is now supplied with the one entry this game can answer for. Before it,
+    //      `resume` itself was HIDDEN by the engine's own §5 filter, so the card opened with no way off it
+    //      but the START button.
     //
     // ⚠️ AND THE SEVEN ITEMS ARE A DECISION, NOT A TABLE TO FILL IN. ADR-0106 §5 forbids a dead button and
     // the engine enforces it - `itensQueAccionam` hides what the game cannot action - so each of the seven
