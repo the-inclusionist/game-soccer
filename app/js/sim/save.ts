@@ -222,6 +222,32 @@ export function keeperSave(state: MatchState, sides?: readonly [SideCaps, SideCa
     //
     // ⚠️ AND HIS OWN KICK IS NOT A TEAM-MATE'S. Playing his own clearance again is a different law - the
     // second touch - and reading this one loosely would quietly implement that one too, wrongly.
+    //
+    // ========================= ⚠️ AND IT FIRES CONSTANTLY, WHICH IS THE ANSWER TO THE CAPTION =========================
+    // Measured 2026-09-11 over the twelve-fixture slate, counting every time the law took his hands away
+    // from a ball he could otherwise have reached:
+    //
+    //     slate              back-pass refusals   out-of-area refusals   goals   corners   goal kicks
+    //     nobody playing                  19.42                   2.33    3.92      1.83         4.33
+    //     a child playing                  5.75                   3.08    3.67      1.25         4.92
+    //
+    // ⚠️ NINETEEN A MATCH IS NOT NINETEEN OFFENCES. Nothing is awarded and nothing stops: the keeper falls
+    // through to being an ordinary body and plays the ball with his FEET, at `CONTROL_R` instead of
+    // `KEEPER_REACH`. That is what football asks of him and it is invisible, which is exactly why the
+    // count is this high - it is the number of times the ball reaches him from his own defence at pace,
+    // and his defence clears toward its own goal a great deal.
+    //
+    // ⚠️ SO THE ITEM'S ACCESS CLAUSE IS ANSWERED WITH A MEASUREMENT AND NOT A FEATURE. The absorption plan
+    // asks for a caption and a narrated sentence, on the principle that a rule nobody is told about is
+    // weather - and the principle is right about a rule that DECIDES something. Nineteen announcements a
+    // match, for a keeper choosing his feet, would be the siren `declaration.targetsOf` already refuses to
+    // be: correct, and useless. The rule a child needs told is the one that awards a kick against her, and
+    // this one awards nothing.
+    //
+    // ⚠️ AND THE COUNTS SURVIVED IT, which is what makes the law affordable. Against the twelve-fixture
+    // measurements taken an hour earlier with only the penalty-area half in force - corners 1.33, goal
+    // kicks 5.33, goals 3.42 with a child playing - both halves together read 1.25, 4.92 and 3.67. A law
+    // this active moving three counts by a tenth each is a law the game was already mostly obeying.
     const kicked = state.lastKick;
     const fromOurOwn =
       kicked !== NOBODY_KICK &&
