@@ -24,6 +24,7 @@ import { HOME, SQUAD_SIZE } from '../app/js/sim/ids.ts';
 import { PACE_M, PITCH } from '../app/js/sim/units.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
 import type { MatchPhase } from '../app/js/rules/phase.ts';
+import { CHARGE_MODES } from '../app/js/input/charge.ts';
 
 /** A `t` that RETURNS ITS KEY, so a test can measure which key was asked for and catch a raw literal. */
 const keyEcho = (key: string) => 't:' + key;
@@ -37,6 +38,7 @@ function observing(overrides: Partial<Observed> = {}) {
     ourTeam: () => HOME,
     controlledBy: (seat: number) => (seat === 0 ? 9 : 10),
     t: keyEcho,
+    charge: () => 'hold',
     ...overrides,
   };
   return { o, state, d: createDeclaration(o) };
@@ -293,5 +295,44 @@ describe('field 8 - targetsOf', () => {
     state.possession.lastTouch = 4; // one of ours put it out, so it is their throw
 
     expect(d.targetsOf(0)).toEqual([]);
+  });
+});
+
+// ========================= HOW MANY FINGERS THIS GAME ASKS FOR =========================
+// `holdsAtOnce` arrived MANDATORY in engine 8.0 (ADR-0104), and the mandatoriness is the decision: an
+// optional field is answered by silence, and here silence decides for the child - decided by whoever did
+// not think about it. It is a different axis from "how many actions", which is why the engine had a blind
+// spot where the warning never fired: a game can declare nine reachable actions and still need three
+// fingers at once, and on a two-finger phone a child simply cannot, with nothing anywhere saying why.
+describe('how many positions this game holds at once', () => {
+  it('[Right] four with the holding charge: a diagonal run, sprint, and a kick being charged', () => {
+    expect(observing({ charge: () => 'hold' }).d.holdsAtOnce()).toBe(4);
+  });
+
+  // ⚠️ AND THIS IS THE ASSERTION THAT MAKES OUR ACCESSIBILITY WORK LEGIBLE TO THE ENGINE. The stepped
+  //    route was built so a child who cannot hold a key can still pick the power of a pass: each press
+  //    adds a step and a pause fires it. That removes a HELD position, so it removes a finger - and the
+  //    engine's device-reach check is the thing that reads this number. Until now the accommodation was
+  //    real and invisible to every consumer of the declaration.
+  it('[Right] three with either latched route, because the kick stops being a hold', () => {
+    expect(observing({ charge: () => 'latch-stepped' }).d.holdsAtOnce()).toBe(3);
+    expect(observing({ charge: () => 'latch-timed' }).d.holdsAtOnce()).toBe(3);
+  });
+
+  // ⚠️ THE CHORD DOES NOT RAISE IT, and the reason is a rule this repository already wrote down: an
+  //    acorde with no latched equivalent is a conformance failure, so the lofted through ball is reachable
+  //    by single presses. A verb that has a one-switch route cannot be what sets the finger count.
+  it('[Boundary] the R1+R2 chord does not raise the count, because it has a latched equivalent', () => {
+    expect(observing({ charge: () => 'latch-stepped' }).d.holdsAtOnce()).toBeLessThan(
+      observing({ charge: () => 'hold' }).d.holdsAtOnce(),
+    );
+  });
+
+  it('[Interface] it is a positive whole number in every charge route', () => {
+    for (const mode of CHARGE_MODES) {
+      const n = observing({ charge: () => mode }).d.holdsAtOnce();
+      expect(Number.isInteger(n), `${mode} is not a whole number of fingers`).toBe(true);
+      expect(n, `${mode} asks for no fingers at all`).toBeGreaterThan(0);
+    }
   });
 });

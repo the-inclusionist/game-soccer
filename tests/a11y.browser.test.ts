@@ -52,6 +52,7 @@ const SHELL = `
       </section>
     </div></div>
     <div class="tools">
+      <div id="a11y-bar"></div>
       <label for="session" id="session-label">Jogo</label>
       <select id="session" aria-labelledby="session-label">
         <option value="match">Partida</option>

@@ -28,14 +28,7 @@
 import { initSettingsControls } from '@the-inclusionist/engine/ui/settings-controls.js';
 import { focaveisNoDom, initFocusTrap } from '@the-inclusionist/engine/ui/focus-trap.js';
 import type { Action, ActionPreset } from '@the-inclusionist/engine/core/actions.js';
-import {
-  bind,
-  defaultKeymapFor,
-  duplicates,
-  prettyKey,
-  type Keymap,
-  type Seating,
-} from '../input/keymap.ts';
+import { defaultKeymapFor, prettyKey, type Keymap, type Seating } from '../input/keymap.ts';
 
 /**
  * The positions this screen offers.
@@ -213,30 +206,21 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
     }
   };
 
-  const snapshot = (): Record<string, string> => {
-    const out: Record<string, string> = {};
-    const map = mapOf(editing);
-    for (const a of WORLD_POSITIONS) out[a] = (map[a] ?? []).join(' ');
-    return out;
-  };
-
-  /**
-   * Take the code the panel just wrote off every other position.
-   *
-   * ⚠️ THE POSITION IS FOUND BY DIFF, NOT BY GUESS. The obvious version asks `duplicates()` which code is
-   * doubled and then looks for "the position holding only that code" - which is ambiguous exactly when it
-   * matters, because after the write BOTH positions can hold only that code (sprint is `U`, the trigger
-   * is `Y`; move `Y` onto sprint and the two are indistinguishable by shape). Comparing against what the
-   * map looked like a moment ago answers it exactly, and costs twelve string joins.
-   */
-  const undouble = (before: Record<string, string>): void => {
-    const map = mapOf(editing);
-    if (duplicates(map).length === 0) return;
-    const written = WORLD_POSITIONS.find((a) => (map[a] ?? []).join(' ') !== before[a] && (map[a] ?? []).length > 0);
-    if (written === undefined) return;
-    bind(map, written, map[written][0]);
-    ports.persist(map, editing);
-  };
+  // ⚠️ A FUNCTION THIS PANEL NO LONGER NEEDS, AND THE ENGINE IS WHY. Until 8.0 the engine's capture
+  //    wrote `mapRef[action] = [code]` and asked only whether ANOTHER PLAYER owned the code - which in a
+  //    one-player game can never be true - so this file stripped the old owner itself, finding it by
+  //    diffing the map before and after the write rather than by guessing which position was doubled.
+  //
+  // ⚠️ 8.0 REFUSES THE DUPLICATE INSTEAD (engine issue #126), and its answer is better than the one
+  //    that used to live here: moving a key leaves the old position with an EMPTY list, which the engine's
+  //    own `bindingProblems` calls a defect and which a child would meet mid-match as an action that
+  //    silently stopped existing. Refusing costs her two deliberate steps and loses nothing on the way -
+  //    and it announces WHICH action already holds the key, by the word our `ActionPreset` supplies.
+  //
+  //    So `snapshot` and `undouble` are gone rather than kept "in case": a duplicate can no longer arrive
+  //    through the capture path at all, and dead code that used to be load-bearing is the worst kind to
+  //    leave behind, because the next reader cannot tell it stopped mattering. The gate that proved it was
+  //    rewritten in the same change, and it now asserts the refusal.
 
   const api = initSettingsControls({
     $: (<T extends Element>(sel: string) => doc.querySelector(sel) as T | null) as never,
@@ -270,6 +254,13 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
     //    was no rest, so it could never fire (finding 8 of the audit). With two, a key the other child
     //    owns is refused by the engine itself, and refused WITHOUT taking the old one away.
     kbFor: (i: number) => mapOf(i) as never,
+    // ⚠️ THE FACTORY SCHEME, AND IT IS NOT `store.resetKB`. Engine 8.0 asks for this separately and its
+    //    own header says why: `resetKB` removes the persisted map BEFORE returning the factory copy, so
+    //    using it as a reader would wipe the child's remapping on every render and the damage would only
+    //    surface at the next boot. This is the same per-seat rule `kbFor` uses, one step back in time -
+    //    injected rather than duplicated inside the engine, because "how many seats maps to which bucket"
+    //    is the consumer's rule and a second copy of it would diverge the day either one changed.
+    kbPadraoFor: (i: number) => defaultKeymapFor(i, ports.seats() as Seating) as never,
     getNumPlayers: () => ports.seats(),
     // The engine calls this after a write; the un-doubling is driven from our own diff instead, because
     // this port is handed nothing and the answer needs to know what the map looked like BEFORE.
@@ -353,12 +344,8 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
         close();
         return true;
       }
-      const before = snapshot();
       const consumed = api.handleCaptureKeydown(e);
-      if (consumed) {
-        undouble(before);
-        refresh(); // PATH 2.
-      }
+      if (consumed) refresh(); // PATH 2.
       return consumed;
     },
   };

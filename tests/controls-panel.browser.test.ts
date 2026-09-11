@@ -159,15 +159,33 @@ describe('changing a key', () => {
     expect(booted!.keymap().leftShoulder).toEqual(['KeyZ']);
   });
 
-  // ⚠️ THE ENGINE'S PANEL DOES NOT DO THIS. It writes `mapRef[action] = [code]` and asks only whether
-  //    ANOTHER PLAYER owns the code - which in a one-player game can never be true. A child who moves `W`
-  //    onto jockey would keep moving up with it, and hold both at once for the rest of the match.
-  it('[Right] and the control that had that key loses it', () => {
+  // ⚠️ THE ENGINE TOOK THIS JOB OVER IN 8.0, AND IT DOES IT BETTER - so this gate now asserts the
+  //    engine's policy instead of ours, and the old sentence is kept below because the reversal is the
+  //    interesting part.
+  //
+  //    What this file used to say: "the engine's panel writes `mapRef[action] = [code]` and asks only
+  //    whether ANOTHER PLAYER owns the code, which in a one-player game can never be true - so a child who
+  //    moves `W` onto jockey would keep moving up with it." True of 7.0.1, and this panel stripped the old
+  //    owner itself, by diffing the map before and after the write.
+  //
+  // ⚠️ 8.0 REFUSES THE KEY RATHER THAN MOVING IT (engine issue #126), and its reasoning is better than
+  //    ours: moving leaves the old position with an EMPTY list, which the engine's own `bindingProblems`
+  //    calls a defect and which a child would meet mid-match as an action that silently stopped existing.
+  //    Refusing costs her two deliberate steps - unbind the old, bind the new - and loses nothing on the
+  //    way. Our version was the lesser half of the same idea: it kept the map valid and still took a key
+  //    away from a position she had not opened.
+  //
+  // ⚠️ AND THE REFUSAL IS ANNOUNCED BY THE ACTION'S WORD, WHICH IS OUR PRESET TALKING. The engine says
+  //    "that key is taken by <word>" and the word comes from the game's `ActionPreset` - so a child hears
+  //    "short pass", not `action3`. That is ADR-0074 paying for itself inside somebody else's sentence.
+  it('[Right] and a key another control already has is REFUSED, not moved', () => {
     open();
+    const upBefore = [...booted!.keymap().up];
 
     remap('leftShoulder', 'KeyW');
 
-    expect(booted!.keymap().up).not.toContain('KeyW');
+    expect(booted!.keymap().up, 'the position she did not open lost a key').toEqual(upBefore);
+    expect(booted!.keymap().leftShoulder, 'a refused key was bound anyway').not.toContain('KeyW');
   });
 
   it('[Zero] pressing Escape mid-capture changes nothing', () => {

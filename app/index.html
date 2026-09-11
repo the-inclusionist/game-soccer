@@ -69,6 +69,13 @@
          world. The clock mode is here and not in a pause menu because it is the choice that decides
          whether this game has a time limit at all, and it must be reachable before a child starts. -->
     <div class="tools">
+      <!-- ⚠️ THE ENGINE'S ACCESSIBILITY BAR LANDS HERE, AND BEFORE THE MATCH STARTS. Engine 8.0 reports
+           its absence as a conformance problem, and the sentence it uses is the whole argument: without it
+           a child cannot reach blind mode, TTS, high contrast or Libras BEFORE she begins. Every one of
+           those four existed in this game and every one of them was only reachable once she was already
+           playing - which is the wrong way round for the child who needs blind mode to find the start
+           button. The engine offers the icons; only the game knows where they fit in its own layout. -->
+      <div class="tools__a11y" id="a11y-bar"></div>
       <label class="tools__label" for="session" id="session-label">Jogo</label>
       <select id="session" aria-labelledby="session-label">
         <option value="match">Partida</option>

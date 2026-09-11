@@ -34,6 +34,7 @@ import { firstOf, shirtOf, teamOf, type PlayerId, type TeamId } from './sim/ids.
 import { onPitch, squadIds } from './sim/squads.ts';
 import { headingOf } from './sim/heading.ts';
 import { NOBODY } from './sim/possession.ts';
+import type { ChargeMode } from './input/charge.ts';
 import type { MatchState } from './sim/state.ts';
 import { BALL, GOAL, PACE_M, PITCH } from './sim/units.ts';
 import { dist2, len2 } from './sim/vec.ts';
@@ -48,6 +49,15 @@ export interface Observed {
   controlledBy(seat: number): PlayerId;
   /** The engine's `t()`, INJECTED - a test passes a `t` that returns its key and measures which was asked. */
   t(key: string): string;
+  /**
+   * Which charge route a child is playing with, because it decides how many fingers this game asks for.
+   *
+   * ⚠️ IT IS A PORT AND NOT A CONSTANT because `holdsAtOnce` has to be able to change when she changes it.
+   * The stepped route exists so a child who cannot hold a key can still choose the power of a pass; that
+   * removes a HELD position, and the engine's device-reach check is the thing that reads the number. A
+   * frozen answer would report the hardest route to a child who had already chosen the easiest.
+   */
+  charge(): ChargeMode;
 }
 
 /** Metres. Within this of a spot, the spot IS that thing - the ball, a body, the goal mouth. */
@@ -167,6 +177,38 @@ export function createDeclaration(o: Observed): GameDeclaration {
   };
 
   return {
+    /**
+     * HOW MANY POSITIONS THIS GAME NEEDS HELD AT THE SAME TIME. Mandatory in engine 8.0 (ADR-0104).
+     *
+     * ⚠️ IT IS A DIFFERENT AXIS FROM "HOW MANY ACTIONS", and that is why the engine had a blind spot
+     * where its own warning never fired. A game can declare fourteen reachable positions and still ask for
+     * four FINGERS, and on a two-finger phone a child simply cannot - with nothing anywhere saying why.
+     * Reaching an action and holding it alongside another are different questions.
+     *
+     * ⚠️ FOUR, AND EACH ONE IS NAMED SO THE NUMBER CAN BE ARGUED WITH: two for a diagonal run, because
+     * the directions count exactly as they do on the keyboard; one for sprint, which is a hold by
+     * definition; and one for a kick whose power is being charged. That is the hardest thing this game
+     * asks of a child who is playing it normally, not the theoretical maximum of keys she could press.
+     *
+     * ⚠️ AND THE LATCHED ROUTES ANSWER THREE, WHICH IS THE POINT OF THIS FIELD FOR US. `latch-stepped`
+     * was built so a child who cannot hold a key can still choose the power of a pass - each press adds a
+     * step and a pause fires it - so the kick stops being a held position and the count drops by one. The
+     * accommodation was real, gated and completely invisible to every consumer of the declaration until
+     * this field existed. Now the engine's device-reach check can see it.
+     *
+     * ⚠️ THE R1+R2 CHORD DOES NOT RAISE IT, and the reason is a rule this repository already wrote
+     * down: a chord with no latched equivalent is a conformance failure, so the lofted through ball is
+     * reachable by single presses. A verb that has a one-switch route cannot be the thing that sets the
+     * finger count - if it were, every game would report its most demanding optional flourish.
+     *
+     * A FUNCTION and not a value, for the reason the `topology` is one: the answer changes when she
+     * changes the route, and a memorised number would go quietly stale - the defect ADR-0084 named.
+     */
+    holdsAtOnce(): number {
+      // Two directions for a diagonal, plus sprint. The kick is the only term that moves.
+      return 3 + (o.charge() === 'hold' ? 1 : 0);
+    },
+
     // 1 - TOPOLOGY, IN METRES, WITH A PACE AS THE UNIT.
     //
     //     `unit` is not a scale factor. The engine's `distance()` divides by it and its own comment says

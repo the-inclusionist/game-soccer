@@ -141,6 +141,15 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    child who picks a badge she likes has chosen a STYLE and not a handicap.
   let skills = { 0: CLUBS[picked[0]].ratings, 1: CLUBS[picked[1]].ratings };
 
+  // ⚠️ THESE TWO SIT ABOVE `createGame` AND THE ORDER IS LOAD-BEARING SINCE ENGINE 8.0. The declaration's
+  //    `holdsAtOnce` reads the live charge route, and `createGame` now INVOKES the declaration during boot
+  //    to check conformance - so a closure over a `let` declared further down threw
+  //    `Cannot access 'assists' before initialization` and took all 122 browser gates with it. TypeScript
+  //    cannot see it: the read is inside a closure, so it is legal to the compiler and fatal at run time.
+  //    Nothing called this port before, because the field did not exist before.
+  let chosenCharge: ChargeMode | null = null;
+  let assists: Assists = { ...DEFAULT_ASSISTS, charge: chargeRouteFor(oneButton, chosenCharge) };
+
   const motor = createGame({
     declaration: createDeclaration({
       state: () => state,
@@ -148,9 +157,37 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       ourTeam: () => HOME,
       controlledBy: (seat) => CONTROLLED_BY_SEAT[seat],
       t: (key) => t(key),
+      // ⚠️ READ LIVE, NEVER CAPTURED. `holdsAtOnce` is how many fingers this game asks for, and the
+      //    stepped charge route removes one of them - so a captured value would report the hardest route
+      //    to a child who had already chosen the easiest, which is the accommodation being announced
+      //    backwards. `assists` is reassigned by the panel below; this closure reads whatever is current.
+      charge: () => assists.charge,
     }),
-    host: { doc, win, cvdHost: doc.querySelector('#cvd') },
-    declines: { semAssistenteDePad: true },
+    host: {
+      doc,
+      win,
+      cvdHost: doc.querySelector('#cvd'),
+      // ⚠️ THE ACCESSIBILITY BAR, ON THE FIRST SCREEN. Blind mode, TTS, high contrast and Libras all
+      //    existed here and all four were reachable only AFTER the match began. Engine 8.0 reports the
+      //    missing host as a conformance problem, and it is right to: the child who needs blind mode to
+      //    read the screen is the child who cannot find the button that starts the game.
+      a11yBarHost: doc.querySelector('#a11y-bar'),
+    },
+    declines: {
+      semAssistenteDePad: true,
+      // ⚠️ DECLINED, AND DECLINING IS THE HONEST ANSWER RATHER THAN THE CONVENIENT ONE. Engine 8.0
+      //    names this game as one of three in the catalogue with no neural voice and nothing saying so,
+      //    and it is right that the silence was the defect. But the line it asks for names a provider that
+      //    drags `onnxruntime-web` in as a non-optional peer - 135.4 MB in the node_modules of every
+      //    consumer - and this repository already measured the other end of the same cost: the build is
+      //    16 MB and 13.9 of them are that speech runtime, which the running page never even requests.
+      //    The precache budget is 1 MiB and was set deliberately BELOW the file it exists to exclude.
+      // ⚠️ SO THIS RECORDS WHAT IS ALREADY TRUE, AND IT IS NOT A DECISION TO KEEP IT TRUE. A child who
+      //    cannot read gets the system voice, and on a school Chromebook that may not exist in Portuguese
+      //    - the engine's own sentence, and it is about our audience exactly. Adopting the voice is a
+      //    decision with a 135 MB and an offline-budget consequence, and it belongs to the Dev.
+      semVozNeural: true,
+    },
   });
 
   for (const problem of motor.problems) console.warn('[shell]', problem);
@@ -225,8 +262,6 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    down, which is exactly what one-switch mode means she cannot do. `ui/assists-panel` carries the
   //    reasoning; this line is the wire, and `chosen` stays null until she picks something, so her own
   //    choice always wins over the accommodation.
-  let chosenCharge: ChargeMode | null = null;
-  let assists: Assists = { ...DEFAULT_ASSISTS, charge: chargeRouteFor(oneButton, chosenCharge) };
   const makeSampler = (seat: number) =>
     createSampler({ seat, chargeMode: assists.charge as ChargeMode, grace: assists.grace, keymap: () => keymaps[seat] });
   let samplers = [makeSampler(0)];
@@ -285,7 +320,10 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   const askSonar = (): void => {
     const focus = motor.declaration.focusOf(0);
     if (focus === null) return;
-    motor.sonar.sonar({ i: 0, x: focus.at.x, y: focus.at.y, viz: 'normal' });
+    // ⚠️ NO `viz` SINCE ENGINE 8.0. The sonar used to be handed the render-mode TABLE and walk it with
+    //    `pl.viz`; it is handed the ANSWER now, by a port the engine's own boot fills. Passing a render
+    //    mode here was this game answering a question it has no business answering.
+    motor.sonar.sonar({ i: 0, x: focus.at.x, y: focus.at.y });
   };
 
   // ⚠️ SOUND IS A CHANNEL, NOT A GARNISH, and until now this game had none at all. A sentence read by a
