@@ -75,11 +75,37 @@ function nearestOfTeam(state: MatchState, team: TeamId): number {
 // its own goal. Removing the cap entirely - accepting a man permanently offside - left occupancy at 0.00
 // and 0.51. Still essentially nobody.
 //
-// ⚠️ SO THE ANSWER IS THE ONE THE PLAN ALREADY WROTE, AND BOTH FAILURES ARE THE SAME MISTAKE: the job
-// was left in the per-body cascade, where it is recomputed from the ball's momentary position every sixth
-// tick. A forward is sent to the box and pulled back to his shape spot alternately, and his net travel is
-// about nothing. A role has to be ASSIGNED HERE and HELD - which is what "a team-level plan on the
-// existing staggered schedule" means, and what neither attempt did.
+// ========================= AND THEN THE BODIES WERE WATCHED INSTEAD OF THEORISED ABOUT =========================
+// Three hypotheses in, the right move was to stop guessing and look at where the forwards actually ARE
+// when the ball is deep. Six matches, every tick with the ball inside twenty metres of a goal - 778 of
+// them:
+//
+//     ball from goal              p10/p50/p90   7.4 / 16.7 / 19.5 m
+//     the offside line            p10/p50/p90   8.1 / 15.3 / 16.0 m
+//     the forwards' TARGET        p10/p50/p90   8.0 / 15.5 / 39.1 m
+//     where the forwards ARE      p10/p50/p90  21.4 / 29.8 / 40.2 m      (the box is 14 m deep)
+//
+// ⚠️ THE RULE IS RIGHT AND THE RUN CANNOT FINISH. Their target sits at 15.5 m, which is the offside
+// line to a tenth of a metre - `ai/brain` rule 3 is firing, aiming them correctly, and holding them
+// onside exactly as it claims. They are simply FOURTEEN METRES BEHIND IT, permanently in transit. The
+// ball spends about 130 ticks a match inside twenty metres of a goal, and fourteen metres at seven metres
+// a second is 120 ticks: the attack is over at almost exactly the moment they would have arrived.
+//
+// ⚠️ SO THE OFF-BALL PROBLEM IS NOT A DECISION PROBLEM. IT IS A TRANSIT PROBLEM. Every hypothesis
+// above assumed somebody was being told the wrong thing; nobody is. The decisions are correct and the
+// bodies cannot cover the ground in the time the attack lasts.
+//
+// ⚠️ AND RAISING THE RESTING LINE BUYS TOO LITTLE. `LINE.attack` at 1.70 instead of 1.35 - a 26%
+// higher line for the whole side while it attacks - moved the forwards' median from 29.8 m to 25.0 m and
+// left the tenth percentile where it was. A quarter more line height for a sixth of the missing distance.
+//
+// ⚠️ WHICH RESCOPES THIS ITEM RATHER THAN SOLVING IT, and that is the finding. Assigning roles in this
+// function - the thing the plan asks for and the thing both earlier attempts got wrong by leaving in the
+// cascade - would give the bodies STABLE jobs, which is worth having. It will not fill the box, because
+// the jobs are already correct. What fills the box is attacks that LAST longer, which is the plan's own
+// spine sentence - "make the attack arrive" - arriving from a direction nobody expected, and which points
+// back at the parry loop recorded in `sim/save`: a handful of attacks caught bouncing, counted once per
+// bounce, is exactly what a possession that never develops looks like from here.
 
 export function teamPlan(state: MatchState, team: TeamId): TeamPlan {
   const holder = state.possession.holder;
