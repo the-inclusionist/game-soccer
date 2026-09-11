@@ -386,8 +386,28 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     // So the order is 1, 2, 3, then 4 - and STEP 1 AND 2 ARE DONE: `paused` below is written by these two
     // doors and read by the driver every frame. Steps 3 and 4 - the card and its table - are not, and the
     // paragraph above is the order they have to happen in.
+    // ⚠️ THESE TWO ARE ONE FACT AND MUST MOVE TOGETHER, and wiring the first without the second made the
+    //    pause INESCAPABLE for an hour. `input/gamepad.js` branches on the PAIR - `const rodando =
+    //    ctx.mundoRodando(), pausado = ctx.menuDePausa()` - and when neither is true it treats the game as
+    //    a TITLE SCREEN and hands the directional to `navTitle`, which it calls the safe behaviour for a
+    //    scene it does not recognise. So a held world that answers "no menu" is a world the engine
+    //    believes is a title screen, and START never reaches `retomar`.
+    //
+    // ⚠️ AND THERE IS NO CARD YET, WHICH DOES NOT MAKE THIS A LIE. The engine's question is behavioural -
+    //    it routes START and the directional by the answer - so "the pause is open" and "the world is
+    //    held" are the same answer here. When the card arrives (step 3) it becomes the same answer for a
+    //    second reason rather than a different one.
+    //
+    // ⚠️ AND `mundoRodando` IS CORRECT AND CURRENTLY UNFALSIFIABLE, which is said rather than papered over
+    //    with a gate that cannot fail. Reverting it to a hard-coded `true` breaks nothing measurable:
+    //    `input/gamepad.js` tests `if (pausado)` BEFORE the running branch, so START still resumes. The
+    //    only consumer that would notice is the pad wizard - it does `padWizAutoResume =
+    //    ctx.mundoRodando()` and resumes on exit, so an always-true answer would silently let go of a
+    //    pause a child had set. This game declines that wizard (`semAssistenteDePad`), so the path is
+    //    unreachable and no honest gate can reach it either. It stays right because it is right, and the
+    //    day the wizard is accepted is the day it becomes testable.
     mundoRodando: () => !paused,
-    menuDePausa: () => false,
+    menuDePausa: () => paused,
     pausar: pause,
     retomar: resume,
     isAttractActive: () => false,

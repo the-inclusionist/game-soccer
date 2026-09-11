@@ -228,6 +228,57 @@ describe('the pause', () => {
     expect(booted!.state.tick, 'the world never came back').toBeGreaterThan(at);
   });
 
+  // ========================= ⚠️ AND THE GATE ABOVE MISSED A TRAP THIS ONE CATCHES =========================
+  // Wiring the two doors and leaving `menuDePausa` answering a hard-coded `false` makes the pause
+  // INESCAPABLE, and the gate above cannot see it because it calls the doors directly instead of going
+  // through the pad.
+  //
+  // `input/gamepad.js` asks two questions and branches on the PAIR: `const rodando = ctx.mundoRodando(),
+  // pausado = ctx.menuDePausa()`. If neither is true it treats the game as a TITLE SCREEN and hands the
+  // directional to `navTitle` - "o comportamento seguro" for a scene it does not recognise. So a world
+  // that is paused while `menuDePausa` says no is a world the engine believes is a title screen, and
+  // START never reaches `retomar`.
+  //
+  // ⚠️ SO THE TWO ANSWERS ARE ONE FACT AND HAVE TO MOVE TOGETHER. This game has no pause CARD yet, and
+  // the engine's question is behavioural rather than descriptive - it routes START and the directional by
+  // it - so "the pause is open" and "the world is held" are the same answer here.
+  it('[Right] START pauses through the engine, and START pauses no further - it resumes', async () => {
+    const original = navigator.getGamepads;
+    const startBtn = GAMEPAD_STANDARD.start as number;
+    let held = false;
+    const buttons = (): unknown[] =>
+      Array.from({ length: 17 }, (_, i) => ({ pressed: held && i === startBtn, value: 0 }));
+    (navigator as unknown as { getGamepads: () => unknown[] }).getGamepads = () => [
+      { id: 'fake standard pad', index: 0, mapping: 'standard', buttons: buttons(), axes: [0, 0, 0, 0] },
+    ];
+
+    try {
+      booted = bootar(document, window);
+      await ticks(booted, 5);
+
+      // One clean edge: down, polled, up. The engine acts on the EDGE, not on the hold.
+      held = true;
+      await waitFor(() => booted!.state.tick === booted!.state.tick, 'a poll');
+      await quiet(120);
+      held = false;
+      await quiet(120);
+
+      const at = booted!.state.tick;
+      await quiet(250);
+      expect(booted!.state.tick, 'START did not pause the world through the engine').toBe(at);
+
+      // And the same button again has to bring it back, which is the half the pair decides.
+      held = true;
+      await quiet(120);
+      held = false;
+      await ticks(booted, 5);
+
+      expect(booted!.state.tick, 'START paused and could never resume').toBeGreaterThan(at);
+    } finally {
+      (navigator as unknown as { getGamepads: typeof original }).getGamepads = original;
+    }
+  });
+
   // ⚠️ [Zero] AND PAUSING TWICE IS NOT A TOGGLE, which is worth one assertion because the engine calls
   //    these on edges it owns and a child holding a button can produce two of the same edge.
   it('[Zero] pausing an already paused world leaves it paused', async () => {
