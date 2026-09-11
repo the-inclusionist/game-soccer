@@ -25,7 +25,7 @@ git-ignored and shared by every session on this machine. One entry was **appende
 
 ## What the engine is owed
 
-⚠️ **RE-VERIFIED AGAINST ENGINE 8.0.0-rc.1 ON 2026-09-11, AND SEVEN OF THE EIGHT ARE CLOSED.** An
+⚠️ **RE-VERIFIED AGAINST ENGINE 8.0.0-rc.1 ON 2026-09-11. SEVEN OF THE FIRST EIGHT ARE CLOSED, AND A NINTH WAS FOUND THE SAME DAY.** An
 audit of somebody else's repository goes stale silently, and a stale one makes false claims about their
 work — so this table is re-read every time the dependency moves, against
 `node_modules/@the-inclusionist/engine/dist-pkg`, which is the code this game actually consumes.
@@ -40,6 +40,7 @@ work — so this table is re-read every time the dependency moves, against
 | 6 · two keyboard tables, never reconciled | **CLOSED** — the runtime table now carries all fourteen positions |
 | 7 · the remap screen announces the platformer's words | **CLOSED** — it announces the GAME's word, and says so honestly when a position has none |
 | 8 · a key may hold two positions at once | **CLOSED** — refused at the point of entry rather than moved |
+| 9 · the move toggle's direction is only ever cleared | **OPEN, found 2026-09-11** — see below |
 
 ⚠️ **AND FINDING 1 WAS THE ONE THAT MATTERED MOST, SO ITS CLOSING IS WORTH THE SENTENCE.** A team-mate
 ten metres to our right panned to 0.057 — mono, on a pitch ninety metres wide. The fix takes the
@@ -151,7 +152,7 @@ engine" only half true.
 
 | | |
 |---|---|
-| `input/default-bindings.ts` -> `KEYBOARD_SOLO` | Keyed by the **fourteen** positions ADR-0085 declared. Frozen. Imported by **nothing inside the engine** - a search finds it only in this game. |
+| `input/default-bindings.ts` -> `KEYBOARD_SOLO` | Keyed by the **fourteen** positions ADR-0085 declared. Imported by **nothing inside the engine** - a search finds it only in this game. ⚠️ This row used to say "Frozen", and that was wrong: measured 2026-09-11, `Object.isFrozen` answers false for the table AND for its arrays. The same false claim sat in `app/js/input/keymap.ts` justifying its deep copy, which is one fact written in two places and wrong in both. The copy is right; the reason was not. |
 | `input/keyboard.ts` -> `kb` | The one that is loaded, saved, remapped and read at runtime. Its schemes carry the platformer's **eight** positions: `left/right/up/down/action1..4`. There is no row for a shoulder, a trigger, `start` or `select`. |
 
 So a consumer gets the right vocabulary with no way to change it, or a changeable table with no
@@ -225,6 +226,38 @@ cross-seat case*: a key the other child owns is refused, correctly, without taki
 So the guard is not broken - it is **unreachable for one player**, which is the configuration every
 one-child game runs in. The fix is a same-scheme check beside the other-scheme one, and
 `default-bindings`'s own conformance function already is that check.
+
+### 9. The move toggle's walk direction is only ever cleared, never set
+
+`input/latch-sync.ts` owns the motor-accessibility move toggle — the setting that lets a child who cannot
+hold a direction key down keep walking. It resolves the toggle per transport, stores the child's choice,
+and writes `p.walkDir = 0` when the toggle falls.
+
+⚠️ **AND THAT IS THE ONLY LINE IN THE PACKAGE THAT TOUCHES `walkDir`.** Measured 2026-09-11 across the
+whole of `dist-pkg`: four occurrences, three of them comments, and one assignment — `= 0`, on the falling
+edge. Nothing in the engine ever sets it to a direction.
+
+So a consumer that reads the field to honour the toggle reads a zero, does nothing, and passes any gate
+that asks whether the toggle was honoured. This game nearly shipped that reader: `boot/main.ts` carried a
+note calling it a missing wire, and a wire was the wrong diagnosis.
+
+**What is owed is not a fix so much as a decision the engine has not written down.** Either:
+
+- the engine states, in `latch-sync`'s own header, that `walkDir` is a field the GAME fills and the engine
+  only clears — which is a documentation change and makes every consumer's job explicit; or
+- the engine ships a reference reader, the way it ships `game/run-toggle` for the sister toggle
+  (`toggleRun`), whose header is already cited in `latch-sync` as the reason the sister was left out.
+
+⚠️ **THE SECOND IS WHAT THE FILE ITSELF SUGGESTS.** `latch-sync` declines to handle `toggleRun` precisely
+because that one *has* a round-level reader in the cartridge, and says inventing a gesture "without the
+reader in front of it would be deciding for a game I did not open". The same sentence applies to
+`toggleMove`: the engine has decided half of it and left the other half unnamed, and a half-decided
+accessibility control is offered to a child as a working one. `seguraTeclas()` answers true.
+
+⚠️ **AND IT IS ADR-0013 GROUND, so this is filed as a finding and not as a request for a particular
+answer.** What "keep walking" means differs between a platformer and football, and the shapes available
+differ in what a child has to be physically able to do. That is the engine's call to make or to delegate
+in writing; what it cannot stay is unstated.
 
 ## What was drafted here and has since landed
 
