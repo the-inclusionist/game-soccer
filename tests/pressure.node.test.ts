@@ -62,14 +62,36 @@ describe('winning the ball by standing on him', () => {
     expect(s.possession.holder, 'he took it off him in a single tick').toBe(carrier);
   });
 
-  // ⚠️ THE WHOLE CLAIM. He has to keep it up, and `PRESSURE_WINS` is how long.
-  it('[Right] but keeping it up wins it', () => {
+  // ⚠️ THE WHOLE CLAIM. He has to keep it up, and `PRESSURE_WINS` is how long - at the base rate.
+  //
+  // ⚠️ AND THIS FIXTURE IS THE SLOW CASE, WHICH IT DID NOT USED TO BE. The carrier stands at 45.8
+  //    facing the way his side attacks and the rival is at 45.1, which is DIRECTLY BEHIND him - and
+  //    since `pressureFactorOf` landed, behind accrues at half rate. The gate used to run
+  //    `PRESSURE_WINS + 1` ticks and pass; it now needs twice that, and the change of number is the
+  //    feature rather than a tolerance being loosened.
+  it('[Right] but keeping it up wins it, even from directly behind', () => {
     const { s, rival } = duel(0.1);
 
-    for (let t = 0; t < PRESSURE_WINS + 1; t++) resolvePossession(s);
+    for (let t = 0; t < PRESSURE_WINS * 2 + 1; t++) resolvePossession(s);
 
-    expect(s.possession.holder).toBe(rival);
+    expect(s.possession.holder, 'a defender glued to his back never wins it at all').toBe(rival);
   });
+
+  // ========================= AND AN ALONGSIDE-VERSUS-BEHIND GATE IS NOT CONSTRUCTIBLE HERE =========================
+  // ⚠️ THE TWO MECHANISMS OVERLAP, WHICH TRYING TO WRITE IT IS WHAT FOUND. The shield above only yields
+  //    when the challenger is CLEARLY nearer the ball than the carrier - `|carrier to ball| - |his to
+  //    ball| >= margin` - and a man standing alongside the carrier is, almost by definition, about as far
+  //    from the ball as the carrier is. So every fixture that puts him beside the carrier is a fixture the
+  //    shield refuses, and every fixture the shield allows has already put him in front.
+  //
+  // ⚠️ THE FIRST TWO ATTEMPTS BOTH REPORTED FACTS ABOUT THE FIXTURE AND NOT ABOUT THE GAME. One had him
+  //    0.6 m from the carrier and therefore 1.0 m from the ball, outside the control radius, so the duel
+  //    never started and it read "alongside never wins". The second moved the carrier closer to the ball
+  //    and put him INSIDE the shield margin, so the carrier kept it for ever and both sides read 999.
+  //
+  //    The ordering is gated where it can be asked cleanly, on `pressureFactorOf` in
+  //    `tests/positional-duel`; what is gated here is the half that a real duel can express, which is that
+  //    a man behind still wins it and takes twice as long about it.
 
   // ⚠️ AND IT IS NOT A COUNTDOWN THAT SURVIVES HIM WALKING AWAY. Pressure that persisted after the
   //    defender left would be a ball won by somebody standing in the centre circle a second later.

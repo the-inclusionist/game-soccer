@@ -262,4 +262,3 @@ export function tackleMarginOf(defending: number): number {
 export function pressedAtOf(composure: number): number {
   return 2.0 + 1.2 * composure;
 }
-

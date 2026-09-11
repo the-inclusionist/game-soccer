@@ -177,6 +177,51 @@ export const SHIELD_MARGIN = 0.35;
  */
 export const PRESSURE_WINS = 20;
 
+// ⚠️ THIS LIVES HERE AND NOT IN `ai/ratings` BECAUSE `sim/` MAY NEVER IMPORT `ai/`, and the rule caught
+// it: the factor was written beside `pressureRateOf` because the two are multiplied together, and that
+// would have been the layering inverted for the sake of one import. It reads no rating at all - it is
+// pure geometry, which is what `sim/` is for. The RATE is a fact about a club and stays in `ai`; the
+// SHAPE of a duel is a fact about the world and belongs next to the duel.
+/**
+ * How much faster a challenger in FRONT of the carrier takes the ball than one directly behind him.
+ *
+ * ⚠️ THE NUMBER IS A RATIO AND THE RATIO IS THE POINT. A challenger dead behind accrues at 1, one
+ * alongside at 1.5 and one in front at 2 - so turning your back trebles nothing and halves everything,
+ * which is about what a shield is worth in football. A spread narrower than this would leave the game
+ * claiming a skill and charging nothing for it, which is the defect this exists to close arriving as a
+ * number too small to feel.
+ */
+export const AHEAD_BONUS = 1;
+
+/**
+ * The positional half of a duel: how fast this challenger wins the ball, given where he stands.
+ *
+ * `align` is the alignment between the way the carrier is facing and the direction from the carrier to
+ * the challenger - +1 directly in front of him, 0 alongside, -1 directly behind.
+ *
+ * ⚠️ `sim/possession` NEVER ASKED WHERE HE WAS, and measured on 2026-09-08 a chaser reached 0.00 metres
+ * from the ball and won it in about twenty-three ticks from any gap and at any pace. Standing on the
+ * wrong side of a carrier cost him nothing, so shielding was a word rather than a skill - and a child who
+ * turns her back is doing the one thing football gives her to protect the ball.
+ *
+ * ⚠️ AND BEHIND IS SLOW, NEVER NOTHING. A factor of zero would be the shield-forever exploit arriving
+ * through the other door: a defender glued to a carrier's back must still win it eventually, because
+ * football does not let anybody keep the ball for ever by turning round.
+ *
+ * ⚠️ AND IT IS A DOT PRODUCT AND NOT AN ANGLE. `Math.atan2` is the obvious way to ask which side a man
+ * is on, and it is forbidden here because it is not exactly rounded - two machines replaying one match
+ * could disagree about who won the ball. An alignment of unit vectors is a multiply and an add.
+ */
+export function pressureFactorOf(align: number): number {
+  const clamped = align < -1 ? -1 : align > 1 ? 1 : align;
+  // ⚠️ CENTRED ON ONE, AND THE FIRST VERSION WAS NOT. It ran from 1 to 2, which never made anybody
+  //    SLOWER - so it did not make shielding worth anything, it made every defender in the game better at
+  //    tackling. That is the opposite of what this match needs, which is attacks that last longer, and it
+  //    passed every gate because "in front beats behind" was true of it. Half to one and a half keeps the
+  //    average duel exactly where it was and puts the whole difference into WHERE the man is standing.
+  return 0.5 + AHEAD_BONUS * ((clamped + 1) / 2);
+}
+
 export interface Possession {
   /** Who is dribbling right now, or `NOBODY`. */
   holder: PlayerId;
@@ -304,7 +349,21 @@ export function resolvePossession(state: MatchState, sides?: readonly [SideCaps,
     }
     // ⚠️ A BETTER DEFENDER GETS THERE SOONER, which is what stops this change from quietly unwiring
     //    `defending`. See `ai/ratings.pressureRateOf`; average is exactly 1.
-    state.pressure += sides === undefined ? 1 : sides[teamOf(best)].pressureRate;
+    // ⚠️ AND WHERE HE STANDS DECIDES HOW FAST, which this never asked. A challenger dead behind the
+    //    carrier accrues at the base rate; one alongside half again; one in front at double. Measured
+    //    before it existed: a chaser won the ball in about twenty-three ticks from any gap and at any
+    //    pace, because being on the wrong side of a man cost him nothing - so shielding was a word and
+    //    not a skill, and a child who turns her back was doing the one thing football gives her for
+    //    nothing in return.
+    // ⚠️ THE ALIGNMENT IS THE CARRIER'S FACING AGAINST THE DIRECTION TO THE CHALLENGER, as a dot
+    //    product of unit vectors: a multiply and an add, and a `Math.sqrt` that is exactly rounded.
+    //    `Math.atan2` is the obvious way to ask which side a man is on and it is forbidden here, because
+    //    it is not exactly rounded and two machines replaying one match could disagree about who won.
+    const carrier = players[held];
+    const away = { x: players[best].p.x - carrier.p.x, y: players[best].p.y - carrier.p.y };
+    const far = Math.sqrt(away.x * away.x + away.y * away.y);
+    const align = far === 0 ? 0 : (away.x * carrier.facing.x + away.y * carrier.facing.y) / far;
+    state.pressure += (sides === undefined ? 1 : sides[teamOf(best)].pressureRate) * pressureFactorOf(align);
     if (state.pressure < PRESSURE_WINS) {
       possession.holder = held;
       possession.lastTouch = held;
