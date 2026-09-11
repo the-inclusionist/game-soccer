@@ -121,6 +121,30 @@ describe('what a screen reader hears', () => {
     }
   });
 
+  // ========================= ⚠️ AND THE LABEL HAS TO BE AN `aria-label`, WHICH `accessibleName` CANNOT SAY =========================
+  // `accessibleName` models what a screen reader announces - the label wins over the text - and that makes
+  // it blind to the difference between the two. Measured 2026-09-11: deleting this game's own aria-label
+  // write left all thirty gates here green, because the helper fell through to the visible text.
+  //
+  // ⚠️ AND THE VISIBLE TEXT IS NOT THE SAME INFORMATION. It reads "Alterar" - Change - on all twelve rows.
+  // The position's name lives ONLY in the label: "Alterar tecla de Conter do Jogador 1". So a child using
+  // a screen reader would hear "Change" twelve times and be told nothing about which key she is changing,
+  // and every gate in this file would still pass.
+  //
+  // So this one reads the attribute itself. It is the only assertion here that can notice the label
+  // disappearing, which is now worth having for a second reason: the engine supplies it, not this game.
+  it('[Interface] the position name is in the aria-label, not only in the visible text', () => {
+    open();
+    const jockey = changeButtons().find((b) => b.dataset.act === 'leftShoulder') as HTMLButtonElement;
+
+    const label = jockey.getAttribute('aria-label');
+
+    expect(label, 'there is no aria-label at all - a reader would hear only the visible word').not.toBeNull();
+    expect(label ?? '', 'the label does not name the position it changes').toContain('Conter');
+    expect((jockey.textContent ?? '').trim(), 'the visible text names the position, so this gate proves nothing')
+      .not.toContain('Conter');
+  });
+
   it('[Right] and it is the word for THAT position, not the same word twelve times', () => {
     open();
     const jockey = changeButtons().find((b) => b.dataset.act === 'leftShoulder') as HTMLButtonElement;

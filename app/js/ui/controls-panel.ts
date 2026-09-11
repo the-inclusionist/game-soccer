@@ -8,17 +8,24 @@
 // schemes carry the platformer's EIGHT positions, and this game has fourteen. Handed our map, our store
 // and our words instead, the same panel edits the keyboard the sampler actually reads.
 //
-// Two repairs are made here, and both are the engine's to fix properly:
+// ⚠️ THIS HEADER SAID "TWO REPAIRS ARE MADE HERE, AND BOTH ARE THE ENGINE'S TO FIX PROPERLY". Both have
+// since been fixed properly, and both repairs are gone - so what is listed below is what this file still
+// does, and the two closures are kept as history because a reader needs to know they stopped mattering.
 //
-//  1. THE ACCESSIBLE NAME. The panel builds every button's `aria-label` from `ACT_LABEL`, a table of the
-//     platformer's eight words. Six of this game's positions are not in it, so `t(undefined)` reaches the
-//     attribute - and an `aria-label` OVERRIDES the visible text. A sighted child reads "Conter" and a
-//     blind one hears "Change the undefined key". The VISIBLE label was moved to `acoesDoJogo()` by issue
-//     #106; the aria-label was not moved with it.
-//  2. THE DOUBLED KEY. The panel writes `mapRef[action] = [code]` and asks only whether ANOTHER PLAYER
-//     owns the code. In a one-player game that question can never be answered yes, so `W` can end up on
-//     "move up" AND on jockey, both firing - which is exactly the intermittent double action the engine's
-//     own `input/default-bindings` header says its conformance check exists to catch.
+//  1. THE ACCESSIBLE NAME - CLOSED, and the repair is gone. It said the panel builds every `aria-label`
+//     from `ACT_LABEL`, the platformer's eight words, so six of this game's positions reached the
+//     attribute as `t(undefined)`: a sighted child read "Conter" and a blind one heard "Change the
+//     undefined key". Engine 8.0 closed it (audit finding 7) and this repair outlived it by a version.
+//     📏 Measured 2026-09-11 by deleting the line: the label is byte-identical with it and without it.
+//  2. THE DOUBLED KEY - CLOSED, and that repair went earlier. The panel asked only whether ANOTHER
+//     PLAYER owned the code, which a one-player game can never answer yes, so one key could hold two
+//     positions and both fire. Engine 8.0 refuses the duplicate at entry instead (audit finding 8), which
+//     is a better answer than the one that lived here - see the note beside `setKB`.
+//
+// What this file still repairs, and none of it is an engine defect: the click PROMPT, which the engine
+// writes as a Portuguese literal; the KEY NAMES, which its `keyName` returns raw so two shoulders read
+// `Digit7` and `Digit8`; and the PLAYER SENTENCE, which it hard-codes in Portuguese about a count this
+// game answers itself.
 //
 // ⚠️ THE REPAIR RUNS AFTER EVERY RENDER, AND THE THREE RENDER PATHS ARE ENUMERATED BELOW rather than
 // hooked generically. A `MutationObserver` would be more robust and is not usable: its callback is a
@@ -153,7 +160,13 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
     for (const b of doc.querySelectorAll<HTMLButtonElement>('#ctrl-list button[data-act]')) {
       const action = b.dataset.act as Action | undefined;
       if (action === undefined) continue;
-      b.setAttribute('aria-label', ports.t('ctrl.changeKeyAria', { acao: labelOf(action), n: editing + 1 }));
+      // ⚠️ THE `aria-label` USED TO BE WRITTEN HERE AND THE ENGINE WRITES IT NOW. Finding 7 of
+      //    `docs/ENGINE-AUDIT.md` closed in engine 8.0 - the remap screen announces the GAME's word - and
+      //    this repair outlived it by a version. 📏 Measured 2026-09-11 by deleting the line: the label
+      //    read "Alterar tecla de Conter do Jogador 1" both with it and without it, byte for byte.
+      //    Dead code that used to be load-bearing is the worst kind to leave behind, because the next
+      //    reader cannot tell it stopped mattering - the same sentence this file already wrote when
+      //    `snapshot` and `undouble` went.
       // ⚠️ AND THE PROMPT, WHICH THE ENGINE WRITES AS A PORTUGUESE LITERAL. `settings-controls` sets
       //    `b.textContent = 'Pressione…'` in the click handler it registers during `render` - so a child
       //    playing in English or Spanish meets one Portuguese word at the exact moment she is being asked
