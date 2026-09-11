@@ -306,6 +306,30 @@ and this game passes none of them, so nothing regressed - but the gap they close
 previously impossible: a pause card with our own items, the second seat's remap reachable, and the ⚫ and 🚥
 icons mountable. `boot/main.ts` passes `declaration`, `host` and `declines` today.
 
+### And what 9.0.0 left this game to do, measured with the card open
+
+Not a finding against the engine — the engine's rule is right — but the measurement belongs beside the
+others so nobody re-derives it.
+
+`PAUSE_ICONS` declares **ten** accessibility icons and this game's bar mounts **eight**: blind, tts,
+libras, tea, altmove, face, eyes, voice. ⚠️ **The two absent are `contrast` (🌗) and `cvd` (🚥)**, so a
+child who needs high contrast or colour-vision correction has no button for either — and `motor.problems`
+is **empty**, so nothing says so.
+
+`iconesQueAccionam` mounts an icon only for a game that declares it can write that axis, which is ADR-0106
+§5 doing its job. 9.0.0 added the two doors (`setTemaDoJogador`, `setCorrecaoDoJogador`) and this game
+supplies neither.
+
+⚠️ **And they cannot honestly be supplied one at a time.** `render/viz-axes.aplicacao()` returns both
+halves in one object and says why: «enquanto eram um campo, aplicar um apagava o outro». Answering for one
+axis alone invites that bug back — a child in `hc7` changing her colour correction would lose her contrast.
+
+The two are not the same size of work, and that is what the decision needs: the **correction** axis is a
+CSS filter the engine already builds (`#cvd` holds six filters after boot; `filtroChave`, `cssFilterFor`
+and `alcanceDoModo` are all exported), while **contrast** is three repainted palettes at the 3:1, 4.5:1 and
+7:1 ratios across kits, pitch and crests — real render work against a measurable target, for which
+`teams/clubs` already owns `LUMA_GAP` and a luminance comparison.
+
 ## What was drafted here and has since landed
 
 All five were carried to the engine by the Dev and are now in `docs/2-Architecture/adr/` there -

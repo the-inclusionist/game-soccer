@@ -203,6 +203,35 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
      * broken a case inside the engine.
      */
     getPauseActs: () => ({ resume: () => resume() }),
+    // ========================= ⚠️ AND TWO ACCESSIBILITY ICONS ARE MISSING FROM THIS GAME =========================
+    // 📏 Measured 2026-09-11 with the card open: `PAUSE_ICONS` declares TEN and the bar mounts EIGHT -
+    // blind, tts, libras, tea, altmove, face, eyes, voice. The two absent are `contrast` (🌗) and `cvd`
+    // (🚥). So a child who needs high contrast, or colour-vision correction, has no button for either, and
+    // `motor.problems` is EMPTY - nothing reports it.
+    //
+    // `iconesQueAccionam` mounts an icon only for a game that declares it can write that axis, and that
+    // rule is right: an icon that does not action is worse than an icon fewer. Engine 9.0.0 opened the two
+    // doors - `setTemaDoJogador` and `setCorrecaoDoJogador` - and neither is supplied here.
+    //
+    // ⚠️ AND THEY CANNOT HONESTLY BE SUPPLIED ONE AT A TIME, which is the reason this is a note and not a
+    // line of code. `render/viz-axes.aplicacao()` returns BOTH halves in one object, and its own doc says
+    // why: «enquanto eram um campo, aplicar um apagava o outro». A game that answers for the correction
+    // axis and not the theme invites exactly that bug back - a child in `hc7` who changes her colour
+    // correction would lose her contrast.
+    //
+    // ⚠️ AND THE TWO AXES ARE NOT THE SAME SIZE OF WORK, which is the whole of what a decision needs:
+    //   · CORRECTION is a CSS filter the engine already builds. `#cvd` holds six filters after boot
+    //     (`cvd-fix-protan` and friends), `filtroChave` names the one a state needs, `cssFilterFor`
+    //     composes it, `alcanceDoModo` says how far it reaches - and the engine's own rule is that a
+    //     correction must reach the MENUS too, because it exists for a child to read. Nothing here has to
+    //     be invented; it has to be held per seat and forwarded.
+    //   · CONTRAST is three repainted palettes - `hc3`, `hc45`, `hc7` are the 3:1, 4.5:1 and 7:1 ratios -
+    //     applied to the kits, the pitch and the crests. That is real render work against a MEASURABLE
+    //     target, and this repository already owns the machinery for it: `teams/clubs` keeps `LUMA_GAP`
+    //     and a luminance comparison for exactly this kind of question.
+    //
+    // So what is owed is a decision about the contrast axis, and then both writers land together.
+    // `docs/ENGINE-AUDIT.md` records the measurement; this note records why it is not a one-liner.
     declines: {
       semAssistenteDePad: true,
       // ⚠️ DECLINED, AND DECLINING IS THE HONEST ANSWER RATHER THAN THE CONVENIENT ONE. Engine 8.0
