@@ -480,6 +480,55 @@ function takerOf(state: MatchState, team: TeamId): PlayerId {
 /**
  * A desired direction for every body, from its cached target. Magnitude falls off near the target so a
  * body arrives instead of orbiting - a seek with no arrival is the classic jitter around a destination.
+ *
+ * ⚠️ EXCEPT FOR THE ONE BODY THAT IS NOT GOING TO A PLACE. Arriving and running a man down are two
+ * movements and this function had one primitive for both. The designated presser's target IS the ball, so
+ * the last `ARRIVE_RADIUS` of his chase - eight tenths of a metre - was run at a fraction of his speed,
+ * falling linearly to nothing. That is precisely the distance a challenge happens over, and
+ * `challenger` only counts a man as having gone in above a fraction of his top speed: a presser who
+ * decelerates into contact does not challenge anybody, he hovers.
+ *
+ * ⚠️ AND NOTHING LOOKED WRONG, WHICH IS WHY IT SURVIVED. He still won the ball - standing on top of
+ * somebody and accumulating pressure never required arriving at speed. It is `sim/possession`'s
+ * positional duel that makes the difference matter, because a duel is decided by WHERE he is when he gets
+ * there, and a body that has been braking for eight tenths of a metre has had time to end up behind.
+ *
+ * ========================= SO IT WAS BUILT AND MEASURED, AND IT IS NOT HERE =========================
+ * Four lines: exempt the two pressers from the easing band. Gated three ways, including the one that
+ * matters - ⚠️ `presserId` IS -1 FOR A SIDE THAT HAS THE BALL, and `firstOf(team) + -1` is a REAL INDEX,
+ * the last man of the OTHER side, so the obvious arithmetic hands the chase primitive to a body on the
+ * wrong team and produces a valid answer to a different question.
+ *
+ * Twelve fixtures, five minutes a half, no bodies wired:
+ *
+ *     build                   fouls   cards   corners   throw-ins   offsides   goals
+ *     a child playing
+ *       as committed           3.50    1.25      3.00       16.92       0.50    3.50
+ *       the presser chases     4.00    1.00      2.42       11.33       0.92    2.67
+ *     nobody playing
+ *       as committed           3.50    0.83      2.92        5.25       0.42    3.83
+ *       the presser chases     4.00    1.25      1.33       10.58       0.50    3.08
+ *     the band              2 - 3.5  0.5-1.5   1.5 - 3     3.5 - 6    0.5-1.5   2 - 3
+ *
+ * ⚠️ IT IMPROVES THE PLAYED MATCH AND BREAKS THE UNPLAYED ONE. With a child the goals come back inside
+ * their band, the offsides double, the throw-ins fall by a third and no sending-off happens at all. With
+ * an empty chair the corners fall BELOW their band and the throw-ins DOUBLE - and the corner gate in
+ * `tests/full-match`, which asks that every fixture produce one, goes red on a fixture that produces
+ * none.
+ *
+ * ⚠️ AND THAT IS THE THIRD TIME THIS EXACT SHAPE HAS BEEN MEASURED. See the note in `decide`'s presser
+ * branch above for `ai/meet`, and `sim/step` for body contact. Three unrelated mechanisms - an
+ * interception point, bodies with volume, and a chase that does not brake - each make the DEFENCE better
+ * and each make the match worse in the same direction: the ball goes out of play more, and the attack
+ * stops arriving. Written out, the three tables say one thing.
+ *
+ * ⚠️ SO THE FRAGILE HALF IS THE ATTACK, AND IT IS NOT A CONSTANT. Every defensive improvement this
+ * repository has measured has been paid for out of the same account, because `ai/brain` has no answer to
+ * a defence that works: the cascade has no receiver role, nobody commits to a run, and a possession that
+ * meets resistance ends rather than develops. The absorption plan says so in its own words in the note
+ * above - *"it needs the off-ball roles that come later in the plan - which means that item comes FIRST,
+ * not second"* - and three measurements have now arrived at it from three directions. The next work is
+ * the attack, and the two parked defensive changes become affordable the moment it exists.
  */
 export function steerAll(state: MatchState): Vec2[] {
   const out: Vec2[] = [];
