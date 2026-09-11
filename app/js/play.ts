@@ -27,7 +27,7 @@ import { onPitch } from './sim/squads.ts';
 import type { MatchState } from './sim/state.ts';
 import { step } from './sim/step.ts';
 import { applyStrike, strikeFor } from './sim/strike.ts';
-import { nextControlled } from './sim/switching.ts';
+import { updateHints } from './sim/switching.ts';
 import { challenger, decideKick, steerAll, think, type Skills } from './ai/brain.ts';
 import { shotErrorOf } from './ai/ratings.ts';
 import { tackleFor } from './sim/tackle.ts';
@@ -192,6 +192,13 @@ export function playTick(
   skills?: Skills,
 ): RuleEvent[] {
   if (OVER.has(state.phase)) return [];
+
+  // ⚠️ THE HINT IS SETTLED BEFORE ANYTHING ELSE HAPPENS, and above the restart branch rather than below
+  //    it. A child waiting on a throw-in is a child reading the screen with time to spare - which is the
+  //    one moment the marker is easiest to use - so a hint that went blank whenever play stopped would go
+  //    missing exactly when it is most useful.
+  updateHints(state);
+
   if (STOPPED.has(state.phase)) return awaitingRestart(state, frame, dt, profile, skills);
 
   // ⚠️ THINK, THEN MOVE, THEN STRIKE. The order is the contract: a kick decided BEFORE the bodies move
@@ -211,10 +218,15 @@ export function playTick(
   // ⚠️ SWITCHING IS APPLIED BEFORE THE STRIKES, so a seat that switched and shot on the same tick shoots
   //    with the body it just took. The other order would fire the old body's shot and then hand her a new
   //    one, which is the single most confusing thing a control can do.
+  // ⚠️ THE PRESS TAKES THE STANDING ANSWER, it does not compute one. `sim/switching.updateHints` settled
+  //    who each seat would be handed at the top of this tick, the marker over her head is naming that
+  //    body, and this line hands her the same one. A second derivation here would be a second answer to
+  //    the question the hint exists to answer, and the day the two disagreed the marker would become a
+  //    thing she had learned not to believe.
   for (const cmd of frame.cmds) {
     if (cmd.verb !== 'switch') continue;
-    const next = nextControlled(state, cmd.seat);
-    if (next !== null) state.controlled[cmd.seat] = next;
+    const next = state.hinted[cmd.seat];
+    if (next >= 0) state.controlled[cmd.seat] = next;
   }
 
   let struck = false;

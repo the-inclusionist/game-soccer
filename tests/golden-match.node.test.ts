@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  918915267, 2383562994, 600360039, 1504071733, 2916332281, 627692871, 2560235582, 4077394870, 996021677,
-  996021677,
+  1833307395, 257858098, 2892200743, 8647157, 2203770169, 2222602951, 390187454, 1749260214,
+  3234393325, 3234393325,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -135,6 +135,16 @@ const GOLDEN: readonly number[] = [
 //               0.33 to 0.50, fouls 2.83 to 3.08 and yellows 0.58 to 1.00, all three into band. A child
 //               playing: throw-ins 3.92 to 5.92 and goals 2.50 to 2.67, both in band. In these ninety
 //               seconds: a foul and a goal kick where there had been a goal.
+//
+//   2026-09-11  The switch says who it would hand her, and the hint is IN THE WORLD. `state.hinted` is a
+//               body per seat, settled every tick with a quarter-metre hysteresis margin, and the press
+//               takes it rather than deriving a second answer.
+//               ⚠️ AND THE MATCH DID NOT CHANGE, WHICH WAS PROVED RATHER THAN ARGUED. Removing the two
+//               `hinted` rows from the digest field list makes this file pass against the PREVIOUS trail,
+//               byte for byte. So the world gained two observables and the football is identical - and
+//               the summary below is the second witness: same full time, same 0-0, same single crossed
+//               goal line, same single foul. This is the cheapest kind of re-blessing there is, and the
+//               only kind that can be checked by anybody who doubts it.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
