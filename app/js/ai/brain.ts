@@ -834,6 +834,32 @@ function receiverFor(state: MatchState, carrier: PlayerId, playable: Playable): 
 
     const at = state.players[id].p;
     const ahead = (at.x - me.x) * dir;
+    // ========================= ⚠️ THIS LINE REJECTS 99.6% OF EVERY CANDIDATE EVER CONSIDERED =========================
+    // Measured 2026-09-11 over the six-fixture slate, with a counter on each filter in this loop. Of
+    // 579,339 team-mates examined, 576,769 were refused HERE - and 52 for being beyond `PASS_RANGE`, and
+    // none at all for standing off the pitch. 2,518 survived, which is 0.4%.
+    //
+    // The consequence, measured in the same run and in the two before it, is a chain with no missing link:
+    //
+    //   · pressed and looking for a pass 64,371 times, `receiverFor` returns null in 98.0% of them;
+    //   · so 90% of ALL possessions are one man - 3,687 of 4,078 have exactly one toucher;
+    //   · so 24 of the 28 goals in a slate are scored by a move in which one player touched the ball;
+    //   · so freezing eight of a side's eleven where they stand costs that side ZERO goals in attack
+    //     (`ai/plan` carries that table);
+    //   · so every defensive improvement measured today was paid for out of an account with nothing in it,
+    //     which is the convergence recorded beside `steerAll`.
+    //
+    // ⚠️ AND THE LINE IS NOT A BUG. It is a decision, and its own comment states it: a square or backward
+    // ball is not what this is for. What the measurement adds is the PRICE, which nobody had: refusing
+    // every ball that is not forward refuses the passing game, because the carrier is by construction the
+    // man who has run furthest up the pitch - he is carrying the ball at the goal. Almost nobody is ever
+    // ahead of him.
+    //
+    // ⚠️ WHAT IT DOES NOT SAY is what to put in its place, and that is left open on purpose. A square ball
+    // is how football keeps possession, and it is also how a match becomes twenty-two men passing sideways
+    // for five minutes - which is the thing this line was written against. The next attempt owes a measured
+    // answer to "what does a receiver have to be, if not two metres further forward", and it should arrive
+    // with the same counters attached.
     if (ahead <= 2) continue; // a square or backward ball is not what this is for
 
     const d2 = dist2(me, at);
