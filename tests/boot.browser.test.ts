@@ -272,6 +272,25 @@ describe('what a child sees', () => {
     expect(shown, `no shirt number in "${shown}"`).toMatch(/\d/);
   });
 
+  // ⚠️ THE NUMBER ON THE PITCH AND THE NUMBER IN THE MIRROR ARE THE SAME NUMBER, and that is the whole
+  //    gate. Pillar 2 says text lives in the DOM and it does - `#m-you` has said "you are number 7" since
+  //    before there were pixels for it - so the tag over her head is a DUPLICATE and never the only copy.
+  //    A duplicate that can disagree is worse than no duplicate: whichever one she reads, the other is
+  //    lying, and she has no way to know which.
+  //
+  // ⚠️ THE PIXELS CANNOT BE READ FROM A TEST, so this asks the next best question: whether both come
+  //    from the same body. A second lookup of the controlled index inside the renderer would compile,
+  //    run, and drift the first time the two were read on different ticks.
+  it('[Right] the shirt number drawn on the pitch is the one the mirror names', async () => {
+    booted = bootar(document, window);
+    await new Promise((r) => setTimeout(r, 350));
+
+    const shown = document.querySelector('#m-you')?.textContent ?? '';
+    const shirt = (booted!.state.controlled[0] % 11) + 1;
+
+    expect(shown, `the mirror says "${shown}" but she is driving shirt ${shirt}`).toContain(String(shirt));
+  });
+
   // ⚠️ A KEY EVENT WITH NO PHYSICAL CODE STILL REACHES THE GAME. `code` is the right thing to read and
   //    this does not stop reading it; the floor is for the case where it arrives EMPTY, which today is
   //    recognised by nothing and therefore swallowed by nothing - the child gets neither her control nor

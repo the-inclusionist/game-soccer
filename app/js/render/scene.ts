@@ -25,7 +25,7 @@ import { Z } from '@the-inclusionist/engine/core/layers.js';
 import { criarCamera, type CameraObj } from '@the-inclusionist/engine/render/camera.js';
 import { posicoesParallax } from '@the-inclusionist/engine/render/parallax.js';
 import { STADIUM_LAYERS, crowdBands } from './stadium-layers.ts';
-import { SQUAD_SIZE } from '../sim/ids.ts';
+import { SQUAD_SIZE, shirtOf } from '../sim/ids.ts';
 import { kitFor } from '../teams/kits.ts';
 import type { Fixture } from '../teams/clubs.ts';
 import { NOBODY } from '../sim/possession.ts';
@@ -33,6 +33,7 @@ import { onPitch } from '../sim/squads.ts';
 import type { MatchState } from '../sim/state.ts';
 import { GOAL, PITCH } from '../sim/units.ts';
 import { MARKER, hintCells, markerCells } from './marker-pixels.ts';
+import { DIGIT, digitCells } from './digit-pixels.ts';
 import { centreCircle, penaltySpotAt, pitchLines } from './pitch-marks.ts';
 import { bodyCells, outlineOf } from './body-pixels.ts';
 import { SX, SY, SZ, WORLD_PX, project } from '../project.ts';
@@ -388,6 +389,32 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
   //    against two bright ones says "not yours yet" to a child who sees colour, and the hollow chevron
   //    says the same thing to one who does not - which is the order those two have to come in here.
   const hintTex = markerTexture(app, hintCells(), 0x9aa7b4);
+
+  // ⚠️ THE SHIRT NUMBER OF THE BODY SHE IS DRIVING, and at this camera it fits. At the old scale it
+  //    would have been three pixels tall over a thirteen-pixel body, beside a marker of its own - which
+  //    is why this item waited for the camera rather than being cheap all along.
+  // ⚠️ IT IS A DUPLICATE AND NEVER THE ONLY COPY. Pillar 2 says text lives in the DOM, and it does:
+  //    `ui/mirror.youLine` has said "you are number 7" since before there were pixels for it. This is the
+  //    SIGHTED channel for a fact a blind child already had, which is the reverse of the usual direction
+  //    here and worth saying out loud.
+  const numberTex = new Map<number, PIXI.Texture>();
+  const numberFor = (shirt: number): PIXI.Texture => {
+    const had = numberTex.get(shirt);
+    if (had !== undefined) return had;
+    const g = new PIXI.Graphics();
+    const glyphs = [...String(shirt)].map((c) => digitCells(Number(c)));
+    const w = glyphs.length * (DIGIT.w + 1) - 1;
+    g.beginFill(OUTLINE, 0.65).drawRect(0, 0, (w + 2) * ART, (DIGIT.h + 2) * ART).endFill();
+    for (let i = 0; i < glyphs.length; i++) {
+      const ox = 1 + i * (DIGIT.w + 1);
+      for (const [x, y] of glyphs[i]) {
+        g.beginFill(0xffffff).drawRect((ox + x) * ART, (1 + y) * ART, ART, ART).endFill();
+      }
+    }
+    const made = app.renderer.generateTexture(g);
+    numberTex.set(shirt, made);
+    return made;
+  };
   // ⚠️ ONE TEXTURE PER DISTINCT KIT, NOT ONE PER BODY. Twenty-two textures where four will do is twenty-two
   //    uploads at boot on a machine that has none to spare - and the colours come from `kitFor`, so the
   //    renderer holds no table of its own to disagree with the crest.
@@ -428,6 +455,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
 
   const chevrons: PIXI.Sprite[] = [];
   const hints: PIXI.Sprite[] = [];
+  const numbers: PIXI.Sprite[] = [];
   for (let seat = 0; seat < 2; seat++) {
     const c = new PIXI.Sprite(markerTex[seat]);
     c.anchor.set(0.5, 1);
@@ -442,6 +470,13 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
     h.visible = false;
     world.addChild(h);
     hints.push(h);
+
+    const n = new PIXI.Sprite(PIXI.Texture.EMPTY);
+    n.anchor.set(0.5, 1);
+    n.zIndex = Z.HUD;
+    n.visible = false;
+    world.addChild(n);
+    numbers.push(n);
   }
 
   // Which kits are on the pitch right now. The draw needs it every frame, because the stride picks a
@@ -532,10 +567,18 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
         chevrons[seat].visible = on;
         if (!on) {
           hints[seat].visible = false;
+          numbers[seat].visible = false;
           continue;
         }
         const at = project({ x: state.players[who].p.x, y: state.players[who].p.y, z: 0 });
         chevrons[seat].position.set(Math.round(at.x), Math.round(at.y) - 13 * ART);
+
+        // ⚠️ ABOVE THE MARKER, NOT OVER THE BODY. The tag must not sit on the figure it names - a
+        //    number printed across a kit is a number competing with the one thing a child uses to tell
+        //    the sides apart. The marker is 13 cells up and four tall, so this clears both.
+        numbers[seat].texture = numberFor(shirtOf(who));
+        numbers[seat].visible = true;
+        numbers[seat].position.set(Math.round(at.x), Math.round(at.y) - (13 + MARKER.h) * ART);
 
         // ⚠️ IT IS READ FROM THE WORLD AND NOT WORKED OUT HERE. `state.hinted` is the answer `play`
         //    hands her when she presses, so the mark and the press cannot disagree - and a renderer that
