@@ -80,6 +80,7 @@ export const pt = {
   'hud.charge': 'Força: {have} de {need}',
   'hud.lagging': 'Este aparelho está com dificuldade de acompanhar',
   'cue.chargeStep': 'Força subindo',
+  'cue.heldKick': 'Seu chute guardado saiu',
   'assist.grace.label': 'Tolerância do acorde',
   'assist.grace.none': 'Sem espera',
   'assist.grace.ticks': '{n} tiques de tolerância',

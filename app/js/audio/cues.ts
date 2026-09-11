@@ -53,7 +53,8 @@ export type CueName =
   | 'halfTime'
   | 'fullTime'
   | 'restart'
-  | 'chargeStep';
+  | 'chargeStep'
+  | 'heldKick';
 
 /**
  * The seven sounds a match makes.
@@ -75,6 +76,14 @@ export const CUES: Readonly<Record<CueName, CueDef>> = Object.freeze({
   //    `tests/cues` refused it: a tone of fifty milliseconds or less is not reliably heard, so an earcon
   //    that short is not an earcon. The gate was right and the cue moved.
   chargeStep: { t: 'sine', f: 700, d: 0.06, cap: 'cue.chargeStep' },
+  // ⚠️ A MOMENT SHE DID NOT DIRECTLY CAUSE, WHICH IS WHY IT OWES A SOUND AND A CAPTION. The kick was
+  //    hers, but the instant was the world's - she pressed half a second ago and the ball arrived now.
+  //    An action with no explanation is worse than a dropped one: a dropped press teaches her to press
+  //    later, and an unexplained kick teaches her the game does things on its own.
+  // ⚠️ AND IT RISES, which engine 8.0 made possible and this table could not say before. A short
+  //    figure going UP is "something you asked for has happened", and it is deliberately unlike the
+  //    charge staircase above it, which is one flat note repeated.
+  heldKick: { t: 'triangle', f: 520, f2: 780, d: 0.12, cap: 'cue.heldKick' },
   // Ours: the highest and the longest thing in the match. Nothing else is allowed to be mistaken for it.
   goalFor: { t: 'triangle', f: 880, d: 0.55, cap: 'cue.goalFor' },
   // Theirs: low, and shorter. Not a sad noise - a different one. ADR-0049 has no room for a game that

@@ -67,6 +67,27 @@ export interface MatchState {
    */
   hinted: [number, number];
   /**
+   * A kicking verb each seat pressed before the ball was hers, as an index into `VERBS`. `-1` for none.
+   *
+   * ⚠️ IT IS A RULE AND SO IT LIVES HERE. The line this repository already drew is that an adaptation
+   * crosses from OPERATION to RULE when it changes the set of reachable states - and a buffered press
+   * makes a first-time strike reachable that otherwise is not. In the input layer it would sit outside
+   * the command stream, outside the digest and outside the replay, and a recording would diverge from the
+   * match it recorded.
+   */
+  pendingVerb: [number, number];
+  /** The last tick each seat's held press may still fire on. Meaningless while `pendingVerb` is -1. */
+  pendingUntil: [number, number];
+  /**
+   * `1` on the tick a seat's HELD press actually fired, `0` otherwise.
+   *
+   * ⚠️ A ONE-TICK FACT, AND IT IS IN THE WORLD BECAUSE THE SOUND MUST BE EXACT. `pendingVerb` returning
+   * to -1 happens on firing, on expiry and on a turnover alike, so a consumer watching that transition
+   * would sometimes announce a kick that never happened - and the child this is for is the one who cannot
+   * see that it did not. Being a fact about the match, it is in the digest like the rest.
+   */
+  heldKickFired: [number, number];
+  /**
    * A card per player: 0, `YELLOW`, `RED`. Indexed by `PlayerId`, dense, one entry for every body in both
    * squads whether they are playing or not.
    *
@@ -196,6 +217,9 @@ export function createMatchState(
     onPitch: [profile.squads[0], profile.squads[1]],
     controlled: [9, 10],
     hinted: [-1, -1],
+    pendingVerb: [-1, -1],
+    pendingUntil: [-1, -1],
+    heldKickFired: [0, 0],
     // Both squads, always - a body that is not playing can still have been sent off, and an array that
     // only covered the players on the pitch would change length when somebody left it.
     cards: new Array(SQUAD_SIZE * 2).fill(0),
@@ -229,6 +253,12 @@ export const SCALAR_FIELDS: ReadonlyArray<(s: MatchState) => number> = Object.fr
   (s) => s.controlled[1],
   (s) => s.hinted[0],
   (s) => s.hinted[1],
+  (s) => s.pendingVerb[0],
+  (s) => s.pendingVerb[1],
+  (s) => s.pendingUntil[0],
+  (s) => s.pendingUntil[1],
+  (s) => s.heldKickFired[0],
+  (s) => s.heldKickFired[1],
   // The offside snapshot is state like any other: a replay that reproduced every position but not the
   // armed flag would diverge at the next touch and the digest would call the two worlds identical.
   (s) => s.offsidePasser,

@@ -59,6 +59,8 @@ export interface Sound {
   readonly matchComplete: () => void;
   /** One step of the power gauge, by ear: see `cues.chargeStep`. */
   readonly chargeStep: () => void;
+  /** A kick she pressed before the ball was hers, going out now: see `cues.heldKick`. */
+  readonly heldKick: () => void;
 }
 
 export function createSound(ports: SoundPorts): Sound {
@@ -101,5 +103,6 @@ export function createSound(ports: SoundPorts): Sound {
     matchComplete: () => jingles.playPuzzleSolved(),
     // One step of the power gauge, by ear. See `cues.chargeStep` for why it is the quietest thing here.
     chargeStep: () => play('chargeStep'),
+    heldKick: () => play('heldKick'),
   };
 }

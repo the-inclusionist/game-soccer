@@ -20,7 +20,7 @@ import { book, cardFor, RED } from './rules/cards.ts';
 import type { RuleEvent } from './rules/events.ts';
 import { PHASES } from './rules/phase.ts';
 import type { RulesProfile } from './rules/profile.ts';
-import type { TickFrame } from './sim/command.ts';
+import { BUFFER_TICKS, VERBS, type Command, type TickFrame } from './sim/command.ts';
 import { SQUAD_SIZE, firstOf, teamOf, type TeamId } from './sim/ids.ts';
 import { NOBODY } from './sim/possession.ts';
 import { onPitch } from './sim/squads.ts';
@@ -229,9 +229,58 @@ export function playTick(
     if (next >= 0) state.controlled[cmd.seat] = next;
   }
 
+  // ⚠️ A PRESS MADE BEFORE THE BALL WAS HERS GETS ITS TICK HERE. `sim/strike` refuses every kicking
+  //    verb from a body that is not the holder - one line, `holder !== who` - and that refusal is silent.
+  //    A child on a scanning input cannot press on the instant the ball lands: the scanner steps at its
+  //    own pace and the moment to commit arrives when the highlight arrives. So a press she made in the
+  //    half-second before is replayed now, as if she had made it now.
+  // ⚠️ AND IT IS REPLAYED AS A COMMAND RATHER THAN APPLIED AS A SPECIAL CASE, so everything downstream
+  //    - the aim error from her club, the offside snapshot, `lastStruck` - happens exactly as it does for
+  //    a press she made on time. A second path to striking the ball would be a second set of rules.
+  const revived: Command[] = [];
+  state.heldKickFired[0] = 0;
+  state.heldKickFired[1] = 0;
+  for (let seat = 0; seat < state.pendingVerb.length; seat++) {
+    const held = state.pendingVerb[seat];
+    if (held < 0) continue;
+
+    const who = state.controlled[seat];
+    const holder = state.possession.holder;
+    const oursNow = holder !== NOBODY && who !== undefined && teamOf(holder) === teamOf(who);
+
+    // ⚠️ AN OPPONENT TAKING IT CANCELS IT, and that is what bounds the damage. Without this a press
+    //    survives a turnover and fires when she wins the ball back - a kick belonging to a different
+    //    passage of play, which is the shot nobody wanted.
+    if (holder !== NOBODY && !oursNow) {
+      state.pendingVerb[seat] = -1;
+      continue;
+    }
+    if (state.tick > state.pendingUntil[seat]) {
+      state.pendingVerb[seat] = -1;
+      continue;
+    }
+    if (holder !== who) continue;
+
+    // ⚠️ THE DIRECTION IS READ LIVE AND NOT REMEMBERED. What she pressed is WHICH kick; where she is
+    //    pointing now is better evidence of where she wants it than where she was pointing half a second
+    //    ago - and it keeps two numbers out of the world that would otherwise have to be in the digest.
+    const now = frame.cmds.find((c) => c.seat === seat);
+    revived.push({
+      tick: frame.tick,
+      seat,
+      dx: now?.dx ?? 0,
+      dy: now?.dy ?? 0,
+      verb: VERBS[held] ?? 'none',
+      power: now?.power ?? 1,
+      flags: now?.flags ?? 0,
+    });
+    state.pendingVerb[seat] = -1;
+    state.heldKickFired[seat] = 1;
+  }
+
   let struck = false;
   const fouls: RuleEvent[] = [];
-  for (const cmd of frame.cmds) {
+  for (const cmd of [...revived, ...frame.cmds]) {
     // ⚠️ HER AIM IS HER CLUB'S, like the machine's. Without this her shot went dead centre from any
     //    distance while an ordinary club missed from the edge of its range - a rule applied to one half
     //    of the pitch, and the half was theirs. `sim/strike` carries the measurement.
@@ -248,6 +297,16 @@ export function playTick(
         const who = state.controlled[cmd.seat];
         const foul = who === undefined ? null : judgeTackle(state, who, profile, topOf(who, skills, profile.pace));
         if (foul !== null) fouls.push(...foulEvents(state, foul));
+      } else if (cmd.verb !== 'none' && cmd.verb !== 'switch') {
+        // ⚠️ THE ONE LINE THAT USED TO DROP HER PRESS. A kicking verb that found no strike is a child
+        //    who asked for something the world would not give her yet; it is held for half a second
+        //    instead of vanishing. A tackle is not held - it is an act against a body that is there NOW,
+        //    and a lunge revived half a second later is a lunge at where somebody used to be.
+        const i = VERBS.indexOf(cmd.verb);
+        if (i >= 0) {
+          state.pendingVerb[cmd.seat] = i;
+          state.pendingUntil[cmd.seat] = state.tick + BUFFER_TICKS;
+        }
       }
       continue;
     }

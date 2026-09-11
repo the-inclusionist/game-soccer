@@ -80,6 +80,7 @@ export const en = {
   'hud.charge': 'Power: {have} of {need}',
   'hud.lagging': 'This device is struggling to keep up',
   'cue.chargeStep': 'Power up',
+  'cue.heldKick': 'Your held kick went out',
   'assist.grace.label': 'Chord tolerance',
   'assist.grace.none': 'No waiting',
   'assist.grace.ticks': '{n} ticks of tolerance',

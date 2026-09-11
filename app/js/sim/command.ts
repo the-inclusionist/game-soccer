@@ -24,6 +24,34 @@ import type { PlayerId } from './ids.ts';
 
 export type Verb = 'none' | 'pass' | 'through' | 'lob' | 'shoot' | 'tackle' | 'switch';
 
+/**
+ * The verbs in a fixed order, so one can be held in the world as a number.
+ *
+ * ⚠️ AN ORDER, NOT A SET, and the order is part of the save format the moment a buffered verb is in the
+ * digest. Appending is safe; reordering silently turns one child's held shot into somebody else's pass in
+ * every recording ever made.
+ */
+export const VERBS: readonly Verb[] = Object.freeze(['none', 'pass', 'through', 'lob', 'shoot', 'tackle', 'switch']);
+
+/**
+ * Ticks a kick pressed before the ball arrives stays armed. Half a second.
+ *
+ * ⚠️ THIS NUMBER COULD NOT BE MEASURED FROM THE SLATE, AND THAT IS THE FINDING. The plan asks for the
+ * distribution of time between a child pressing and gaining possession - but `tests/helpers/scripted-child`
+ * presses only when she ALREADY HOLDS the ball, so she never presses early, and how early a child presses
+ * is exactly the unknown. It is a human-factors number; the simulation cannot produce it.
+ *
+ * What the slate CAN do is bracket it, and did. Long enough to forgive a press made as the ball visibly
+ * approaches: a flight is 9 m at the ninetieth percentile at about 26 m/s, which is 21 ticks, and 28.5 m
+ * at the ninety-ninth, which is 66. Short enough that the kick is still about THIS ball: a press that
+ * fires a second and a half later is a shot she has stopped intending.
+ *
+ * ⚠️ AND THE RISK IS ASYMMETRIC, SO THE CHOICE LEANS. A window too short merely fails to help; one too
+ * long acts on her behalf. Thirty sits between the typical flight and the long one, and half a second is
+ * an interval a person can feel and argue with.
+ */
+export const BUFFER_TICKS = 30;
+
 /** Bit flags, because a set of booleans on the wire is a byte and a set of fields is not. */
 export const FLAG_SPRINT = 1;
 export const FLAG_MODIFIER = 2;

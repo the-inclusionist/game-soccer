@@ -947,6 +947,12 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    the one channel a blind child cannot have, so this sentence is not a caption for the picture -
       //    it IS the hinted switch, for her. Written here rather than only in `ui/mirror`, because eight
       //    modules in this repository have been right, gated and connected to nothing.
+      // ⚠️ A KICK SHE PRESSED EARLY, GOING OUT NOW. The instant was the world's and not hers - she
+      //    pressed half a second ago and the ball arrived this tick - so it owes a sound and a caption.
+      //    An unexplained action teaches her the game does things on its own, which is worse than the
+      //    dropped press it replaces: a dropped press only teaches her to press later.
+      if (state.heldKickFired[0] === 1) sound.heldKick();
+
       if (mirror.hint !== null) {
         mirror.hint.textContent = state.controlled
           .slice(0, seating)

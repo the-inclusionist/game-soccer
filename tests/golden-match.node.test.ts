@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  1833307395, 257858098, 2892200743, 8647157, 2203770169, 2222602951, 390187454, 1749260214,
-  3234393325, 3234393325,
+  2327091907, 3396233074, 3914205543, 1113348277, 621814265, 3847212615, 712704830, 2369719478,
+  420944429, 420944429,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -145,6 +145,16 @@ const GOLDEN: readonly number[] = [
 //               the summary below is the second witness: same full time, same 0-0, same single crossed
 //               goal line, same single foul. This is the cheapest kind of re-blessing there is, and the
 //               only kind that can be checked by anybody who doubts it.
+//
+//   2026-09-11  A kick pressed before the ball arrives is HELD for half a second. `sim/strike` refuses
+//               every kicking verb from a body that is not the holder, silently; for a child on a
+//               scanning input an early press is not a mistake but the only way to play, so the press is
+//               replayed on the tick she gains the ball. Six numbers joined the world for it - the held
+//               verb, its deadline and a one-tick flag for the sound, per seat.
+//               ⚠️ AND THE MATCH DID NOT CHANGE, proved the same way as the hint: removing the six new
+//               rows from the digest field list makes this file pass against the PREVIOUS trail. It
+//               cannot have changed - this fixture is an empty chair, so no seat ever presses a kick and
+//               the new rule never acts. The summary below is unchanged and is the second witness.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
