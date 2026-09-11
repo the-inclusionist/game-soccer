@@ -21,7 +21,7 @@ import { SQUAD_SIZE, firstOf, teamOf, type PlayerId } from '../sim/ids.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { MatchState } from '../sim/state.ts';
 import { DEFAULT_CAPS } from '../sim/body.ts';
-import { BOX, PITCH } from '../sim/units.ts';
+import { insideOwnBox } from '../sim/ends.ts';
 import { dist2, type Vec2 } from '../sim/vec.ts';
 import type { RulesProfile } from './profile.ts';
 
@@ -81,19 +81,6 @@ export const RECKLESS_FRACTION = 0.95;
  * not a gap, it is the rule working - a body that does not fly in does not get a red for flying in.
  */
 export const VIOLENT_FRACTION = 1.15;
-
-/** Is `at` inside the penalty area `team` defends this period? */
-function insideOwnBox(at: Vec2, team: number, period: number): boolean {
-  // The ends swap at half time, so which line a side defends is a fact about the PERIOD - the same
-  // mistake a compass makes in the narration, and the same fix.
-  const defendsFar = (team === 0) === (period === 2);
-  const alongOwnLine = defendsFar ? PITCH.length - at.x : at.x;
-  const acrossFromMiddle = at.y - PITCH.width / 2;
-  const half = BOX.width / 2;
-  // A RECTANGLE and not a distance: a foul level with the goal but out by the touchline is outside the
-  // area, and a check on distance-from-goal would call that a penalty.
-  return alongOwnLine >= 0 && alongOwnLine <= BOX.depth && acrossFromMiddle > -half && acrossFromMiddle < half;
-}
 
 /**
  * How hard he went in: the speed he brought into the contact, and no more than the speed the gap was

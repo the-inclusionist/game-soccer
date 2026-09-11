@@ -32,9 +32,10 @@
 
 import { firstOf, type TeamId } from './ids.ts';
 import { CONTROL_R } from './possession.ts';
+import { insideOwnBox } from './ends.ts';
 import { onPitch } from './squads.ts';
 import type { MatchState } from './state.ts';
-import { PITCH } from './units.ts';
+import { BALL, PITCH } from './units.ts';
 import type { SideCaps } from './body.ts';
 
 /**
@@ -171,6 +172,55 @@ export function keeperSave(state: MatchState, sides?: readonly [SideCaps, SideCa
   for (const team of [0, 1] as const) {
     const id = firstOf(team);
     if (!onPitch(state, id)) continue;
+
+    // ⚠️ HANDS ONLY INSIDE HIS OWN AREA, which is Law 12 and which this loop did not ask. It asked only
+    //    whether he was on the PITCH, so a keeper who had come out palmed shots away at the halfway line.
+    //    It was invisible because `ai/brain` keeps him within `KEEPER_RANGE` of his line and never walks
+    //    him out - but a CHILD driving a keeper can, and a rule obeyed only because nobody tries it is
+    //    not a rule.
+    //
+    // ⚠️ AND IT IS THE BALL'S POSITION AND NOT THE KEEPER'S, because handling is where the ball is when
+    //    he touches it. A keeper standing on his line reaching two metres past it has his hands outside
+    //    the area, which football does not allow and which testing his own feet would.
+    //
+    // ⚠️ AND `insideOwnBox` IS SHARED WITH `rules/foul` RATHER THAN COPIED. It is the same question asked
+    //    for a different reason, it depends on the PERIOD because the ends swap, and it is a rectangle
+    //    rather than a radius - three chances for two private copies to disagree, which is exactly what
+    //    `sim/ends` was created to stop happening a second time.
+    // ⚠️ AND IT IS ANY PART OF THE BALL, WHICH IS THE WHOLE OF WHY `BALL.radius` IS HERE. Measured over
+    //    the twelve-fixture slate, the first version of this line - the ball's CENTRE inside the area -
+    //    refused ninety-seven parries a slate and took the corners from 3.00 a match to 0.42. Every one
+    //    of the refusals was at a depth of about MINUS ten centimetres: the ball straddling his own goal
+    //    line, four to seven metres wide of the goal, still in play because `rules/out-of-play` requires
+    //    it to have WHOLLY crossed - and partly inside the area, which football allows him to handle.
+    //    A point test moves every line by one radius, which is the same sentence `sim/units` writes
+    //    beside that constant, and here it moved a law.
+    if (!insideOwnBox(ball.p, team, state.period, BALL.radius)) continue;
+
+    // ========================= ⚠️ AND THE OTHER HALF OF LAW 12 IS NOT BUILT, FOR A NAMED REASON =========================
+    // The absorption plan's item K is two laws: hands only inside his own area, which is the line above,
+    // and NEVER FROM A DELIBERATE KICK BY A TEAM-MATE. The second one needs a fact this simulation does
+    // not keep.
+    //
+    // ⚠️ `possession.lastTouch` CANNOT ANSWER IT, and that is the whole blocker rather than an excuse.
+    // `sim/block` sets `lastTouch` when a body DEFLECTS the ball - by design, because that is how
+    // `rules/out-of-play` tells a corner from a goal kick - so the one field that survives a ball's flight
+    // conflates a pass with a blocked shot. Football is explicit that a keeper MAY handle a ball that came
+    // off a team-mate accidentally, so a law written against `lastTouch` would punish exactly the case the
+    // law exempts. `state.lastStruck` is the deliberate half, and it is a LOCK rather than a record: it is
+    // cleared the moment the ball leaves the striker's own reach, which is a few ticks into a pass.
+    //
+    // ⚠️ SO IT NEEDS A NEW FIELD - who last DELIBERATELY kicked it - set where `play.ts` applies a strike,
+    // a dribbling knock and an AI kick, and NOT set by `sim/block` or by this file. That is a digest row
+    // and a save-format change, which is why it is a separate piece of work rather than a line here.
+    //
+    // ⚠️ AND THE ACCESS CLAUSE OF ITEM K BELONGS TO THAT HALF AND NOT TO THIS ONE. The plan asks for «the
+    // caption and the reader say why play stopped, as they do for offside», and this law stops nothing -
+    // it takes a power away, it does not award anything. Narrating a refusal here would be worse than
+    // silence: over half of them are on a ball that has already wholly crossed the line, so the child
+    // would hear "he cannot handle that" one tick before "goal kick" and learn a rule that had nothing to
+    // do with what she just saw. The back-pass half DOES stop play in football, and that is where the
+    // sentence a child needs lives.
 
     const me = state.players[id];
     const dx = ball.p.x - me.p.x;

@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  2327091907, 3396233074, 1450241726, 3317056020, 4123303969, 2397972421, 1573902514, 2686075805,
-  2083890216, 2083890216,
+  2327091907, 3396233074, 1450241726, 206096927, 2012470248, 1205406999, 721705443, 1808603468,
+  850065089, 850065089,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -166,6 +166,23 @@ const GOLDEN: readonly number[] = [
 //               where there had been one. Over the slate it reads: fouls 3.08 to 3.33 and still in band,
 //               and every foul in this game comes from this function, proved by turning it off and
 //               measuring 0.00.
+//
+//   2026-09-11  The keeper's hands stop at his own penalty area. Law 12, and `sim/save` asked only
+//               whether he was ON the pitch - so a keeper who had come out palmed shots away wherever he
+//               stood. It was invisible because `ai/brain` keeps him within eight metres of his line and
+//               never walks him out; a child driving a keeper can.
+//               ⚠️ AND THE FIRST THREE DIGESTS ARE UNCHANGED, which is the shape of an honest re-blessing
+//               here: the match runs identically for forty seconds and diverges at tick 2400, which is
+//               the first time a keeper in this fixture touches a ball he was not entitled to. The
+//               SUMMARY below did not move at all - same full time, same 0-0, same two balls over the
+//               goal line by an attacker, same one foul - so nothing about the shape of the match
+//               changed, only its detail.
+//               Over the twelve-fixture slate it reads: corners 2.42 to 1.83 with an empty chair and
+//               3.00 to 1.33 with a child playing. ⚠️ AND THAT FALL IS A COUNT BEING CORRECTED, NOT A
+//               COST. Over half the parries the law refuses are on a ball at a depth of about MINUS
+//               twelve centimetres - wholly over his own goal line, already out of play - and
+//               `lastTouch` is what tells a corner from a goal kick, so the illegal touch was AWARDING
+//               the corner. `tests/full-match` carries the whole measurement beside its corner gate.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {

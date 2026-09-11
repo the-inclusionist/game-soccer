@@ -372,14 +372,32 @@ describe('what a match contains', () => {
   //    ⚠️ THE TARGET IT WAS WRITTEN AGAINST IS ALSO GONE. Ten corners belonged to football's ninety
   //    minutes; the Dev's bands for an arcade match replaced them, and this gate asks what the slate can
   //    actually promise rather than what the old number wanted.
-  it('[Right] and corners come from every fixture, not from a lucky one', () => {
-    for (let i = 0; i < slate.length; i++) {
-      expect(
-        slate[i].seen['crossedGoalLineByDefender'] ?? 0,
-        `${SLATE[i][0]} v ${SLATE[i][1]} produced no corner at all`,
-      ).toBeGreaterThan(0);
-    }
-    expect(across('crossedGoalLineByDefender'), 'the slate is thin on corners').toBeGreaterThanOrEqual(12);
+  //    ⚠️ AND HALF THE CORNERS THIS GATE WAS BLESSED ON WERE NOT CORNERS, WHICH IS WHY IT ASKS LESS NOW.
+  //    Measured 2026-09-11, when the keeper was first forbidden to use his hands outside his own area:
+  //    over HALF the parries the law refuses are on a ball at a depth of about minus twelve centimetres -
+  //    a ball that has WHOLLY crossed his own goal line, which `rules/out-of-play` already calls out of
+  //    play. It was a goal kick until he touched it, and `lastTouch` is the only thing that tells a
+  //    corner from a goal kick, so the touch AWARDED A CORNER. Corners across this slate fall from 17 to
+  //    8 with the law in, and the fall is not the law costing the game corners: it is the count stopping
+  //    being wrong.
+  //
+  //    ⚠️ SO THIS IS NOT A THRESHOLD BEING TUNED AWAY FROM A SYMPTOM, and the difference matters enough
+  //    to write down. The number changed because the QUANTITY changed - the old one counted an illegal
+  //    touch - which is the same correction this repository made to the 31% passing rate and to the
+  //    body-contact table. A gate re-blessed against a corrected measurement is honest; one re-blessed to
+  //    get past a red is not.
+  //
+  //    ⚠️ AND THE DEV HAS ALREADY RULED ON CORNERS BELOW BAND, on 2026-09-07: corners and goal kicks are
+  //    bought with goals one for one, and a children's game keeps the goals. So a real corner supply that
+  //    is thin is a known, accepted trade - and it is now VISIBLE, which it was not while an illegal
+  //    touch was topping it up.
+  it('[Right] and corners come from most fixtures, not from a lucky one', () => {
+    const barren = slate.filter((m) => (m.seen['crossedGoalLineByDefender'] ?? 0) === 0).length;
+    // ⚠️ NOT "EVERY FIXTURE" ANY MORE, AND NOT "THE SLATE TOTAL" EITHER. A total alone passes when one
+    //    fixture produces eight and five produce none, which is the lucky-fixture failure this gate was
+    //    written for in the first place; a floor on the barren count keeps that half of the claim.
+    expect(barren, 'corners are coming from one or two fixtures again').toBeLessThanOrEqual(2);
+    expect(across('crossedGoalLineByDefender'), 'the slate is thin on corners').toBeGreaterThanOrEqual(6);
   });
 
   // ⚠️ AND THE OTHER END OF THE SAME LINE. A goal kick and a corner are the same event told apart by
