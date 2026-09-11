@@ -25,7 +25,27 @@ git-ignored and shared by every session on this machine. One entry was **appende
 
 ## What the engine is owed
 
-⚠️ **RE-VERIFIED AGAINST ENGINE 8.0.0-rc.1 ON 2026-09-11. SEVEN OF THE FIRST EIGHT ARE CLOSED, AND A NINTH WAS FOUND THE SAME DAY.** An
+⚠️ **RE-VERIFIED AGAINST ENGINE 9.0.0 ON 2026-09-11, AND THE UPGRADE IS WHY THIS TABLE MOVED TWICE IN ONE
+DAY.** Seven of the first eight were closed by 8.0.0, a ninth was found the same afternoon, and 9.0.0
+arrived that evening and closed a tenth this file had not had time to write down.
+
+📏 **WHAT 9.0.0 CHANGED, MEASURED RATHER THAN READ OFF A CHANGELOG.** The published tarball was unpacked
+and its `dist-pkg` diffed against the installed 8.0.0, all 133 declaration files: **no file was added and
+none removed**, and exactly **two** differ.
+
+| file | what moved |
+|---|---|
+| `ui/pause-icons.d.ts` | `seguraTeclas` becomes `() => boolean` where it was `boolean`, in `EscritoresVisuais` and in the `initPauseIcons` options. **This is the whole of the major bump.** |
+| `boot/create-game.d.ts` | four new **optional** fields: `getPauseActs`, `setPauseActor`, `setTemaDoJogador`, `setCorrecaoDoJogador` |
+
+⚠️ **AND THE BREAKING CHANGE DOES NOT REACH THIS GAME.** We never import `ui/pause-icons`, never call
+`initPauseIcons` and never build an `EscritoresVisuais`; our `declaration.seguraTeclas()` was always a
+function, because the contract always declared it as one - the defect was that `create-game` CALLED it once
+and stored the answer. Verified by running rather than by reading: `npm run validate` is green on 9.0.0,
+and the dependency is now `^9.0.0` because `latest` is 9.0.0 and this repository's own rule in
+`package.json` says the caret returns the day that is true.
+
+ An
 audit of somebody else's repository goes stale silently, and a stale one makes false claims about their
 work — so this table is re-read every time the dependency moves, against
 `node_modules/@the-inclusionist/engine/dist-pkg`, which is the code this game actually consumes.
@@ -40,7 +60,8 @@ work — so this table is re-read every time the dependency moves, against
 | 6 · two keyboard tables, never reconciled | **CLOSED** — the runtime table now carries all fourteen positions |
 | 7 · the remap screen announces the platformer's words | **CLOSED** — it announces the GAME's word, and says so honestly when a position has none |
 | 8 · a key may hold two positions at once | **CLOSED** — refused at the point of entry rather than moved |
-| 9 · the move toggle's direction is only ever cleared | **OPEN, found 2026-09-11** — see below |
+| 9 · the move toggle's direction is only ever cleared | **STILL OPEN in 9.0.0** — `input/latch-sync.d.ts` is byte-identical between 8.0.0 and 9.0.0 |
+| 10 · `createGame` could not reach the pause card, the contrast writers or the second seat | **CLOSED in 9.0.0** — the four fields above, and see below |
 
 ⚠️ **AND FINDING 1 WAS THE ONE THAT MATTERED MOST, SO ITS CLOSING IS WORTH THE SENTENCE.** A team-mate
 ten metres to our right panned to 0.057 — mono, on a pitch ninety metres wide. The fix takes the
@@ -258,6 +279,32 @@ accessibility control is offered to a child as a working one. `seguraTeclas()` a
 answer.** What "keep walking" means differs between a platformer and football, and the shapes available
 differ in what a child has to be physically able to do. That is the engine's call to make or to delegate
 in writing; what it cannot stay is unstated.
+
+### 10. `createGame` could not reach the pause card, the contrast writers or the second seat — CLOSED in 9.0.0
+
+Recorded here after the fact, because 9.0.0 closed it the same day it was found. In 8.0.0 the composition
+root accepted no way to say what a pause item does, who opened the pause, or how this game repaints for
+contrast and corrects colour — so `refrescarItensDaPausa`, which hides what does not fire (ADR-0106 §5, no
+dead buttons), left every game in the catalogue with the three items the engine actions by itself and
+nothing else.
+
+⚠️ **AND THE ENGINE'S OWN NOTE NAMES A WORSE CONSEQUENCE THAN THE CARD.** `entrarNaBarra` calls
+`acts.resume?.()` to leave the pause card before it hands the directional to the accessibility bar. With an
+empty table that `resume` was `undefined`, the card stayed over the game, and **item 7 of ADR-0044 — the
+directional driving the accessibility bar — was unreachable from any game at all.** That is a pillar 2
+control that existed, was gated, and could not be arrived at, which is the shape this project has now found
+four times.
+
+⚠️ **AND IT ALSO CLOSES THE ISSUE ADR-0142 FILED IN WRITING.** That record's own "what this does not decide"
+names the pause-icons context freezing `seguraTeclas` - `create-game.js:230` called the function once and
+stored the boolean, and `reflectPauseIcons` then refreshed from stale data - and says «the contract is fine,
+the context should take `() => boolean`. That is a defect with no decision in it, and it goes to the engine
+as an issue.» 9.0.0 is that fix.
+
+📌 **WHAT IS NOW OURS TO DO, and it is not in this file's scope to schedule.** The four fields are optional
+and this game passes none of them, so nothing regressed - but the gap they close is real work that was
+previously impossible: a pause card with our own items, the second seat's remap reachable, and the ⚫ and 🚥
+icons mountable. `boot/main.ts` passes `declaration`, `host` and `declines` today.
 
 ## What was drafted here and has since landed
 

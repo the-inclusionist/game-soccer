@@ -44,7 +44,7 @@
     "`file:../SP-the-inclusionist-tracer`, which is `npm link` with another spelling: a symlink walks",
     "straight past the `files` field, so a packaging defect stays invisible until somebody else installs.",
     "The engine was published on 2026-09-06 and this repository stopped being a special case the same day.",
-    "⚠️ AND THE VERSION IS PINNED EXACTLY, WHERE 7.0.1 CARRIED A CARET. 8.0.0 is not published as `latest` - what exists is a release candidate on the `next` tag - and `^8.0.0-rc.1` would silently accept an rc.2 and the final 8.0.0 alike. A caret over a prerelease is a promise nobody made. It becomes `^8.0.0` the day 8.0.0 is the latest tag, and that is a one-line change with the suite as its proof.",
+    "⚠️ AND THE CARET IS BACK, WHICH IS THE RULE THIS FIELD ALREADY WROTE DOWN. It used to be pinned exactly because 8.0.0 was only a release candidate on a tag, and the line said it becomes a caret the day the version is `latest`, with the suite as its proof. Measured 2026-09-11: `latest` is 9.0.0, so it is `^9.0.0`, and `npm run validate` is green on it.",
     "⚠️ AND IT IS ALSO WHY THIS REPOSITORY IS NOW REPRODUCIBLE. Reading the engine folder live meant every",
     "build depended on whatever the other session had saved that minute; a version does not move under you.",
     "`pixi.js` is pinned to the engine's EXACT peer version: two PixiJS in one page is a bug, not a",
@@ -58,7 +58,7 @@
   ],
   "dependencies": {
     "@mintplex-labs/piper-tts-web": "^1.0.4",
-    "@the-inclusionist/engine": "^8.0.0",
+    "@the-inclusionist/engine": "^9.0.0",
     "pixi.js": "7.4.2"
   },
   "devDependencies": {
