@@ -35,7 +35,7 @@ import { GOAL, PITCH } from '../sim/units.ts';
 import { MARKER, hintCells, markerCells } from './marker-pixels.ts';
 import { DIGIT, digitCells } from './digit-pixels.ts';
 import { centreCircle, penaltySpotAt, pitchLines } from './pitch-marks.ts';
-import { bodyCells, outlineOf } from './body-pixels.ts';
+import { MIRRORED, bodyCells, facingOf, outlineOf, type Facing } from './body-pixels.ts';
 import { SX, SY, SZ, WORLD_PX, project } from '../project.ts';
 
 /** The engine's logical screen. Never anything else: ADR-0001, integer scale only. */
@@ -131,9 +131,9 @@ export interface Scene {
  * inventing differences it cannot draw. What a child recognises here is the KIT and the mark over her own
  * player; the figure is a body, and every body is the same body.
  */
-function bodyTexture(app: PIXI.Application, kit: number, frame: number): PIXI.Texture {
+function bodyTexture(app: PIXI.Application, kit: number, facing: Facing, frame: number): PIXI.Texture {
   const g = new PIXI.Graphics();
-  const cells = bodyCells(frame);
+  const cells = bodyCells(facing, frame);
 
   // Offset by one so an arm on column 0 has room for its outline. The sprite is therefore two wider and
   // two taller than `BODY`, and the anchor below puts its feet where the projection says they are.
@@ -142,6 +142,11 @@ function bodyTexture(app: PIXI.Application, kit: number, frame: number): PIXI.Te
 
   const colours: Record<string, number> = {
     head: 0xe3b08a,
+    // ⚠️ A FIXED COLOUR AND NEVER A CLUB ONE. Hair is what tells a front view from a back one at
+    //    this size - there is no face to draw - and taking it from the kit palette would put a
+    //    second club colour on the figure, competing with the shirt a child uses to tell the sides
+    //    apart and unpicking the luminance guarantee between the two kits.
+    hair: 0x24180f,
     arm: 0xe3b08a,
     leg: 0xe3b08a,
     shirt: kit,
@@ -419,11 +424,11 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
   //    uploads at boot on a machine that has none to spare - and the colours come from `kitFor`, so the
   //    renderer holds no table of its own to disagree with the crest.
   const kitTex = new Map<string, PIXI.Texture>();
-  const textureFor = (colour: number, frame: number): PIXI.Texture => {
-    const key = `${colour}/${frame}`;
+  const textureFor = (colour: number, facing: Facing, frame: number): PIXI.Texture => {
+    const key = `${colour}/${facing}/${frame}`;
     const found = kitTex.get(key);
     if (found !== undefined) return found;
-    const made = bodyTexture(app, colour, frame);
+    const made = bodyTexture(app, colour, facing, frame);
     kitTex.set(key, made);
     return made;
   };
@@ -437,7 +442,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
     world.addChild(sh);
     shadows.push(sh);
 
-    const sp = new PIXI.Sprite(textureFor(kitFor(fixture, i), 0));
+    const sp = new PIXI.Sprite(textureFor(kitFor(fixture, i), 's', 0));
     sp.anchor.set(0.5, 1);
     world.addChild(sp);
     bodies.push(sp);
@@ -503,7 +508,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
 
     setFixture(next: Fixture): void {
       shirts = next;
-      for (let i = 0; i < bodies.length; i++) bodies[i].texture = textureFor(kitFor(next, i), 0);
+      for (let i = 0; i < bodies.length; i++) bodies[i].texture = textureFor(kitFor(next, i), 's', 0);
     },
 
     draw(state: MatchState, controlled: readonly number[]): void {
@@ -547,7 +552,18 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
         //    in all three clock modes, because it is a fact about the world rather than about frames.
         const body = state.players[i];
         const stride = Math.floor((Math.abs(body.p.x) + Math.abs(body.p.y)) * 1.1) % 2;
-        bodies[i].texture = textureFor(kitFor(shirts, i), stride);
+        // ⚠️ `Body.facing` REACHED THIS RENDERER AND DID NOTHING AT ALL until now. It is a unit
+        //    vector the simulation has always kept, the declaration's `focusOf` already hands it to
+        //    the cane and the scanning path, and the screen was the one channel saying something
+        //    different - one silhouette whichever way a player ran. A body that faces where it runs
+        //    reads as a person; one that does not reads as a token sliding on grass, and at
+        //    twenty-six pixels no amount of extra detail fixes that.
+        // ⚠️ AND THE MIRRORED HALF COSTS NOTHING BUT A SIGN. Five facings are drawn and eight are
+        //    shown; `MIRRORED` says which borrow, and the sprite is flipped rather than redrawn.
+        const facing = facingOf(body.facing.x, body.facing.y);
+        const from = MIRRORED[facing];
+        bodies[i].texture = textureFor(kitFor(shirts, i), from ?? facing, stride);
+        bodies[i].scale.x = from === null ? 1 : -1;
         // Painter's algorithm: `y` grows toward the near touchline, so ascending `y` is far to near.
         bodies[i].zIndex = Z.PLAYER + Math.round(state.players[i].p.y * 4);
         shadows[i].position.set(px, py);

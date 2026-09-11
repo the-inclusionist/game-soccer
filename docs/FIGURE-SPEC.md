@@ -57,6 +57,11 @@ shows a body properly also shows the play. The tail that does not fit was alread
 
 ## 2. Facings: **five drawn, eight shown**
 
+> ⚠️ **The plumbing for this is built and running as of 2026-09-11**, with a placeholder figure that
+> carries only THREE views — front, side and back — and borrows the diagonals from their nearest
+> neighbour. The table that maps facing to drawing already takes five; filling it is the whole of what the
+> drawing changes. Nothing else in the game moves when it arrives, which is why the plumbing went first.
+
 Draw **S, SE, E, NE, N** — the player seen from the front, then turning away to the right, to the far side.
 The renderer **mirrors horizontally** for SW, W and NW. So eight directions cost five.
 
@@ -86,15 +91,26 @@ channels this whole time.
 
 ⚠️ **A FRAME IS A GRID OF PART INDICES. IT IS NEVER A GRID OF COLOURS.**
 
-Every pixel belongs to one of five parts, and the renderer paints it:
+Every pixel belongs to one of SIX parts, and the renderer paints it:
 
 | part | painted from |
 |---|---|
 | `head` | skin, fixed |
+| `hair` | a fixed dark tone |
 | `shirt` | **the club's generated palette** |
 | `arm` | skin, fixed |
 | `shorts` | **the club's generated palette** |
 | `leg` | skin, fixed |
+
+⚠️ **`hair` WAS ADDED ON 2026-09-11, AFTER THIS FILE WAS FIRST WRITTEN, AND IT IS THE REASON TO READ THIS
+SECTION AGAIN.** Building the facing table found that with five flat parts a figure seen from the FRONT and
+the same figure seen from BEHIND are the identical plan of cells — there is no face at this size, so
+nothing tells them apart. A sixth index painted a fixed dark tone is the cheapest thing that does: hair on
+the top rows for a front view, over the whole head for a back one.
+
+It is a **fixed** colour and never a club one. Taking it from the kit palette would put a second club
+colour on the figure, competing with the shirt a child uses to tell the sides apart and unpicking the
+luminance guarantee between the two kits.
 
 Plus transparent, and plus the outline, which the renderer derives from the silhouette rather than taking
 from the art (see §5).
@@ -108,7 +124,7 @@ no way to get them back short of repainting every frame.
 ### What that means in Aseprite, concretely
 
 - Work in **indexed colour mode**, with a palette of exactly the entries in the table above plus
-  transparent. Index 0 transparent, then `head`, `shirt`, `arm`, `shorts`, `leg`.
+  transparent. Index 0 transparent, then `head`, `hair`, `shirt`, `arm`, `shorts`, `leg`.
 - The colours you actually see while drawing are **placeholders**. Pick whatever is easiest to see; the
   renderer never reads them, only the index.
 - If a frame needs shading on the shirt, it needs a **second shirt index** (`shirt` and `shirtShade`), not

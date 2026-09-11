@@ -24,8 +24,21 @@
 /** The box a figure is drawn in. Seven by thirteen: about 1.8m at this projection's vertical scale. */
 export const BODY = Object.freeze({ w: 7, h: 13 });
 
-/** The parts a renderer knows how to colour. `shirt` is the club's; the rest are the same for everybody. */
-export const PARTS = ['head', 'shirt', 'arm', 'shorts', 'leg'] as const;
+/**
+ * The parts a renderer knows how to colour. `shirt` is the club's; the rest are the same for everybody.
+ *
+ * ⚠️ `hair` ARRIVED WHEN FACING DID, AND IT HAD TO. With five flat parts a figure seen from the front
+ * and the same figure seen from BEHIND are the identical plan of cells - there is no face at this size,
+ * so nothing tells them apart. A sixth index, painted a fixed dark colour, is the cheapest thing that
+ * does: hair on the top rows for a front view and over the whole head for a back one.
+ *
+ * ⚠️ AND IT IS ADDED BEFORE THE ART IS DRAWN RATHER THAN AFTER, which is the entire reason this item
+ * sits ahead of the drawing in the plan. `docs/FIGURE-SPEC` is the Dev's brief; a part discovered to be
+ * missing once he has painted eight facings is a repaint, and discovered now it is one more row in a
+ * table. It is a FIXED colour and never a club one, so the kit palettes and the luminance guarantee
+ * between them are untouched.
+ */
+export const PARTS = ['head', 'hair', 'shirt', 'arm', 'shorts', 'leg'] as const;
 
 export type Part = (typeof PARTS)[number];
 
@@ -87,13 +100,121 @@ function running(): Cell[] {
 }
 
 /**
- * The cells of one frame.
+ * The eight ways a body can face, starting at the camera and going clockwise.
+ *
+ * ⚠️ EIGHT AND NOT FOUR, and the reason is the simulation rather than taste: `Body.facing` is already a
+ * unit vector and eight points fall out of it by COMPARISON alone, which is what the arithmetic rule of
+ * this repository leaves available. Four would make a diagonal run read as a player sliding sideways, and
+ * diagonal running is the ordinary case in football rather than the exception.
+ */
+export const FACINGS = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw'] as const;
+
+export type Facing = (typeof FACINGS)[number];
+
+/**
+ * Which way this body is facing, from the direction it is pointing in the WORLD.
+ *
+ * ⚠️ WORLD SPACE AND NOT SCREEN SPACE. The projection squashes the far axis, so a body running directly
+ * away covers fewer screen pixels than one running across - and bucketing the SCREEN direction would draw
+ * a back view as a side one whenever somebody ran slowly upfield. What is shown is which way he is really
+ * going.
+ *
+ * ⚠️ AND IT IS ALL COMPARISONS, with no angle anywhere. `Math.atan2` is what this would obviously be
+ * written with, and it is on this repository's forbidden list for a reason that applies here too: it is
+ * not exactly rounded, so two machines replaying one match could disagree about which sprite to draw.
+ */
+export function facingOf(x: number, y: number): Facing {
+  // A body standing dead still keeps looking at the camera rather than snapping to an arbitrary point.
+  if (x === 0 && y === 0) return 's';
+
+  const ax = x < 0 ? -x : x;
+  const ay = y < 0 ? -y : y;
+  // The diagonal band is where neither axis is more than twice the other. Anything narrower would make
+  // the diagonals slivers a running player passes straight through without the sprite ever changing.
+  const diagonal = ax * 2 > ay && ay * 2 > ax;
+
+  if (diagonal) {
+    if (y > 0) return x > 0 ? 'se' : 'sw';
+    return x > 0 ? 'ne' : 'nw';
+  }
+  if (ax > ay) return x > 0 ? 'e' : 'w';
+  return y > 0 ? 's' : 'n';
+}
+
+/**
+ * For each facing, the one it is MIRRORED from, or `null` when it is drawn in its own right.
+ *
+ * ⚠️ FIVE DRAWN AND EIGHT SHOWN IS WHAT `docs/FIGURE-SPEC` ASKS OF THE DRAWING. Mirroring is safe here
+ * only because no shirt number is ever on the sprite - the number a child needs is on the DOM mirror and
+ * on a plate above her head, where a screen reader reaches it - so there is no text to come out backwards
+ * and nothing else on the figure is left-or-right specific.
+ */
+export const MIRRORED: Readonly<Record<Facing, Facing | null>> = Object.freeze({
+  s: null,
+  se: null,
+  e: null,
+  ne: null,
+  n: null,
+  nw: 'ne',
+  w: 'e',
+  sw: 'se',
+});
+
+/**
+ * Which view each facing is built from, which for the procedural figure is fewer than five.
+ *
+ * ⚠️ THE INTERIM SHIPS THREE VIEWS WHERE THE CONTRACT ASKS FOR FIVE, and it says so rather than
+ * pretending otherwise. Front, side and back are what six flat-coloured parts can carry honestly; the
+ * diagonals borrow their nearest neighbour. When the drawing arrives it fills this table with five and
+ * nothing else in the game moves - which is the whole reason the table exists before the art does.
+ */
+const VIEW: Readonly<Record<Facing, 'front' | 'side' | 'back'>> = Object.freeze({
+  s: 'front',
+  se: 'side',
+  e: 'side',
+  ne: 'side',
+  n: 'back',
+  nw: 'side',
+  w: 'side',
+  sw: 'side',
+});
+
+/**
+ * The cells of one pose, facing one way.
  *
  * ⚠️ AN UNKNOWN FRAME IS THE STANDING ONE, not an empty figure. A player who vanished because an index
  * arrived wrong is a player a child cannot find, and the failure would look like the game losing bodies.
  */
-export function bodyCells(frame: number): readonly Cell[] {
-  return frame === 1 ? running() : standing();
+export function bodyCells(facing: Facing, frame: number): readonly Cell[] {
+  const view = VIEW[facing] ?? 'front';
+  const base = frame === 1 ? running() : standing();
+  if (view === 'front') return base;
+  if (view === 'back') return base.map((c) => (c.part === 'head' ? cell(c.x, c.y, 'hair') : c));
+  return sideOf(base);
+}
+
+/**
+ * A front view turned side on: the far arm hidden behind the torso, and the figure a column narrower.
+ *
+ * ⚠️ NARROWER IS THE WHOLE CUE AT THIS SIZE. A person seen from the side takes up less width, and that
+ * change of silhouette is what an eye reads before any detail - the same argument the three markers are
+ * built on, applied to a body.
+ */
+function sideOf(base: readonly Cell[]): readonly Cell[] {
+  const out: Cell[] = [];
+  for (const c of base) {
+    // The far arm is behind the torso from here, so it is simply not drawn.
+    if (c.part === 'arm' && c.x < 3) continue;
+    out.push(c.x > 3 ? cell(c.x - 1, c.y, c.part) : c);
+  }
+  // Two legs one behind the other read as one leg, which is what a side view of a stride looks like.
+  const seen = new Set();
+  return out.filter((c) => {
+    const key = c.x + ',' + c.y;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /**
