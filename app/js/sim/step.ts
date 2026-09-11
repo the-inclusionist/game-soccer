@@ -133,6 +133,33 @@ export function step(
   //      shots fall too, separation is breaking the attack before it arrives. That was not measured, and
   //      guessing between the two is how this file has acquired wrong explanations before.
   //
+  //      ========================= MEASURED 2026-09-11, AND NEITHER COLLAPSES =========================
+  //      ⚠️ THE GOALS BARELY MOVE ON THIS BUILD. The separation above was rebuilt from this note's own
+  //      description - a pairwise push apart, both bodies equally - and run against the twelve-fixture
+  //      slate with a child playing, five minutes a match:
+  //
+  //          build          saves/match   goals   throw-ins   corners   goal kicks   fouls   pairs inside 0.8 m
+  //          overlapping           82.8    1.50        6.92      1.83         2.83    3.08               37.0%
+  //          separated             59.0    1.42        4.25      1.08         2.42    6.75               18.1%
+  //
+  //      A five per cent fall in the goals, not the ninety-three per cent this note was written about.
+  //      The question is answered and the answer is neither branch: the saves fall 29%, the goals fall
+  //      5%, and what actually moves is the FOULS, which more than double and go past their band.
+  //
+  //      ⚠️ AND THIS DOES NOT MAKE THE OLD TABLE WRONG - it makes it OLD, which is a different claim
+  //      and the honest one. Those numbers are a ninety-minute and a fifteen-minute match on a build
+  //      before sustained-contact possession, before the shield, before her shot was judged by her club
+  //      and before a forward ran beyond the ball. Different length and different game; the two tables
+  //      cannot be subtracted. What can be said is that the measurement taken TODAY, on today's build,
+  //      does not reproduce the reason this feature was reverted.
+  //
+  //      ⚠️ SO THE ITEM IS REOPENED RATHER THAN SETTLED. The absorption plan marks the positional duel
+  //      as the one item whose feasibility is genuinely uncertain, and the uncertainty was this table.
+  //      What stands in the way now is different and smaller: the fouls, and the fact that separation
+  //      alone would hand this game the shield-forever exploit it has never had - measured, a chaser
+  //      currently reaches 0.00 m from the ball because he walks THROUGH the carrier. Those two must be
+  //      answered together, which is what the plan meant by landing both halves in one change.
+  //
   //      ⚠️ THE PLAN'S `broadphase` IS NOT WHAT ANY OF THIS NEEDS. It budgeted an 8x8 metre grid so the
   //      pair queries would be affordable; twenty-two bodies are 231 pairs, and the measurements above
   //      walked 36,000 ticks of exactly those comparisons in seconds. The plan was right that contact was
