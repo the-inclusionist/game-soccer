@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  2440355033, 2425300181, 1126163352, 3799686921, 755919780, 4043425600, 1686793557, 4081843104,
-  664325827, 664325827,
+  2440355033, 2425300181, 1126163352, 3799686921, 755919780, 4043425600, 2750080524, 2112368100,
+  4036299462, 4036299462,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -198,6 +198,21 @@ const GOLDEN: readonly number[] = [
 //               exists to force: a recording written against the old digest cannot be checked against the
 //               new one, and `sim/recorder` refuses it by version rather than by a mismatch nobody can
 //               explain.
+//
+//   2026-09-11  The man marking the shooter stopped counting as standing in his shot. `sightOfGoal`
+//               projects each opponent onto the segment from the ball to the mouth and clamps to [0, 1],
+//               so a defender level with the carrier - which the designated presser is for most of an
+//               attack - landed at the lane's starting point and blocked it by being there.
+//               ⚠️ AND THE FIRST SIX DIGESTS SURVIVE, which is the fingerprint of a behaviour change and
+//               the reason both kinds are worth telling apart: the match runs identically for a minute
+//               and diverges at tick 4200, the first time this fixture's carrier gets inside shooting
+//               range with a man on him. The summary did not move - same full time, same 0-0, same one
+//               foul, same corner - because ninety seconds is not long enough to contain the difference.
+//               Measured inside `sightOfGoal` over the six-fixture slate, the goal could be seen 41.3% of
+//               the times the cascade asked and can now be seen 60.2%, 45.1% to 75.5% with a child
+//               playing, with the distance a shot is struck from barely moving. `ai/brain` carries the
+//               whole table beside `BLOCKS_FROM`, including what it costs: goals further above their
+//               band, corners into theirs, throw-ins down.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {

@@ -393,6 +393,44 @@ const CLEAR_WIDE = 0.25;
 /** Metres. How close an opponent has to be to the line of a shot to be standing in it. */
 const BLOCKS_AT = 1.0;
 
+/**
+ * Metres. Nearer the ball than this and an opponent is ON the shooter, not in front of him.
+ *
+ * ========================= ⚠️ THE MAN MARKING HIM WAS COUNTED AS STANDING IN HIS SHOT =========================
+ * Projecting an opponent onto the segment from the ball to the mouth and clamping the projection to
+ * [0, 1] puts a defender who is level with the shooter, or behind him, at the lane's own STARTING POINT -
+ * where the offset measured is his distance from the SHOOTER rather than from the lane. The designated
+ * presser is on the carrier for most of an attack, so he blocked the shot by being there.
+ *
+ * 📏 Measured 2026-09-11 from inside `sightOfGoal` itself, over the six-fixture slate, counting every
+ * time the cascade asked whether the goal could be seen:
+ *
+ *     slate                 asked   clear   rate    shot taken from, p50
+ *     nobody playing, before  1561     645  41.3%                 12.3 m
+ *     nobody playing, after   1250     752  60.2%                 13.1 m
+ *     a child playing, before 1650     744  45.1%                 11.7 m
+ *     a child playing, after  1006     760  75.5%                 11.5 m
+ *
+ * A shot was possible two times in five and is now possible three in five, or three in four with a child
+ * playing. The distance it is struck from barely moves, which is the half that says this opened a lane
+ * rather than lowering a bar: the same shots, refused less often.
+ *
+ * ⚠️ AND THE NUMBER OF ASKS FALLS, which is the attack resolving instead of circling. Fewer ticks are
+ * spent carrying the ball inside twenty-two metres because more of them end in a strike.
+ *
+ * ⚠️ AND IT COSTS GOALS AGAINST THEIR BAND, which is written down rather than buried. Twelve fixtures:
+ * 3.67 to 4.00 with a child playing and 3.92 to 4.50 with an empty chair, against a band of two to three.
+ * The game was already over that band and this takes it further over. What it buys is corners into band
+ * (1.25 to 1.58) and throw-ins down from 14.08 to 12.67 - the largest out-of-band count the game has.
+ *
+ * ⚠️ AND IT IS THE SAME METRE AS `BLOCKS_AT`, DELIBERATELY. The lane test asks who is standing BETWEEN
+ * two points; a man within a metre of one of them is at that point, not between them. One number for both
+ * axes says that in a sentence, and two numbers would be two things to tune where there is one idea.
+ *
+ * A man at your feet is why you shoot NOW. He is not why you cannot.
+ */
+export const BLOCKS_FROM = BLOCKS_AT;
+
 /** Can he see the goal from here? The keeper is not a blocker - you shoot AT him. */
 function sightOfGoal(state: MatchState, team: TeamId, from: Vec2, mouth: Vec2): boolean {
   const dx = mouth.x - from.x;
@@ -405,7 +443,12 @@ function sightOfGoal(state: MatchState, team: TeamId, from: Vec2, mouth: Vec2): 
     const id = first + k;
     if (!onPitch(state, id)) continue;
     const p = state.players[id].p;
-    const along = clamp(((p.x - from.x) * dx + (p.y - from.y) * dy) / lane, 0, 1);
+    // ⚠️ THE MAN ON THE BALL IS NOT IN THE LANE. Read the note on `BLOCKS_FROM`: without this line the
+    //    clamp below turned the marker into a blocker and no shot was ever possible.
+    const nx = p.x - from.x;
+    const ny = p.y - from.y;
+    if (Math.sqrt(nx * nx + ny * ny) < BLOCKS_FROM) continue;
+    const along = clamp((nx * dx + ny * dy) / lane, 0, 1);
     const ox = from.x + dx * along - p.x;
     const oy = from.y + dy * along - p.y;
     if (Math.sqrt(ox * ox + oy * oy) < BLOCKS_AT) return false;

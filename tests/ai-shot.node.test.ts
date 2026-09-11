@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { MATCH_PROFILE } from '../app/js/rules/profile.ts';
 import { AWAY, HOME, SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
-import { decideKick } from '../app/js/ai/brain.ts';
+import { BLOCKS_FROM, decideKick } from '../app/js/ai/brain.ts';
 import { AVERAGE } from '../app/js/ai/ratings.ts';
 import { GOAL, PITCH } from '../app/js/sim/units.ts';
 
@@ -324,6 +324,48 @@ describe('a sight of goal', () => {
     s.players[firstOf(AWAY)].p = { x: 89, y: 28 };
 
     expect(decideKick(s, MATCH_PROFILE.playable, skills), 'nobody can ever shoot now').not.toBeNull();
+  });
+
+  // ========================= ⚠️ AND THE MAN MARKING HIM IS NOT IN HIS SHOT =========================
+  // The lane test projects each opponent onto the segment from the ball to the mouth and clamps the
+  // projection to [0, 1] - so a defender level with the shooter, or behind him, lands at the lane's own
+  // starting point, where the offset measured is his distance from the SHOOTER rather than from the lane.
+  // The designated presser is on the carrier for most of an attack, so he blocked the shot by being there.
+  //
+  // 📏 Measured 2026-09-11 from inside `sightOfGoal`, over the six-fixture slate: the goal could be seen
+  // 41.3% of the times the cascade asked with an empty chair and 45.1% with a child playing; with the man
+  // on the ball no longer counted, 60.2% and 75.5%. The distance a shot is struck from barely moves -
+  // 12.3 to 13.1 metres, 11.7 to 11.5 - which is what says a lane opened rather than a bar dropping.
+  //
+  // A man at your feet is why you shoot NOW. He is not why you cannot.
+  it('[Right] a defender standing on him does not block the shot - he is why it is taken', () => {
+    const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });
+    s.players[firstOf(AWAY) + 4].p = { x: 78.4, y: 28.1 };
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills), 'the man marking him was counted as in his shot').not.toBeNull();
+  });
+
+  it('[Zero] and neither does one BEHIND him, which the clamp also counted', () => {
+    const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });
+    // Half a metre BEHIND the ball: the clamp projected him to the lane's start, where the offset is
+    // his own distance from the shooter - under a metre, so he blocked a shot he was nowhere near.
+    s.players[firstOf(AWAY) + 4].p = { x: 77.5, y: 28 };
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills), 'a defender behind the ball blocked a shot at goal').not.toBeNull();
+  });
+
+  // ⚠️ [Boundary] AND THE NEAR EDGE IS A REAL LINE, not a rounding. A defender a stride in front IS in the
+  //    way - that is a blocked shot and football calls it one - so the exemption has to stop somewhere and
+  //    the somewhere is written down rather than left to a fraction of a distance that varies with range.
+  it('[Boundary] but a defender a stride in front of him does block it', () => {
+    const { s, skills } = chance(AVERAGE, { x: 78, y: 28 });
+    s.players[firstOf(AWAY) + 4].p = { x: 78 + BLOCKS_FROM + 0.2, y: 28 };
+
+    expect(decideKick(s, MATCH_PROFILE.playable, skills), 'a man a stride ahead is in the way').toBeNull();
+  });
+
+  it('[Interface] and the near edge is declared, not buried', () => {
+    expect(BLOCKS_FROM).toBeGreaterThan(0);
   });
 
   it('[Boundary] a defender well off the lane does not block it', () => {
