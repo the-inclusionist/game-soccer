@@ -215,6 +215,35 @@ export function decide(
   //        followed it out - and `tests/ai-brain` says bodies must stay inside it. It went unnoticed
   //        because nothing could put the ball out there until a defender could hoof it clear.
   if (plan.presserId === squadIndex) {
+    // ⚠️ WHERE THE BALL WILL BE, NOT WHERE IT IS. This line returned the ball's current position, which
+    //    is pure pursuit - the dog chasing the car. A body aimed that way curves in behind a moving ball
+    //    and arrives permanently late, so a pass into space is a pass nobody reaches and a loose ball is
+    //    won by whoever was nearer rather than by whoever was quicker. `ai/meet` walks the ball's own path
+    //    with the simulation's own integrator and returns the first point he can get to in time.
+    // ⚠️ AND IT MARCHES AT THE NOMINAL TOP SPEED RATHER THAN HIS CLUB'S, so the sentence at the top of
+    //    `think` stays true: nothing in the movement cascade reads a rating. Handing it `pace` is the
+    //    obvious next step and it would give that rating a second home - a quicker club cutting passes
+    //    off - but it is a different change with its own measurement, and it is not this one.
+    // ⚠️ AND `ai/meet` IS BUILT, GATED AND NOT WIRED HERE, which is a measurement rather than an
+    //    oversight. Aiming this body at an interception point instead of at the ball is correct
+    //    behaviour - pure pursuit is the dog chasing the car - and it makes the match worse. Twelve
+    //    fixtures, empty chair, the same build on the same day:
+    //
+    //                        throw-ins   corners   goal kicks   goals   fouls
+    //      pure pursuit           4.00      2.17         4.00    3.17    4.33
+    //      meeting point         10.33      4.33         7.17    1.83    2.00
+    //      the band              3.5-6     1.5-3        3-4.5     2-3   2-3.5
+    //
+    //    A presser who intercepts reaches the ball sooner and knocks it away more often, so the ball goes
+    //    out of play far more and the attack stops arriving: three counts jumped ABOVE their band and the
+    //    goals fell BELOW theirs. The defence got better and the match got worse, which is the same shape
+    //    as the body-contact finding in `sim/step` - correct physics, worse football.
+    //
+    // ⚠️ AND THE DEEPER REASON IS THAT IT IS ON THE WRONG BODY. The plan asks the intended RECEIVER of
+    //    a pass to commit to a meeting point; this cascade has no receiver role at all, and the
+    //    designated presser is the only body that ever goes for the ball. So the mechanism landed on the
+    //    one player whose job is to DENY the pass, and it made him better at it. It needs the off-ball
+    //    roles that come later in the plan - which means that item comes FIRST, not second.
     return { x: clamp(ball.x, 0, playable.length), y: clamp(ball.y, 0, playable.width) };
   }
 
