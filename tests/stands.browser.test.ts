@@ -79,7 +79,19 @@ const STANDS_BOTTOM = 44;
  */
 const SETTLE_FLOOR = 240;
 
-async function pinBallAt(y: number, ms = 10_000): Promise<void> {
+/**
+ * ⚠️ THE DEADLINE IS IN TICKS NOW, BECAUSE IN MILLISECONDS IT WAS ARITHMETICALLY IMPOSSIBLE UNDER LOAD.
+ * This loop needs `SETTLE_FLOOR` ticks of settled camera - 240, four seconds of nominal football - and it
+ * was bounded by `Date.now() + 10_000`. 📏 Measured 2026-09-11: inside the full browser project the world
+ * runs at SIX ticks a second, not sixty. 240 ticks is then forty seconds of wall clock against a
+ * ten-second deadline, so the failure was not a race the file could lose - it was a race it could not win.
+ * It passed alone and failed in the suite for that reason, and this file's own note about starved readings
+ * shows somebody met the symptom here and treated the readings rather than the clock.
+ *
+ * The wall-clock ceiling stays, generous, for the only thing it is good for: a loop that never returns is
+ * worse than one that fails.
+ */
+async function pinBallAt(y: number, ms = 120_000): Promise<void> {
   const pin = window.setInterval(() => {
     if (booted === null) return;
     booted.state.ball.p = { x: 45, y, z: 0 };
@@ -103,6 +115,12 @@ async function pinBallAt(y: number, ms = 10_000): Promise<void> {
       // Four seconds of ticks is longer than any lerp on this world needs. Below that, "it stopped moving"
       // is not evidence of anything.
       if (still >= 3 && tick - start >= SETTLE_FLOOR) return;
+      // ⚠️ AND THE GIVING-UP CONDITION IS TICKS TOO. Waiting past the ticks this needs, on a machine that
+      //    is delivering them, means the camera genuinely never settled - which is the failure worth
+      //    reporting. Waiting past a NUMBER OF SECONDS only means the machine was busy.
+      if (tick - start >= SETTLE_FLOOR * 4) {
+        throw new Error(`the camera never settled at y=${y} in ${String(SETTLE_FLOOR * 4)} ticks of football`);
+      }
     }
   } finally {
     window.clearInterval(pin);
