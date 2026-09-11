@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { DICTS, installDicts } from '../app/js/i18n/index.ts';
 import { availableLocales } from '@the-inclusionist/engine/core/i18n.js';
+import { PHASES } from '../app/js/rules/phase.ts';
 
 const codes = Object.keys(DICTS) as (keyof typeof DICTS)[];
 
@@ -38,6 +39,30 @@ describe('the three dictionaries', () => {
         expect(String(value).trim().length, `${code}/${key}`).toBeGreaterThan(0);
       }
     }
+  });
+
+  // ========================= ⚠️ AND AGREEING WITH EACH OTHER IS NOT ENOUGH =========================
+  // The gate above is RELATIVE: it catches a key in one dictionary and not the others. A key missing from
+  // ALL THREE is invisible to it, and that is not hypothetical - it is how `hud.phase.penalty` came to be
+  // absent for as long as the penalty phase existed. Eleven phases, ten words. `boot/main.ts` renders the
+  // phase as `t('hud.phase.' + state.phase)`, and `t()` falls back to the key, so a child at a penalty -
+  // the single most dramatic stoppage in football - read the string `hud.phase.penalty` in the mirror,
+  // and a child listening heard it.
+  //
+  // ⚠️ SO THE GATE IS AGAINST THE ENUMERATION AND NOT AGAINST A COPY OF IT. `PHASES` is the state
+  // machine's own list; asking it directly is what makes a TWELFTH phase arrive with a word or not arrive
+  // at all. A hand-written list of ten here would have been the same defect wearing a test.
+  it('[Interface] every phase the match can be in has a word, in every language', () => {
+    const missing: string[] = [];
+
+    for (const phase of PHASES) {
+      for (const code of codes) {
+        const value = (DICTS[code] as Record<string, string>)[`hud.phase.${phase}`];
+        if (value === undefined || value.trim().length === 0) missing.push(`${code}/hud.phase.${phase}`);
+      }
+    }
+
+    expect(missing, 'a child would read the key instead of the word').toEqual([]);
   });
 
   it('[Right] every dictionary is handed to the engine, not just the first', () => {

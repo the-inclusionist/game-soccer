@@ -12,6 +12,7 @@ export const es = {
   'hud.phase.corner': 'tiro de esquina',
   'hud.phase.goalKick': 'saque de arco',
   'hud.phase.freeKick': 'tiro libre',
+  'hud.phase.penalty': 'penal',
   'hud.phase.goal': 'gol',
   'hud.phase.kickoff': 'saque inicial',
   'hud.phase.halfTime': 'entretiempo',

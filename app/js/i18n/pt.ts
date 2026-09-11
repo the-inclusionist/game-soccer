@@ -12,6 +12,7 @@ export const pt = {
   'hud.phase.corner': 'escanteio',
   'hud.phase.goalKick': 'tiro de meta',
   'hud.phase.freeKick': 'falta',
+  'hud.phase.penalty': 'pênalti',
   'hud.phase.goal': 'gol',
   'hud.phase.kickoff': 'saída de bola',
   'hud.phase.halfTime': 'intervalo',

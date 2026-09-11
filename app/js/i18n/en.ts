@@ -12,6 +12,7 @@ export const en = {
   'hud.phase.corner': 'corner',
   'hud.phase.goalKick': 'goal kick',
   'hud.phase.freeKick': 'free kick',
+  'hud.phase.penalty': 'penalty',
   'hud.phase.goal': 'goal',
   'hud.phase.kickoff': 'kickoff',
   'hud.phase.halfTime': 'half time',
