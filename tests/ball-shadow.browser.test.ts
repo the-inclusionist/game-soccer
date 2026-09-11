@@ -47,7 +47,7 @@ describe('a ball in the air', () => {
    * Boot a scene, put the ball at a height, and hand back the two sprites.
    *
    * ⚠️ THE SPRITES ARE FOUND BY THE SIZE OF THEIR TEXTURE, and the sizes are the ones `render/scene`
-   *    paints: the ball is 5x5, its shadow 5x2, a body's shadow 7x3. That the identification is
+   *    paints: the ball, its shadow and a body's shadow are all distinct sizes. That the identification is
    *    UNAMBIGUOUS is asserted rather than assumed - if a future sprite arrives at 5x5, this gate says so
    *    instead of quietly measuring the wrong thing, which is the failure mode this session met four
    *    times in the node project.
@@ -63,10 +63,16 @@ describe('a ball in the air', () => {
       state.ball.v = { x: 0, y: 0, z: 0 };
       scene.draw(state, []);
 
-      const balls = spritesSized(scene.app.stage, 5, 5);
-      const shadows = spritesSized(scene.app.stage, 5, 2);
-      expect(balls, 'the 5x5 ball sprite is not the only one of its size').toHaveLength(1);
-      expect(shadows, "the 5x2 ball shadow is not the only one of its size").toHaveLength(1);
+      // ⚠️ THE SIZES FOLLOW `ART`, AND THEY MOVED ON 2026-09-11. The cell plans are unchanged - the
+      //    ball is still 5x5 and its shadow 5x2 as a PLAN - but the renderer draws each cell at 2x2 while
+      //    the camera is doubled and the drawn figure has not arrived, so the textures are 10x10 and 10x4.
+      //    They are literals here on purpose: identification is not the claim, and a gate that derived
+      //    them from the renderer's own factor would follow a mistake in it rather than catch one. The
+      //    length assertions below are what stop this measuring the wrong sprite in silence.
+      const balls = spritesSized(scene.app.stage, 10, 10);
+      const shadows = spritesSized(scene.app.stage, 10, 4);
+      expect(balls, 'the ball sprite is not the only one of its size').toHaveLength(1);
+      expect(shadows, 'the ball shadow is not the only one of its size').toHaveLength(1);
       return { ballY: balls[0].position.y, shadowY: shadows[0].position.y, shadowScale: shadows[0].scale.x };
     } finally {
       scene.destroy();

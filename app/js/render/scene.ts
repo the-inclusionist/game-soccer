@@ -44,6 +44,21 @@ const OUTLINE = 0x101410;
 const SHADOW = 0x000000;
 
 /** How far the camera looks ahead of the ball, in seconds of its own travel. */
+/**
+ * How many pixels one pixel of a cell plan is worth.
+ *
+ * ⚠️ AN INTERIM, AND IT SAYS SO. The figure, the marker and the ball are plans of CELLS drawn at 1x1,
+ * sized for a camera at half this scale. Doubling the projection without them would leave a 13-pixel
+ * player on a pitch drawn twice as large - which is the opposite of what the closer camera is for. So
+ * every cell becomes 2x2 and the art reads EXACTLY as it did, at twice the size: nothing regresses, and
+ * the outline stays proportionally what it was rather than thinning to half its former work.
+ *
+ * ⚠️ IT COMES OUT WHEN THE DRAWN FIGURE ARRIVES. `docs/FIGURE-SPEC` sizes that at 14x26 with its own
+ * pixels, and a hand-drawn figure scaled by two would be a waste of the hand. This constant is the bridge
+ * between the camera landing and the art landing, and it should not outlive the second.
+ */
+const ART = 2;
+
 const LEAD_SECONDS = 0.35;
 
 /** Per tick. A fixed lerp, not an exponential: the same arithmetic discipline as the simulation. */
@@ -122,7 +137,7 @@ function bodyTexture(app: PIXI.Application, kit: number, frame: number): PIXI.Te
   // Offset by one so an arm on column 0 has room for its outline. The sprite is therefore two wider and
   // two taller than `BODY`, and the anchor below puts its feet where the projection says they are.
   const O = 1;
-  for (const o of outlineOf(cells)) g.beginFill(OUTLINE).drawRect(o.x + O, o.y + O, 1, 1).endFill();
+  for (const o of outlineOf(cells)) g.beginFill(OUTLINE).drawRect((o.x + O) * ART, (o.y + O) * ART, ART, ART).endFill();
 
   const colours: Record<string, number> = {
     head: 0xe3b08a,
@@ -131,7 +146,7 @@ function bodyTexture(app: PIXI.Application, kit: number, frame: number): PIXI.Te
     shirt: kit,
     shorts: 0x2a1c12,
   };
-  for (const c of cells) g.beginFill(colours[c.part]).drawRect(c.x + O, c.y + O, 1, 1).endFill();
+  for (const c of cells) g.beginFill(colours[c.part]).drawRect((c.x + O) * ART, (c.y + O) * ART, ART, ART).endFill();
 
   return app.renderer.generateTexture(g);
 }
@@ -183,8 +198,8 @@ function skyTexture(app: PIXI.Application, w: number, h: number): PIXI.Texture {
 
 function ballTexture(app: PIXI.Application): PIXI.Texture {
   const g = new PIXI.Graphics();
-  g.beginFill(OUTLINE).drawRect(0, 0, 5, 5).endFill();
-  g.beginFill(0xffffff).drawRect(1, 1, 3, 3).endFill();
+  g.beginFill(OUTLINE).drawRect(0, 0, 5 * ART, 5 * ART).endFill();
+  g.beginFill(0xffffff).drawRect(1 * ART, 1 * ART, 3 * ART, 3 * ART).endFill();
   return app.renderer.generateTexture(g);
 }
 
@@ -204,8 +219,8 @@ function shadowTexture(app: PIXI.Application, w: number, h: number): PIXI.Textur
  */
 function markerTexture(app: PIXI.Application, seat: number, colour: number): PIXI.Texture {
   const g = new PIXI.Graphics();
-  g.beginFill(OUTLINE).drawRect(0, 0, MARKER.w, MARKER.h).endFill();
-  for (const [x, y] of markerCells(seat)) g.beginFill(colour).drawRect(x, y, 1, 1).endFill();
+  g.beginFill(OUTLINE).drawRect(0, 0, MARKER.w * ART, MARKER.h * ART).endFill();
+  for (const [x, y] of markerCells(seat)) g.beginFill(colour).drawRect(x * ART, y * ART, ART, ART).endFill();
   return app.renderer.generateTexture(g);
 }
 
@@ -343,8 +358,8 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
   pitch.zIndex = Z.TILES;
   world.addChild(pitch);
 
-  const shadowTex = shadowTexture(app, 7, 3);
-  const ballShadowTex = shadowTexture(app, 5, 2);
+  const shadowTex = shadowTexture(app, 7 * ART, 3 * ART);
+  const ballShadowTex = shadowTexture(app, 5 * ART, 2 * ART);
   const ballTex = ballTexture(app);
   // ⚠️ TWO COLOURS AS WELL AS TWO SHAPES, and the colours are the SECOND cue rather than the first. Yellow
   //    and white both separate from grass and from every kit this game generates; a colour-blind child
@@ -486,7 +501,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
         chevrons[seat].visible = on;
         if (!on) continue;
         const at = project({ x: state.players[who].p.x, y: state.players[who].p.y, z: 0 });
-        chevrons[seat].position.set(Math.round(at.x), Math.round(at.y) - 13);
+        chevrons[seat].position.set(Math.round(at.x), Math.round(at.y) - 13 * ART);
       }
 
       app.render();

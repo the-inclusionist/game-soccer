@@ -18,7 +18,7 @@
 // is how every screenshot this repository ever took came out showing the halfway line.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bootar } from '../app/js/boot/main.ts';
-import { WORLD_PX } from '../app/js/project.ts';
+import { project, WORLD_PX } from '../app/js/project.ts';
 import { STADIUM_LAYERS } from '../app/js/render/stadium-layers.ts';
 
 const SHELL_SRC = await import('./boot.browser.test.ts?raw');
@@ -41,6 +41,12 @@ const GRASS_TOP = WORLD_PX.margin.top - 10;
 
 /** The topmost row any stand layer occupies, in screen space. */
 const STANDS_TOP = 10;
+
+/**
+ * The bottom row of the stand band. `render/scene` puts the far crowd at row 10 for 24 rows and the near
+ * stand at row 30 for 14, so the band ends at 44.
+ */
+const STANDS_BOTTOM = 44;
 
 /**
  * Hold the ball at a spot until the camera has stopped moving.
@@ -209,14 +215,32 @@ describe('the stands in an ordinary match', () => {
   //    on where it came from - the same ball position gives a different row arriving from the far side
   //    than from the middle. The gate therefore asks about the far half from a FRESH boot, which is the
   //    only version of the question with one answer.
-  it('[Right] and anywhere in the far half of the pitch', async () => {
+  // ⚠️ RE-DERIVED FOR THE CLOSE CAMERA ON 2026-09-11, AND THE BAND NARROWED. It used to ask about the
+  //    far HALF - y of 4, 14 and 24 metres - and that was true at eight pixels per metre. At sixteen the
+  //    condition works out to `ball.y * SY < 128`, so the band is the far THIRTEEN METRES and not the far
+  //    twenty-five. The gate was re-derived rather than re-blessed, which is the whole point of writing
+  //    the derivation down: `MARGIN_TOP` cancels out of it, and what decides the band is how far above
+  //    the ball the camera aims against the height of the viewport.
+  //
+  // ⚠️ AND IT ASKS BOTH HALVES NOW, WHICH THE OLD ONE DID NOT. A one-sided "the stands are visible
+  //    here" passes just as well on a camera that has stopped moving at all. Asking that they are COVERED
+  //    by mid-pitch is what says the band is a band. The two probes sit clear of the dead zone, which is
+  //    40 rows tall and makes the exact boundary hysteretic - the same ball position settles differently
+  //    depending on where the camera came from, which is why the fresh boot matters and why neither probe
+  //    is placed at 13.
+  it('[Right] in the far thirteen metres, and covered by mid-pitch', async () => {
     booted = bootar(document, window);
     booted!.state.phase = 'live';
 
-    for (const y of [4, 14, 24]) {
+    for (const y of [2, 8]) {
       await pinBallAt(y);
       expect(booted!.pitchTopOnScreen(), `covered with the ball at y=${y}`).toBeGreaterThan(STANDS_TOP);
     }
+
+    await pinBallAt(24);
+    expect(booted!.pitchTopOnScreen(), 'the stands are somehow still visible at mid-pitch').toBeLessThan(
+      STANDS_TOP,
+    );
   });
 
   // ⚠️ AND THE NEAR TOUCHLINE IS STILL REACHABLE, which is the thing a lower camera could have cost. A
@@ -228,8 +252,43 @@ describe('the stands in an ordinary match', () => {
     await pinBallAt(55);
 
     const camY = booted!.cameraAt().y;
-    const ballRow = WORLD_PX.margin.top + 55 * 5 - camY;
+    // ⚠️ THROUGH `project`, NOT THROUGH A HAND-WRITTEN COPY OF IT. This line used to read
+    //    `WORLD_PX.margin.top + 55 * 5`, with the vertical scale spelled out as a literal 5 - so when the
+    //    camera doubled, the gate went on measuring the OLD projection and reported that the near
+    //    touchline had left the screen when it had not. A test that re-implements the thing it is
+    //    checking is a test that can be wrong on its own. The independent half of the claim is the
+    //    screen's 0..180, which is not the projection's to move.
+    const ballRow = project({ x: 45, y: 55, z: 0 }).y - camY;
     expect(ballRow, 'play at the near touchline is off the bottom of the screen').toBeLessThan(180);
     expect(ballRow, 'play at the near touchline is off the top of the screen').toBeGreaterThan(0);
+  });
+});
+
+// ========================= AND THE MARGIN HAD NO GATE AT ALL, WHICH A MUTATION FOUND =========================
+// The plan for the close camera prescribed this mutation: leave `MARGIN_TOP` at its old value while
+// doubling the scale, and the stands gate above must fall - the idea being that it would prove the gate
+// measures the framing rather than agreeing with itself.
+//
+// ⚠️ IT WAS RUN AND THE GATE DID NOT FALL. Ten green with the margin halved. Working the condition
+// through says why, and it is worth more than the mutation was: `MARGIN_TOP` CANCELS out of "is the grass
+// below screen row 10", because the camera aims a fixed number of pixels above the ball and centres a
+// fixed-height viewport on it, so the margin appears on both sides. What decides the band is
+// `BALL_SITS_LOW_BY` against the viewport height. The prescribed mutation was aimed at the wrong constant.
+//
+// ⚠️ WHICH LEFT A REAL GAP: the margin could be set to anything above the clamp and NOTHING noticed.
+// Its actual job is the one its own header states - with the camera clamped at the top of the world, the
+// grass has to start below the WHOLE band, not below its first row. The gate above only ever asked about
+// row 10, so a margin that clipped the bottom half of the stands passed it.
+describe('the margin above the far touchline', () => {
+  // ⚠️ THE WHOLE BAND, NOT ITS TOP ROW. At the old margin the grass began at row 36 and the band runs
+  //    to 44 - so eight rows of stand were under grass, and every gate was green. That is the "correct and
+  //    invisible" shape this repository keeps finding, in the one place it had already found it once.
+  it('[Boundary] leaves room for the ENTIRE stand band, not just its first row', async () => {
+    booted = bootar(document, window);
+    booted!.state.phase = 'live';
+
+    await pinBallAt(2);
+
+    expect(booted!.pitchTopOnScreen(), 'the grass cuts into the stand band').toBeGreaterThan(STANDS_BOTTOM);
   });
 });

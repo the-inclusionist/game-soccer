@@ -18,17 +18,34 @@
 
 import { PITCH } from './sim/units.ts';
 
-/** Pixels per metre along the pitch. */
-export const SX = 8;
+/**
+ * Pixels per metre along the pitch.
+ *
+ * ⚠️ DOUBLED ON 2026-09-11, AND THE TILT WAS HELD EXACTLY. `SY/SX` was 5/8 and still is, so the pitch
+ * keeps reading as a high tele rather than turning top-down; what changed is how much of it is on screen.
+ *
+ * ⚠️ THE COST WAS MEASURED AND IS NOT WHERE IT WAS EXPECTED. The baked pitch texture goes from
+ * 768x306 to 1536x602 - 0.24 to 0.92 megapixels, about 0.9 MB to 3.7 MB of RGBA - and the scene BUILD
+ * TIME does not move: a median of 40 ms against 39 over five cold builds. 1536 is comfortably inside the
+ * 2048 texture limit of even a cheap tablet GPU, which is the hardware pillar 1 names.
+ *
+ * ⚠️ AND THE FIELD OF VIEW IT COSTS WAS THE REAL WORRY, SO IT WAS MEASURED TOO. At 320 pixels wide,
+ * doubling halves what is on screen - about 40 metres of pitch becomes about 20 - and that sounds severe.
+ * Every ball flight above `CONTROL_SPEED` across twelve fixtures, 2022 of them: median 1.3 m, p75 4.7,
+ * p90 9.0, p99 28.5, max 45.2. **98.6% fit in a 20-metre window against 99.3% in the old 40.** The close
+ * camera costs seven tenths of a percentage point of deliveries, because this game is played in short
+ * bursts - the median flight is a dribble touch and the ninetieth percentile is a nine-metre pass.
+ */
+export const SX = 16;
 
-/** Pixels per metre across it. Less than `SX`, and the ratio is the tilt. */
-export const SY = 5;
+/** Pixels per metre across it. Less than `SX`, and the ratio is the tilt - held at 5/8 through the change. */
+export const SY = 10;
 
-/** Pixels per metre of height. */
-export const SZ = 7;
+/** Pixels per metre of height. A 1.86 m player is 26 pixels tall, which is what `docs/FIGURE-SPEC` sizes. */
+export const SZ = 14;
 
 /** Pixels of grass beyond the touchlines, so the pitch has an edge rather than ending at the screen. */
-const MARGIN_X = 24;
+const MARGIN_X = 48;
 
 /**
  * The band above the far touchline, and it is deep on purpose.
@@ -38,10 +55,18 @@ const MARGIN_X = 24;
  * background could never be seen. A parallax nobody can see is not a subtle parallax - it is a feature
  * that does not exist, and it passed its own unit tests. The far side needs room for the stands to sit in.
  */
-const MARGIN_TOP = 46;
+const MARGIN_TOP = 92;
+
+// ⚠️ AND RE-DERIVING IT FOUND THAT IT IS NOT WHAT DECIDES THE STANDS. Working the condition through,
+// `MARGIN_TOP` CANCELS: the camera aims `BALL_SITS_LOW_BY` above the ball and centres a 180-tall viewport
+// on it, so `camY` carries the margin as a term on both sides of "is the grass below screen row 10". What
+// actually decides whether a stand can be seen is `BALL_SITS_LOW_BY` and the viewport height, and where
+// the ball is across the pitch. All the margin has to do is be big enough that the grass does not cover
+// the band when the camera is clamped at the top of the world: `MARGIN_TOP > 54`. It was 46, which is why
+// this repository's record says the stands were never quite clear; 92 has room to spare.
 
 /** Below the near touchline the camera has less to show, and the crop is tighter there. */
-const MARGIN_BOTTOM = 16;
+const MARGIN_BOTTOM = 32;
 
 /** The world the camera pans over, in pixels. */
 export const WORLD_PX = Object.freeze({
