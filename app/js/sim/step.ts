@@ -99,7 +99,42 @@ export function step(
     stepBody(state.players[i], desired[i], dt, caps[i]);
   }
 
-  // 2b - AND NOBODY STANDS INSIDE ANYBODY - WHICH IS NOT TRUE HERE, MEASURED, AND BUILT AND REVERTED ONCE.
+  // 2b - AND NOBODY STANDS INSIDE ANYBODY - WHICH IS NOT TRUE HERE, AND `sim/contact` IS THE ONE LINE
+  //      THAT WOULD MAKE IT SO. The module is built and gated six ways; the wire would go on this line,
+  //      after the bodies move and before the ball does, so a body cannot be pushed onto a ball that has
+  //      already been resolved.
+  //
+  //      ========================= WHAT IT COSTS NOW, MEASURED 2026-09-11 =========================
+  //      Twelve fixtures, a child playing, with `ai/brain.challenger` no longer lunging from behind:
+  //
+  //          build                                goals   throw-ins   corners   goal kicks   fouls   offside
+  //          as committed                          1.50        6.92      1.83         2.83    3.08       -
+  //          bodies, challenger as it was          1.50        5.50      1.17         1.92    6.08    0.17
+  //          bodies, no challenger at all          1.50        6.67      1.83         2.83    0.00    0.67
+  //          bodies + no lunge from behind         1.75        4.50      1.67         2.75    3.33    0.42
+  //
+  //      ⚠️ THE LAST ROW IS THE BEST MATCH THIS REPOSITORY HAS MEASURED. Goals UP toward their band,
+  //      throw-ins into it from above, offsides up from well below, fouls and corners still inside. It is
+  //      the first change in a long sequence that improves counts instead of trading one for another.
+  //
+  //      ⚠️ AND IT IS NOT WIRED, BECAUSE THE CARDS EXPLODE. Twenty-five bookings across the six-fixture
+  //      slate against a gate that allows twelve - about four a match, against a band of half a card to
+  //      one and a half. The fouls stay in band and their SEVERITY does not: `rules/foul` grades a
+  //      challenge by what the tackler brought to the contact, and a presser who is shoved off and closes
+  //      again arrives harder every time. A match with four bookings every five minutes is not football,
+  //      and tuning the card thresholds to hide it would be tuning away the symptom.
+  //
+  //      ⚠️ AND EVERY FOUL IN THIS GAME COMES FROM THE MACHINE, which this measurement proved rather
+  //      than assumed: with `challenger` disabled entirely the count is 0.00. The README has said as much
+  //      since before bodies had volume, and it is why the lunge rule - which IS wired - belongs to the
+  //      duel rather than to this.
+  //
+  //      ⚠️ WHAT THE NEXT ATTEMPT SHOULD MEASURE FIRST is whether the severity is the closing speed
+  //      being inflated by the push itself. Separation moves positions without touching velocities, so
+  //      `wentIn` should not see it - and if that is true the cards are coming from somewhere else, which
+  //      is worth knowing before anybody reaches for a threshold.
+
+  // 2c - THE HISTORY OF THAT ONE LINE, KEPT BECAUSE IT IS WHY IT WAS ABSENT FOR MONTHS - WHICH IS NOT TRUE HERE, MEASURED, AND BUILT AND REVERTED ONCE.
   //
   //      ⚠️ THE DEFECT IS REAL AND IS MOST OF A MATCH. Every pair of the twenty-two, every tick, over a
   //      whole match: the closest two bodies ever got was 0.000 metres - EXACTLY the same point - there

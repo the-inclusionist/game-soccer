@@ -663,6 +663,28 @@ export function challenger(
   //    The asymmetry that survives is that the machine does not give away CARELESS fouls, because it
   //    cannot express carelessness. It is written down rather than hidden, and it is the smallest gap
   //    that keeps a match from being a series of free kicks.
+  // ⚠️ A DEFENDER BEHIND THE MAN DOES NOT LUNGE, and without this line bodies with volume made the
+  //    machine foul twice as often. Measured over the twelve-fixture slate with a child playing and with
+  //    `sim/contact` wired: 6.08 fouls a match against a band of 2 to 3.5 - and with this whole function
+  //    disabled, 0.00. EVERY foul in this game comes from here, which the README already said in a world
+  //    where nobody had a body: the fouls above the band come from the MACHINE and not from a child
+  //    choosing to use the tackle.
+  //
+  // ⚠️ AND SEPARATION IS WHAT MADE IT WORSE, mechanically. `rules/foul.judgeTackle` lets a challenge go
+  //    when the tackler reached the BALL - "he got the ball: play on" - and before bodies had volume the
+  //    presser could stand on it, 0.00 m away. Pushed off it, he is inside the contact radius of a MAN and
+  //    outside it of the ball, which is the definition of a foul. The lunge did not get worse; it stopped
+  //    being able to succeed.
+  //
+  // ⚠️ SO THE ANSWER IS THE GEOMETRY THAT ARRIVED WITH THE DUEL. A man in front of the carrier or
+  //    alongside him can get a foot in; one behind cannot, and football does not ask him to - he stays
+  //    with his man and takes it by pressure, which `sim/possession` pays him for at half rate. It is the
+  //    same alignment the duel reads, asked by the other half of one idea.
+  const behind = { x: me.p.x - them.p.x, y: me.p.y - them.p.y };
+  const far = Math.sqrt(behind.x * behind.x + behind.y * behind.y);
+  const align = far === 0 ? 0 : (behind.x * them.facing.x + behind.y * them.facing.y) / far;
+  if (align < 0) return null;
+
   return wentIn(me.p, me.v, them.p, them.v) >= WENT_IN_FRACTION * top ? id : null;
 }
 

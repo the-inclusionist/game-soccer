@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  2327091907, 3396233074, 3914205543, 1113348277, 621814265, 3847212615, 712704830, 2369719478,
-  420944429, 420944429,
+  2327091907, 3396233074, 1450241726, 3317056020, 4123303969, 2397972421, 1573902514, 2686075805,
+  2083890216, 2083890216,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -155,13 +155,24 @@ const GOLDEN: readonly number[] = [
 //               rows from the digest field list makes this file pass against the PREVIOUS trail. It
 //               cannot have changed - this fixture is an empty chair, so no seat ever presses a kick and
 //               the new rule never acts. The summary below is unchanged and is the second witness.
+//
+//   2026-09-11  A defender BEHIND the man does not lunge. `ai/brain.challenger` refuses a challenge from
+//               the carrier's blind side; he stays with him and takes it by pressure, which
+//               `sim/possession` now pays at half rate for being back there. It is the other half of one
+//               idea: the duel learned that position decides how fast the ball is won, and this is the
+//               same alignment deciding whether a foot goes in at all.
+//               ⚠️ AND THIS ONE REALLY DID CHANGE THE MATCH, unlike the two re-blessings above it - the
+//               summary moved as well as the trail. A second ball crosses the goal line by an attacker
+//               where there had been one. Over the slate it reads: fouls 3.08 to 3.33 and still in band,
+//               and every foul in this game comes from this function, proved by turning it off and
+//               measuring 0.00.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
   phase: 'fullTime',
   goals: [0, 0],
   goalScored: 0,
-  crossedGoalLineByAttacker: 1,
+  crossedGoalLineByAttacker: 2,
   foulGiven: 1,
 };
 

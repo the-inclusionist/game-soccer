@@ -55,6 +55,13 @@ function chase(speed: number) {
   s.possession.lastTouch = carrier;
   s.players[chaser].p = { x: 48.9, y: 28 };
   s.players[chaser].v = { x: speed, y: 0 };
+  // ⚠️ AND THE CARRIER IS TURNED TOWARDS HIM, which this fixture did not have to say until the machine
+  //    stopped lunging from behind. `ai/brain.challenger` now refuses a challenge from a defender on the
+  //    carrier's blind side - he stays with his man and takes it by pressure instead, at half rate - so a
+  //    chaser arriving from -x at a carrier facing +x is no longer a challenge at all, and this fixture
+  //    would have been measuring the refusal rather than the pace it is about. A carrier shielding, with
+  //    his back to his own goal and the defender in front of him, is the ordinary shape of this contact.
+  s.players[carrier].facing = { x: -1, y: 0 };
   return { s, carrier, chaser };
 }
 

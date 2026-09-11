@@ -102,6 +102,15 @@ describe('sprinting', () => {
   const run = (flags: number) => {
     const s = live();
     const who = s.controlled[0];
+    // ⚠️ EVERYBODY ELSE IS PARKED IN A CORNER, and they did not need to be until bodies gained volume.
+    //    This fixture ran a sprint straight through a kickoff formation, which was free while players
+    //    passed through each other and is now a crowd: measured, the sprinter covered 9.39 m against the
+    //    walker's 9.98, because he reached the traffic sooner and was shoved back harder. That is
+    //    correct football and it is not what this gate is about - the claim here is that the sprint flag
+    //    is READ, and a fixture that answers "not in a crowd" cannot say whether it is.
+    for (let i = 0; i < s.players.length; i++) {
+      if (i !== who) s.players[i].p = { x: 5 + (i % 4) * 2, y: 5 + Math.floor(i / 4) * 2 };
+    }
     const from = s.players[who].p.x;
     for (let t = 0; t < 120; t++) {
       playTick(s, { tick: t, cmds: [cmd({ tick: t, dx: 1, flags })] }, DT, MATCH_PROFILE);
