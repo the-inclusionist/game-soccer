@@ -22,6 +22,33 @@
 // FLOOR for a played match, not a centre — and a lever tuned until this child reaches a band will sit past
 // the top of it for the child who switches.
 
+// ========================= ⚠️ AND IT DISTORTS ONE COUNT, WHICH UNDERSTATING DOES NOT EXPLAIN =========================
+// Measured 2026-09-11 over the six-fixture slate, every crossing of a touchline:
+//
+//     slate              throw-ins a match   in the middle third   last touched by the body SHE drives
+//     nobody playing                  3.83                  100%                                 13.0%
+//     a child playing                12.17                  100%                                 50.7%
+//
+// ⚠️ THE EMPTY CHAIR IS INSIDE ITS BAND - 3.5 to 6 - AND THE PLAYED MATCH IS AT TWICE THE TOP OF IT. And
+// the difference is not spread across her eleven: over the whole slate her TEN TEAM-MATES put the ball out
+// exactly as often as the away side did, and the single body this harness drives accounted for half of
+// every throw-in in the game. One body in twenty-two.
+//
+// In all thirty-seven of those she was the last man to HOLD the ball as well as the last to touch it, and
+// she was nine metres away from it when it crossed - so it left her and ran out with nobody else involved.
+//
+// ⚠️ WHAT THAT MEANS FOR EVERY NUMBER TAKEN "WITH A CHILD PLAYING": the throw-in count is a fact about
+// this harness before it is a fact about the game, and it must not be tuned against. The other counts are
+// not implicated - her side's share of goals, corners, fouls and offsides tracks the away side's - but
+// this one is hers alone, and `tests/full-match`'s throw-in figure has been carrying it.
+//
+// ⚠️ AND THE MECHANISM IS NOT MEASURED, WHICH IS SAID PLAINLY RATHER THAN GUESSED AT. The shape matches a
+// defect this repository has already recorded once, in `sim/state` beside `tookRestart`: a body that has
+// run sideways onto the ball carries a velocity pointing at the line it just ran to, and the dribbling
+// touch fires along it. That was fixed for restart TAKERS and for nobody else. It is a hypothesis with a
+// precedent, not a finding - the probe that would have settled it timed the gap between CHANGES of kicker
+// rather than between kicks, and its number is therefore not recorded here.
+
 import type { Command, TickFrame } from '../../app/js/sim/command.ts';
 import type { MatchState } from '../../app/js/sim/state.ts';
 import { attackDirOf } from '../../app/js/sim/ends.ts';
