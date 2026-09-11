@@ -328,7 +328,30 @@ export function playTick(
     for (const team of [0, 1] as const) {
       const who = challenger(state, team, capsOf(skills, profile.pace)[team].body.maxSpeed);
       if (who === null) continue;
-      const foul = judgeTackle(state, who, profile, topOf(who, skills, profile.pace));
+      // ⚠️ AND THE MAN HE WENT IN ON IS NAMED, because this caller knows him. `challenger` returns a
+      //    presser precisely because he is going in on the CARRIER - it measures `wentIn` against nobody
+      //    else - and until this argument existed `judgeTackle` then looked around him and booked him for
+      //    whoever was nearest. Measured over the six-fixture slate with a child playing, that was two
+      //    fouls in every five: given against a man who was not carrying the ball and at whom the tackler
+      //    was travelling a median of 0.030 of his own top speed. `rules/foul` carries the measurement.
+      //
+      // ⚠️ AND WHAT IT COST, MEASURED THE SAME WAY BOTH TIMES - raw referee events over the six-fixture
+      //    slate with the scripted child, five minutes a half, per match:
+      //
+      //        build                 foulGiven   bookingGiven   crossedTouchline   crossedGoalLine(att)
+      //        the nearest man            4.67           0.50              20.50                   3.50
+      //        the man he went in on      3.83           1.33              16.00                   5.33
+      //
+      //    ⚠️ THE FOULS FALL AND THE CARDS RISE, WHICH IS THE POINT AND NOT A SURPRISE. The whistles that
+      //    go are the near-zero ones; what is left is the population `RECKLESS_FRACTION` was always meant
+      //    to be read against, so the same bar now catches a third of fouls instead of a ninth. Against
+      //    the Dev's interpolated five-minute bands that is fouls 3.83 (2 to 3.5, just over) and cards
+      //    1.33 (0.5 to 1.5, inside) where it was 4.67 (over) and 0.50 (at the floor).
+      //
+      //    ⚠️ AND THE BALL STAYS IN PLAY MORE. A bystander foul STOPPED the match; without it the branch
+      //    below runs instead and the presser simply takes the ball. Touchlines fall a fifth and balls
+      //    reaching their goal line rise a half, which is the same football with fewer restarts in it.
+      const foul = judgeTackle(state, who, profile, topOf(who, skills, profile.pace), state.possession.holder);
       if (foul !== null) {
         fouls.push(...foulEvents(state, foul));
         continue;

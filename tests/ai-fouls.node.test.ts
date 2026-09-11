@@ -104,6 +104,66 @@ describe('a challenge by the machine', () => {
   });
 });
 
+// ========================= ⚠️ AND THE MAN IT IS GIVEN AGAINST IS THE MAN IT WENT IN ON =========================
+// `challenger` returns a presser precisely because he is going in on the CARRIER - it measures `wentIn`
+// against nobody else - and `judgeTackle` used to then look around him and name whoever was NEAREST.
+//
+// Measured 2026-09-11 over the six-fixture slate with a child playing: THIRTEEN OF THIRTY-TWO FOULS were
+// given against a player who was not carrying the ball, at whom the tackler was travelling a median of
+// 0.030 of his own top speed. It is not an unlucky edge case, it is what the search finds: `judgeTackle`
+// refuses a challenge that reached the BALL, so a challenge that survives that check is more than a metre
+// and a half from the ball, which is more than a metre and a half from the man holding it. The carrier is
+// usually not even a candidate, and the nearest body is somebody else by construction.
+//
+// ⚠️ THESE ARE WIRE GATES AND THAT IS WHY THEY GO THROUGH `playTick`. `rules/foul` can name the victim
+// and this repository has shipped "a module that is right, a gate that is right, and no wire" ten times.
+// The argument is only worth anything if the caller passes it.
+describe('the machine fouls the man it challenged', () => {
+  /** A presser going in on a carrier he cannot quite reach, with a team-mate of the carrier beside him. */
+  function pastABystander(speed: number, at: number) {
+    const { s, carrier, chaser } = chase(speed);
+    s.players[chaser].p = { x: at, y: 28 };
+    // Half a metre away, which is nearer than the carrier in both fixtures below - so a search by
+    // distance finds HIM, and that is the whole defect.
+    s.players[firstOf(HOME) + 4].p = { x: at, y: 28.5 };
+    s.players[firstOf(HOME) + 4].v = { x: speed, y: 0 };
+    return { s, carrier, chaser };
+  }
+
+  /** Between `CONTACT` (1.6) and `CHALLENGE_RANGE` (2.0): he is challenging, and he has not got there. */
+  const SHORT = 48.15;
+  /**
+   * Inside `CONTACT` of the carrier and outside it of the ball: the challenge that arrives.
+   *
+   * It is the fixture's own starting place, and it has to be. `playTick` STEPS the world before the
+   * referee looks at it, so a presser closer than this has moved to within a metre and a half of the BALL
+   * by the time he is judged - and then it is not a foul at all, it is "he got the ball: play on".
+   */
+  const ARRIVED = 48.9;
+
+  it('[Zero] a challenge that never reached the carrier is no foul, whoever is standing beside him', () => {
+    const { s } = pastABystander(8, SHORT);
+
+    const kinds = playTick(s, emptyFrame(0), DT, MATCH_PROFILE, skills).map((e) => e.kind);
+
+    expect(kinds, 'a free kick was given against a man nobody challenged').not.toContain('foulGiven');
+  });
+
+  // ⚠️ AND THE SAME FIXTURE WITH THE CARRIER IN REACH IS STILL A FOUL, which is what stops the gate
+  //    above passing because fouls stopped happening at all. It is one metre of difference and one word.
+  it('[Right] and the same challenge that does reach him still is one', () => {
+    const { s } = pastABystander(8, ARRIVED);
+
+    const kinds = playTick(s, emptyFrame(0), DT, MATCH_PROFILE, skills).map((e) => e.kind);
+
+    expect(kinds).toContain('foulGiven');
+    // ⚠️ AND IT IS A BOOKING, which is the half of this that a search by distance cannot produce. He went
+    //    in at the carrier at eight metres a second and at the bystander at nothing, so naming the wrong
+    //    man does not merely move the free kick - it grades a reckless challenge as careless.
+    expect(kinds, 'the challenge was graded against a man he was not moving towards').toContain('bookingGiven');
+  });
+});
+
 describe('what must NOT become a foul', () => {
   // ⚠️ THE GAME WOULD BE NOTHING BUT FREE KICKS. A presser is chasing on almost every tick of a match, and
   //    an ordinary chase is football rather than a foul. What separates them is the same thing that

@@ -153,6 +153,7 @@ export function judgeTackle(
   by: PlayerId,
   profile: RulesProfile,
   top: number = DEFAULT_CAPS.maxSpeed,
+  on?: PlayerId,
 ): Foul | null {
   if (!profile.fouls) return null;
   if (!onPitch(state, by)) return null;
@@ -180,6 +181,22 @@ export function judgeTackle(
   // ⚠️ AND IT IS WHY THE CARD THRESHOLDS CANNOT BE READ YET. `sim/step` carries the measurement: a near-
   // zero mode this large drags the distribution down, `RECKLESS_FRACTION` was placed against it, and the
   // bar now sits in the densest part of the real population. Fix the pairing before touching the bar.
+  //
+  // ⚠️ SO A CALLER WHO KNOWS MAY SAY SO, AND A CALLER WHO DOES NOT MAY NOT GUESS. `ai/brain.challenger`
+  // returns a presser precisely because he is going in on the carrier, and it can hand that name over;
+  // a child pressing tackle names nobody, because she lunges at what is in front of her and whoever she
+  // catches is who she caught. Those are two different acts and the caller is the only place that knows
+  // which one happened - which is why this is an argument and not a rule inside the search below.
+  if (on !== undefined) {
+    // A named man who is a team-mate, off the pitch, or out of reach is NOT a foul on somebody else. He
+    // went in on one player and missed him; there is no whistle in that, and the whole measured defect
+    // is the search quietly substituting a different body for the one the challenge was against.
+    if (teamOf(on) === teamOf(by)) return null;
+    if (!onPitch(state, on)) return null;
+    if (dist2(me.p, state.players[on].p) >= CONTACT * CONTACT) return null;
+    return foulOn(state, by, on, top);
+  }
+
   let victim: PlayerId | null = null;
   let closest = CONTACT * CONTACT;
   for (let k = 0; k < SQUAD_SIZE; k++) {
@@ -195,6 +212,20 @@ export function judgeTackle(
   }
   if (victim === null) return null;
 
+  return foulOn(state, by, victim, top);
+}
+
+/**
+ * Grade a challenge whose pairing is already settled.
+ *
+ * ⚠️ ONE PLACE, BECAUSE THE TWO ROUTES INTO A FOUL MUST NOT GRADE DIFFERENTLY. Naming the man and finding
+ * him are two answers to "who", and everything after that - what he brought, what card it is worth, whose
+ * area it happened in - is the same law for both. Written twice, the machine's challenge and the child's
+ * lunge would drift apart the first time either half was touched, which is the shape of defect this file
+ * already carries two measurements of.
+ */
+function foulOn(state: MatchState, by: PlayerId, victim: PlayerId, top: number): Foul {
+  const me = state.players[by];
   const them = state.players[victim];
   const going = wentIn(me.p, me.v, them.p, them.v);
 
@@ -211,6 +242,6 @@ export function judgeTackle(
     on: victim,
     at: { x: them.p.x, y: them.p.y },
     severity,
-    inBox: insideOwnBox(them.p, team, state.period),
+    inBox: insideOwnBox(them.p, teamOf(by), state.period),
   };
 }

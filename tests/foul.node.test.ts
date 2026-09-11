@@ -274,3 +274,70 @@ describe('a foul in the box', () => {
     expect(judgeTackle(s, TACKLER, MATCH_PROFILE)?.inBox).toBe(false);
   });
 });
+
+// ========================= ⚠️ WHO THE CHALLENGE WAS AGAINST =========================
+// Measured 2026-09-11 over the six-fixture slate with a child playing: THIRTEEN OF THIRTY-TWO FOULS were
+// given against a player who was not carrying the ball, and the median speed the tackler brought at those
+// men was 0.030 of his own top speed. The fouls on the actual carrier read 0.905 in the same slate.
+//
+// ⚠️ AND THE CAUSE IS TWO MODULES DISAGREEING ABOUT WHO WAS BEING CHALLENGED. `ai/brain.challenger`
+// returns a presser because he is going in ON THE CARRIER; `judgeTackle` then looks around him and books
+// him for whoever is NEAREST. Those are different men, and they are systematically different: this
+// function refuses a challenge that reached the ball, so a challenge that gets here is more than a metre
+// and a half from the ball - which is more than a metre and a half from the man holding it. The carrier is
+// usually not even a candidate. The bystander is not an unlucky edge case; he is what the search finds.
+//
+// ⚠️ THE CHILD'S LUNGE IS THE OTHER CASE AND IT IS NOT THE SAME ACT. She presses tackle at whatever is in
+// front of her and does not name anybody, so whoever she catches is who she caught. The caller knows which
+// of the two acts it is, and that is why this is an argument rather than a rule inside the search.
+describe('who the challenge was against', () => {
+  /** A tackler going in on a man 1.2 m away, with a bystander standing nearer and moving with him. */
+  function pastABystander() {
+    const s = live();
+    const target = firstOf(AWAY) + 5;
+    const bystander = firstOf(AWAY) + 6;
+    for (let k = 0; k < SQUAD_SIZE; k++) s.players[firstOf(AWAY) + k].p = { x: 80, y: 50 };
+    s.players[TACKLER].p = { x: 45, y: 28 };
+    s.players[TACKLER].v = { x: 7, y: 0 };
+    s.players[target].p = { x: 46.2, y: 28 };
+    s.players[target].v = { x: 0, y: 0 };
+    s.players[bystander].p = { x: 45, y: 28.4 };
+    s.players[bystander].v = { x: 7, y: 0 };
+    s.ball.p = { x: 5, y: 5, z: 0 };
+    return { s, target, bystander };
+  }
+
+  it('[Right] a named man is the man fouled, even when somebody else is nearer', () => {
+    const { s, target, bystander } = pastABystander();
+
+    const foul = judgeTackle(s, TACKLER, MATCH_PROFILE, DEFAULT_CAPS.maxSpeed, target);
+
+    expect(foul?.on, 'the foul was given against a man nobody went in on').toBe(target);
+    expect(foul?.on).not.toBe(bystander);
+  });
+
+  // ⚠️ [Zero] AND THE WHOLE POINT IS THAT THIS IS NOT A FOUL AT ALL. A presser who went in on the carrier
+  //    and did not reach him has caught nobody - and the bystander he happens to be walking beside is not
+  //    a free kick. This is the case the slate was full of.
+  it('[Zero] and if he never reached the named man there is no foul, however near anybody else is', () => {
+    const { s, target } = pastABystander();
+    s.players[target].p = { x: 55, y: 28 };
+
+    expect(judgeTackle(s, TACKLER, MATCH_PROFILE, DEFAULT_CAPS.maxSpeed, target)).toBeNull();
+  });
+
+  it('[Zero] a named team-mate is not a foul either', () => {
+    const { s } = pastABystander();
+    const mate = firstOf(HOME) + 6;
+    s.players[mate].p = { x: 45.4, y: 28 };
+
+    expect(judgeTackle(s, TACKLER, MATCH_PROFILE, DEFAULT_CAPS.maxSpeed, mate)).toBeNull();
+  });
+
+  // ⚠️ AND NAMING NOBODY IS THE CHILD'S LUNGE, which must keep working exactly as it did.
+  it('[Right] naming nobody still finds whoever he caught', () => {
+    const { s, bystander } = pastABystander();
+
+    expect(judgeTackle(s, TACKLER, MATCH_PROFILE)?.on).toBe(bystander);
+  });
+});
