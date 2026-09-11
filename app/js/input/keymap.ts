@@ -14,9 +14,28 @@
 // fourteen-position keyboard, so this module is one: it is BORN from the declared defaults and it is what
 // the sampler asks on every tick.
 //
-// ⚠️ IT IS A HOLDING PATTERN AND IT SAYS SO. When the engine reconciles its two tables, this file becomes
-// a wrapper around `kb` and then nothing - `tests/keymap.node.test.ts` is where the claim is measured, and
-// `docs/ENGINE-AUDIT.md` is where the engine is told.
+// ⚠️ IT SAID IT WAS A HOLDING PATTERN - "when the engine reconciles its two tables, this file becomes a
+// wrapper around `kb` and then nothing". 📏 THE ENGINE HAS RECONCILED THEM, measured 2026-09-11 against the
+// installed package, AND THIS FILE DOES NOT RETIRE. The prediction was wrong about what the reconciliation
+// would leave behind, so the reasons are written out rather than the sentence quietly dropped.
+//
+// `input/keyboard.js`'s own header records issue #118: the solo and two-player schemes are no longer
+// written there, they are live copies of what `input/default-bindings` declares. Asked at runtime,
+// `KB_DEFAULTS.solo` now carries all FOURTEEN positions, the same fourteen `core/actions` declares, and
+// every one of the fourteen holds byte-identical keys to `KEYBOARD_SOLO`.
+//
+// ⚠️ SO SWITCHING SOURCE WOULD BE A NO-OP, which is worth knowing before somebody does it for tidiness.
+// The two tables agree today; deriving from the live one would only mean tracking the engine if they ever
+// stop agreeing.
+//
+// ⚠️ AND WHAT THE RECONCILIATION DID NOT TOUCH IS MOST OF THIS FILE. Remapping, the reverse index, the
+// report of unbound and doubled positions, per-seat maps, this game's own storage key, the `code` fallback
+// for a keyboard that reports no `code`, and the spoken key names are all still here and still ours. The
+// engine reconciled the DEFAULTS, which was one of this module's six jobs.
+//
+// ⚠️ AND ITS TWO-PLAYER TABLE STILL CANNOT BE USED. `KB_DEFAULTS.p2[1]` binds `Numpad5` and its
+// neighbours, measured today, and pillar 1 names the Chromebook - which has no numeric keypad. That is
+// engine finding 2, still open, and it is why `defaultKeymapFor` builds the second seat here.
 
 import { ACTIONS, type Action } from '@the-inclusionist/engine/core/actions.js';
 import { KEYBOARD_SOLO } from '@the-inclusionist/engine/input/default-bindings.js';
@@ -28,8 +47,12 @@ export type Keymap = Record<string, string[]>;
 /**
  * A fresh map from the engine's declared defaults.
  *
- * ⚠️ DEEP COPIED, not referenced. `KEYBOARD_SOLO` is frozen at the top level but its arrays are the
- * engine's; a shared array would let one child's remap edit the defaults every later reset restores from.
+ * ⚠️ DEEP COPIED, not referenced, and the reason is stronger than this comment used to claim. It said
+ * `KEYBOARD_SOLO` is "frozen at the top level" so only the arrays needed copying. 📏 Measured 2026-09-11:
+ * `Object.isFrozen(KEYBOARD_SOLO)` is FALSE, and so is `Object.isFrozen(KEYBOARD_SOLO.up)`. Nothing about
+ * it is frozen. The deep copy was doing more work than its own justification described, which is the safe
+ * direction to be wrong in - and a shared array, or a shared object, would let one child's remap edit the
+ * defaults that every later reset restores from.
  */
 export function defaultKeymap(): Keymap {
   const map: Keymap = {};
