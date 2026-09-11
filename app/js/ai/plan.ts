@@ -106,6 +106,37 @@ function nearestOfTeam(state: MatchState, team: TeamId): number {
 // spine sentence - "make the attack arrive" - arriving from a direction nobody expected, and which points
 // back at the parry loop recorded in `sim/save`: a handful of attacks caught bouncing, counted once per
 // bounce, is exactly what a possession that never develops looks like from here.
+//
+// ========================= ⚠️ AND OFF-BALL PLAY IS WORTH NOTHING TO THE ATTACK, MEASURED =========================
+// The paragraph above says the jobs are already correct and the box will not fill. Measured on 2026-09-11,
+// and the number is starker than that: the off-ball bodies contribute NOTHING to their own side's scoring.
+//
+// Six fixtures, nobody at the keyboard, with EIGHT of one side's eleven frozen where they stood - only the
+// keeper, the designated presser and whoever is carrying the ball allowed to move:
+//
+//     build                  goals for them   goals against them   metres they walked off the ball
+//     everybody moving                   16                   13                           107,702
+//     eight of them frozen               16                   18                            15,568
+//
+// ⚠️ THE FREEZE LANDED AND THE SCORING DID NOT MOVE. Their off-ball walking fell by 86% - which is the
+// check that the manipulation did what it claimed - and they scored exactly the same number of goals.
+// Eight players covering ninety-two kilometres between them over six matches are worth zero goals to the
+// attack they belong to.
+//
+// ⚠️ AND THE SAME MEASUREMENT PRICES THE OTHER HALF: with those eight standing still their opponents went
+// from 13 goals to 18. So off-ball movement in this game DEFENDS and does not ATTACK - about five goals a
+// slate of defending, and none of scoring. That is the sharpest form of the finding three separate
+// measurements arrived at from three directions, recorded beside `steerAll` in `ai/brain`: every defensive
+// improvement is paid for out of the attack's account, because the attack has nothing in it.
+//
+// ⚠️ AND IT IS WHY ONE BODY CAN DOMINATE A MATCH. `tests/helpers/scripted-child` measures the harness
+// scoring 24 of the 28 goals in its slate; a single body that always goes to the ball is competing against
+// ten whose movement is measurably decorative in attack. That is not a harness that is too strong so much
+// as an off-ball model that is not there.
+//
+// So the item is named rather than guessed at: what is missing is a reason for an off-the-ball body to be
+// somewhere the ball can REACH him. The shape slides toward the ball and holds a formation, which is a
+// position and not an intention, and this measurement is the difference between the two.
 
 export function teamPlan(state: MatchState, team: TeamId): TeamPlan {
   const holder = state.possession.holder;
