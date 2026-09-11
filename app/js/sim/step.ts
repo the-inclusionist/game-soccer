@@ -104,6 +104,10 @@ export function step(
   //      after the bodies move and before the ball does, so a body cannot be pushed onto a ball that has
   //      already been resolved.
   //
+  //      ⚠️ IT IS STILL NOT WIRED AND THE REASON IS NO LONGER THE ONE WRITTEN BELOW. Two of the three
+  //      things that stood in the way have been found, named and fixed, and what is left is one measured
+  //      trade that belongs to the Dev rather than to me. Read to the bottom before touching anything.
+  //
   //      ========================= WHAT IT COSTS NOW, MEASURED 2026-09-11 =========================
   //      Twelve fixtures, a child playing, with `ai/brain.challenger` no longer lunging from behind:
   //
@@ -117,12 +121,12 @@ export function step(
   //      throw-ins into it from above, offsides up from well below, fouls and corners still inside. It is
   //      the first change in a long sequence that improves counts instead of trading one for another.
   //
-  //      ⚠️ AND IT IS NOT WIRED, BECAUSE THE CARDS EXPLODE. Twenty-five bookings across the six-fixture
-  //      slate against a gate that allows twelve - about four a match, against a band of half a card to
-  //      one and a half. The fouls stay in band and their SEVERITY does not: `rules/foul` grades a
-  //      challenge by what the tackler brought to the contact, and a presser who is shoved off and closes
-  //      again arrives harder every time. A match with four bookings every five minutes is not football,
-  //      and tuning the card thresholds to hide it would be tuning away the symptom.
+  //      ⚠️ AND IT WAS HELD BACK FOR A DAY BECAUSE THE CARDS EXPLODED. Twenty-five bookings across the
+  //      six-fixture slate against a gate that allows twelve - about four a match, against a band of half
+  //      a card to one and a half. The explanation written here at the time was that a presser who is
+  //      shoved off and closes again arrives harder every time. ⚠️ THAT EXPLANATION WAS WRONG, and the
+  //      two paragraphs below are what replaced it: the cards were a measurement artefact resting on two
+  //      separate defects in `rules/foul`, both of which were present with no bodies anywhere near them.
   //
   //      ⚠️ AND EVERY FOUL IN THIS GAME COMES FROM THE MACHINE, which this measurement proved rather
   //      than assumed: with `challenger` disabled entirely the count is 0.00. The README has said as much
@@ -162,10 +166,61 @@ export function step(
   //      So the cards are not coming from contact, and they are not coming from somewhere else either:
   //      they come from a bar tuned on a build whose challenges were being dragged down by bystanders.
   //      ⚠️ WHICH MAKES THE BYSTANDER THE THING TO FIX FIRST, and it is a defect in `rules/foul` that has
-  //      nothing to do with bodies - it is there right now, in the committed build, in two fouls of every
-  //      five. The note beside the victim loop carries it.
+  //      nothing to do with bodies - it was there in the committed build, in two fouls of every five. The
+  //      note beside the victim loop carries it.
+  //
+  //      ========================= THE SECOND DEFECT IS ARITHMETIC, AND IT IS IN `rules/foul` TOO =========================
+  //      ⚠️ `BODY_WIDTH` + `CONTROL_R` IS 1.7 METRES AND THE BALL REACH IS 1.6. A presser held off at a
+  //      body's width from a carrier dribbling at the edge of his control is 1.7 m from the ball, so the
+  //      oldest rule in `rules/foul` - *"he got the ball: play on"* - becomes UNREACHABLE BY TEN
+  //      CENTIMETRES the moment bodies have volume. Not because he is slow: because winning the ball has
+  //      been made impossible. Every challenge that lands is then a foul by construction.
+  //
+  //      Measured over the twelve-fixture slate, five minutes a half, with the victim now named by the
+  //      caller. `reach` is what `rules/foul` clears a challenge at:
+  //
+  //          build                          fouls   bookings   corners   offsides   goals   throw-ins
+  //          a child playing
+  //            no bodies                     1.50       0.75      2.25       0.25    2.92       17.08
+  //            bodies, reach 1.6             3.58       1.17      2.92       1.00    3.75       10.00
+  //          nobody playing
+  //            no bodies                     1.17       0.50      2.42       0.58    3.08        6.92
+  //            bodies, reach 1.6             3.33       1.75      2.00       0.42    1.33        5.00
+  //          the band, five minutes        2 - 3.5  0.5 - 1.5   1.5 - 3    0.5-1.5   2 - 3     3.5 - 6
+  //
+  //      ⚠️ AND THE PLAYED MATCH IS BETTER WITH BODIES ON EVERY COUNT THAT WAS OUT OF BAND. Fouls come up
+  //      into their band from under it, offsides come back from the nought they fell to when a forward
+  //      learned to stop at the last defender, corners hold, and the THROW-INS - the largest out-of-band
+  //      count this game has - nearly halve. That is the ruler, by this repository's own doctrine:
+  //      *"the band belongs to a PLAYED match."*
+  //
+  //      ⚠️ AND THE UNPLAYED MATCH IS WORSE, WHICH IS THE TRADE AND IS NOT MINE TO TAKE. With an empty
+  //      chair the goals fall by more than half, 3.08 to 1.33, and the bookings more than triple. The
+  //      six-fixture slate that `tests/full-match` gates on produced THIRTEEN bookings against a ceiling
+  //      of twelve - so wiring this today fails a committed gate, and raising that ceiling would be
+  //      exactly the "tuning away the symptom" this note warned against two paragraphs up.
+  //
+  //      ⚠️ AND THE GOALS ARE NOT A TUNING PROBLEM, THEY ARE AN AI ONE. The same change moves the played
+  //      match's goals UP (2.92 to 3.75) and the unplayed match's DOWN (3.08 to 1.33). Bodies with volume
+  //      make defending much stronger, and a child at the keyboard can use that against the defence while
+  //      `ai/brain` cannot: the machine has no idea how to attack a defender it can no longer walk
+  //      through. That is the next item, and it is a behaviour and not a constant.
+  //
+  //      ⚠️ AND THE CARDS CANNOT BE TUNED OUT, WHICH WAS MEASURED RATHER THAN ASSUMED. `challenger` only
+  //      fires at or above `WENT_IN_FRACTION` (0.8) of top speed, so every machine challenge lives in a
+  //      band 0.2 wide, and `RECKLESS_FRACTION` is a knife-edge anywhere inside it: 0.95 books 2.17 a
+  //      match with an empty chair, 0.98 books 1.33, and 1.00 books NOTHING AT ALL. Sweeping
+  //      `WENT_IN_FRACTION` from 0.8 down to 0.5 moved the counts non-monotonically - the goals read
+  //      1.50, 1.17, 2.33, 1.17 - which is this file's own warning about tuning against noise arriving in
+  //      person. Neither constant is a lever here; they are both inside the noise.
+  //
+  //      ⚠️ SO WHAT IS OWED IS A DECISION AND NOT MORE MEASUREMENT. Wiring this buys the played match its
+  //      throw-ins and its offsides and pillar 5's legibility - two twelve-pixel figures on one spot are
+  //      ONE figure - and costs the unplayed match half its goals and a committed card ceiling. Both
+  //      halves are now measured, the two wrong whistles that muddied every earlier attempt are fixed,
+  //      and the remaining obstacle has a name: the machine cannot attack a defence with volume.
 
-  // 2c - THE HISTORY OF THAT ONE LINE, KEPT BECAUSE IT IS WHY IT WAS ABSENT FOR MONTHS - WHICH IS NOT TRUE HERE, MEASURED, AND BUILT AND REVERTED ONCE.
+  // 2c - AND THE OLDER HISTORY, FROM THE ATTEMPT THAT WAS BUILT, MEASURED AND REVERTED.
   //
   //      ⚠️ THE DEFECT IS REAL AND IS MOST OF A MATCH. Every pair of the twenty-two, every tick, over a
   //      whole match: the closest two bodies ever got was 0.000 metres - EXACTLY the same point - there
