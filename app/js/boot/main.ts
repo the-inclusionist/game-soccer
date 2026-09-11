@@ -39,6 +39,7 @@ import type { Command } from '../sim/command.ts';
 import { createSampler } from '../input/sampler.ts';
 import { initGamepad } from '@the-inclusionist/engine/input/gamepad.js';
 import { padCur } from '@the-inclusionist/engine/input/state.js';
+import { criarArestaComAlternancia } from '@the-inclusionist/engine/input/latch-edge.js';
 import { buildPreset } from '../input/preset.ts';
 import * as mixer from '@the-inclusionist/engine/platform/audio.js';
 import * as engineState from '@the-inclusionist/engine/core/state.js';
@@ -181,7 +182,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    drags `onnxruntime-web` in as a non-optional peer - 135.4 MB in the node_modules of every
       //    consumer - and this repository already measured the other end of the same cost: the build is
       //    16 MB and 13.9 of them are that speech runtime, which the running page never even requests.
-      //    The precache budget is 1 MiB and was set deliberately BELOW the file it exists to exclude.
+      //    consumer - and that half of the argument still holds in 8.0.0: the port still names the same
+      //    provider import.
+      // ⚠️ AND HALF OF IT WENT STALE BETWEEN THE RELEASE CANDIDATE AND THE FINAL, so it is corrected
+      //    here rather than left standing. 8.0.0 downloads the heavy assets at RUN TIME into the browser
+      //    cache, in the background, one at a time - so the 1 MiB precache budget is no longer what stands
+      //    in the way, and the sentence that said it was is withdrawn. What replaces it is a bigger
+      //    number pointed at a worse place: the four voices are ~241 MB over a school's wifi, on the
+      //    hardware pillar 1 names. That makes adopting them MORE consequential, not less.
       // ⚠️ SO THIS RECORDS WHAT IS ALREADY TRUE, AND IT IS NOT A DECISION TO KEEP IT TRUE. A child who
       //    cannot read gets the system voice, and on a school Chromebook that may not exist in Portuguese
       //    - the engine's own sentence, and it is about our audience exactly. Adopting the voice is a
@@ -278,6 +286,19 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    `createGame`'s `declines` takes - the engine simply has no such field here yet.
   const noElement = (): HTMLElement | null => null;
   const words = buildPreset((key: string) => t(key));
+  // ⚠️ ONE RECORD PER SEAT FOR THE ENGINE'S MOVE TOGGLE, and the honesty about it is the point. The
+  //    engine resolves the toggle PER TRANSPORT and writes the answer here, so a child who turns it on
+  //    with a pad in her hands gets the pad's setting and not the keyboard's - which is the defect 8.0
+  //    measured and closed. Storing it needs these two fields and nothing else.
+  //
+  // ⚠️ AND `walkDir` HAS NO READER IN THIS GAME YET, which is owed rather than hidden. Our sampler
+  //    builds a direction from held keys and from `padCur`; it does not consult a latched walk direction,
+  //    so a child who turns the toggle on has her choice REMEMBERED and not yet ACTED ON. That is the
+  //    shape of defect this repository has named ten times - a thing that is right with no wire - and
+  //    writing it here is the only reason the eleventh will be found. `seguraTeclas()` answers true, so
+  //    the toggle is not a dead button by declaration; it is a live control with half its wire.
+  const latchSeats = [0, 1].map(() => ({ toggleMove: false, walkDir: 0 }));
+
   const gamepad = initGamepad({
     getGamepads: () => (win.navigator.getGamepads ? win.navigator.getGamepads() : []),
     $: (sel: string) => doc.querySelector(sel),
@@ -295,6 +316,18 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     hideTouchControls: () => {},
     getPlayers: () => [{ pad: 0 }],
     getNumPlayers: () => 1,
+    // ⚠️ THE PAD HAS TO SAY IT WAS THE PAD, AND IN 8.0 SAYING SO IS MANDATORY. The engine measured that
+    //    `arestaDoJogador` had ZERO production callers, so `entradaDe(i).emUso` answered "keyboard" for
+    //    everybody and the toggle a child was actually offered was the KEYBOARD's, with the pad in her
+    //    hands. The pad was the only transport that stayed identifiable without this - it never passes
+    //    through the key set - which is exactly why the gap was invisible: the module knew which pad the
+    //    edge came from and the state machine did not.
+    // ⚠️ AND IT IS THE LATCH-AWARE ONE, NOT THE RAW PORT, because the engine's own header says so: this
+    //    is the version that also resolves the toggle for this device on this player. Passing the raw one
+    //    compiles, runs, and quietly loses her the setting - the shape of defect this repository keeps
+    //    naming. A held pad button stopped reaching the input layer at all until this line existed, and
+    //    one browser gate is the only thing that noticed.
+    arestaDoJogador: criarArestaComAlternancia(() => latchSeats),
     navTitle: () => {},
     naBarraDe: () => false,
     navBar: () => {},

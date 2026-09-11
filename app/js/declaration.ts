@@ -209,6 +209,29 @@ export function createDeclaration(o: Observed): GameDeclaration {
       return 3 + (o.charge() === 'hold' ? 1 : 0);
     },
 
+    /**
+     * DOES THIS GAME HOLD A KEY AT ALL? Mandatory in engine 8.0 (their ADR-0115). Football: always.
+     *
+     * ⚠️ AND `holdsAtOnce` ABOVE DOES NOT ANSWER IT, which is the finding that produced the field. That
+     * one counts SIMULTANEOUS positions and refuses zero, so a quiz answers 1 while holding nothing at
+     * all - "one at a time" and "one HELD" come out the same number, and every decision downstream was
+     * reading a number that answers the other question.
+     *
+     * ⚠️ WHO PAYS IS A CHILD WHO CANNOT KEEP A KEY PRESSED. The toggle exists for her: one press to
+     * start moving, another to stop. In a game that holds nothing there is nothing to toggle, so the
+     * control she depends on becomes an option that DOES NOTHING - she turns it on, nothing happens, and
+     * what she learns is that the adjustment is broken. That is the dead button their ADR-0106 forbids.
+     *
+     * ⚠️ IT IS CONSTANT WHERE `holdsAtOnce` VARIES, and the difference is worth the sentence. The
+     * stepped charge takes the hold out of the KICK, which is why the count drops by one - but running is
+     * a held DIRECTION in every route this game has, and sprint is a hold by definition. There is no
+     * setting of ours under which football stops holding keys, so there is none under which the toggle
+     * would be handed to her for nothing.
+     */
+    seguraTeclas(): boolean {
+      return true;
+    },
+
     // 1 - TOPOLOGY, IN METRES, WITH A PACE AS THE UNIT.
     //
     //     `unit` is not a scale factor. The engine's `distance()` divides by it and its own comment says

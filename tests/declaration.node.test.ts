@@ -328,6 +328,22 @@ describe('how many positions this game holds at once', () => {
     );
   });
 
+  // ⚠️ AND WHETHER ANYTHING IS HELD AT ALL IS A SEPARATE QUESTION, which is the finding that produced
+  //    the field (their ADR-0115). `holdsAtOnce` counts SIMULTANEOUS positions and refuses zero, so a quiz
+  //    answers 1 while holding nothing whatsoever - "one at a time" and "one HELD" are the same number, and
+  //    every decision downstream was reading a number that answers the other question. The cost lands on a
+  //    child who cannot keep a key pressed: she turns on the toggle her play depends on, and in a game that
+  //    holds nothing it does nothing. She learns the adjustment is broken. That is the dead button.
+  it('[Right] this game does hold keys, and the answer does not move with the charge route', () => {
+    // ⚠️ TRUE IN ALL THREE, AND THAT IS THE POINT OF ASSERTING IT ROUTE BY ROUTE. The stepped route
+    //    takes the hold out of the KICK, which is why `holdsAtOnce` drops by one - but running is a held
+    //    direction in every route this game has, and sprint is a hold by definition. A version of this
+    //    that tracked `holdsAtOnce` down to "false" would hand a child the toggle and no reason for it.
+    for (const mode of CHARGE_MODES) {
+      expect(observing({ charge: () => mode }).d.seguraTeclas(), `${mode} says nothing is held`).toBe(true);
+    }
+  });
+
   it('[Interface] it is a positive whole number in every charge route', () => {
     for (const mode of CHARGE_MODES) {
       const n = observing({ charge: () => mode }).d.holdsAtOnce();
