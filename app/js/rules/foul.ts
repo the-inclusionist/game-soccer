@@ -164,6 +164,22 @@ export function judgeTackle(
   const team = teamOf(by);
   const first = firstOf(team === 0 ? 1 : 0);
 
+  // ========================= ⚠️ THE NEAREST MAN IS NOT THE MAN HE WENT IN ON =========================
+  // Measured 2026-09-11 over the six-fixture slate with a child playing, every judged challenge recorded:
+  // THIRTEEN OF THIRTY-TWO FOULS - two in every five - were given against a player who was not carrying
+  // the ball, and the median speed the tackler brought at those men was 0.030 of his own top speed. That
+  // is a free kick given away against a bystander by somebody who was, as far as that bystander is
+  // concerned, standing still. The fouls on the actual carrier read a median of 0.905 in the same slate,
+  // so this is not a spread: it is two different events sharing one whistle.
+  //
+  // ⚠️ IT IS THE DEFECT `wentIn` ALREADY FIXED, WITH THE SIGN FLIPPED. The note on that function records
+  // a presser who had not moved being deemed to have gone in; this is a man who had not moved being
+  // deemed to have been gone in ON. The first was fixed by measuring what the tackler brought. The second
+  // needs the same question asked of the pairing itself, and picking by distance never asks it.
+  //
+  // ⚠️ AND IT IS WHY THE CARD THRESHOLDS CANNOT BE READ YET. `sim/step` carries the measurement: a near-
+  // zero mode this large drags the distribution down, `RECKLESS_FRACTION` was placed against it, and the
+  // bar now sits in the densest part of the real population. Fix the pairing before touching the bar.
   let victim: PlayerId | null = null;
   let closest = CONTACT * CONTACT;
   for (let k = 0; k < SQUAD_SIZE; k++) {

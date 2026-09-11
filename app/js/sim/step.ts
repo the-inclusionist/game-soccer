@@ -129,10 +129,41 @@ export function step(
   //      since before bodies had volume, and it is why the lunge rule - which IS wired - belongs to the
   //      duel rather than to this.
   //
-  //      ⚠️ WHAT THE NEXT ATTEMPT SHOULD MEASURE FIRST is whether the severity is the closing speed
-  //      being inflated by the push itself. Separation moves positions without touching velocities, so
-  //      `wentIn` should not see it - and if that is true the cards are coming from somewhere else, which
-  //      is worth knowing before anybody reaches for a threshold.
+  //      ========================= AND THAT QUESTION IS NOW ANSWERED, 2026-09-11 =========================
+  //      The line above used to ask whether the severity was the closing speed being inflated by the push
+  //      itself, and reasoned that separation moves positions without touching velocities so `wentIn`
+  //      should not see it. ⚠️ IT DOES SEE IT, AND THE REASONING WAS WRONG IN A WAY WORTH KEEPING: the
+  //      quantity did not change, the POPULATION did. Every challenge `rules/foul` judged over the
+  //      six-fixture slate with a child playing was recorded, both builds:
+  //
+  //          build                challenges   fouls   bookings   median wentIn/top   carded
+  //          as committed              235.2    5.33       0.50               0.845    12.5%
+  //          with bodies wired         408.0    9.83       2.17               0.912    23.7%
+  //
+  //      ⚠️ THE GAP AT JUDGEMENT GETS SMALLER WITH BODIES, NOT BIGGER - median 1.434 m to 1.307 m, with a
+  //      quarter of them pinned at exactly 0.800, which is `BODY_WIDTH`. So nothing is being shoved into
+  //      anything: the push puts a floor under the distance and the challenges arrive closer to it.
+  //
+  //      ⚠️ WHAT DOUBLES IS THE NUMBER OF REAL CHALLENGES. Split by whether the man fouled was the one
+  //      carrying the ball, the two builds are two different mixtures of the same two events:
+  //
+  //          build                on the carrier              on a bystander
+  //          as committed         19 fouls, median 0.905      13 fouls, median 0.030
+  //          with bodies wired    42 fouls, median 0.941      17 fouls, median 0.125
+  //
+  //      Real challenges go up 2.2 times and bystanders 1.3, so the near-zero mode falls from 41% of all
+  //      fouls to 29% and the whole distribution lifts. The median real challenge moves four per cent.
+  //
+  //      ⚠️ AND FOUR PER CENT IS ENOUGH BECAUSE THE THRESHOLD SITS IN THE DENSEST PART OF IT.
+  //      `RECKLESS_FRACTION` is 0.95 and the seventy-fifth percentile of this population moves 0.916 to
+  //      0.949 - the bar is standing exactly where the mass is. A threshold placed there multiplies
+  //      whatever moves the distribution, which is why the fouls go up 1.8 times and the cards 4.3.
+  //
+  //      So the cards are not coming from contact, and they are not coming from somewhere else either:
+  //      they come from a bar tuned on a build whose challenges were being dragged down by bystanders.
+  //      ⚠️ WHICH MAKES THE BYSTANDER THE THING TO FIX FIRST, and it is a defect in `rules/foul` that has
+  //      nothing to do with bodies - it is there right now, in the committed build, in two fouls of every
+  //      five. The note beside the victim loop carries it.
 
   // 2c - THE HISTORY OF THAT ONE LINE, KEPT BECAUSE IT IS WHY IT WAS ABSENT FOR MONTHS - WHICH IS NOT TRUE HERE, MEASURED, AND BUILT AND REVERTED ONCE.
   //
