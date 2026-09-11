@@ -17,7 +17,7 @@ import { step } from './step.ts';
  * integration. It is NOT a package version - it answers one question, "would an old recording still mean
  * what it said", and only this module's readers ask it.
  */
-export const SIM_VERSION = 1;
+export const SIM_VERSION = 2;
 
 /** One checkpoint per second of world time. See the test header for why a trail beats a total. */
 export const CHECK_EVERY = 60;

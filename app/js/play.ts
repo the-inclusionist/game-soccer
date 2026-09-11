@@ -316,6 +316,7 @@ export function playTick(
     //    law depend on what the child MEANT rather than on where the ball went.
     markOffside(state, strike.id, profile);
     state.lastStruck = strike.id;
+    state.lastKick = strike.id;
     struck = true;
     break; // one ball
   }
@@ -378,6 +379,7 @@ export function playTick(
       state.possession.holder = NOBODY;
       state.possession.lastTouch = knock.id;
       state.lastStruck = knock.id;
+      state.lastKick = knock.id;
     }
   }
 
@@ -390,6 +392,7 @@ export function playTick(
       state.possession.lastTouch = kick.id;
       markOffside(state, kick.id, profile);
       state.lastStruck = kick.id;
+      state.lastKick = kick.id;
     }
   }
 

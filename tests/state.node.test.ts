@@ -98,12 +98,23 @@ describe('the digest', () => {
     expect(digest(b)).not.toBe(digest(a));
   });
 
+  // ⚠️ AND THE LIST ABOVE IS A CLAIM THAT NEEDS A BEHAVIOUR BEHIND IT. Naming a field in `covered`
+  //    satisfies the gate below whether or not a row was ever added, so the field that just arrived gets
+  //    the same treatment the offside snapshot does: change it alone, and the hash must move.
+  it('[Boundary] who last deliberately kicked it alone changes the hash', () => {
+    const a = createMatchState();
+    const b = createMatchState();
+    b.lastKick = 7;
+
+    expect(digest(b)).not.toBe(digest(a));
+  });
+
   // ⚠️ THE GATE THAT CATCHES THE NEXT FIELD SOMEBODY ADDS. A comment asking future authors to remember
   //    the digest is a comment; this fails the build. A `MatchState` grows a field, nobody adds a row to
   //    the field lists, and from that day the digest silently stops covering part of the world - the
   //    golden replay still passes, the cross-check gate still passes, and both are now lying.
   it('[Interface] every field of a match state is covered by the digest', () => {
-    const covered = new Set(['tick', 'ball', 'players', 'possession', 'phase', 'period', 'goals', 'restartTaker', 'onPitch', 'controlled', 'cards', 'offsidePasser', 'offsideMask', 'tookRestart', 'lastStruck', 'pressure', 'pressedBy', 'hinted', 'pendingVerb', 'pendingUntil', 'heldKickFired']);
+    const covered = new Set(['tick', 'ball', 'players', 'possession', 'phase', 'period', 'goals', 'restartTaker', 'onPitch', 'controlled', 'cards', 'offsidePasser', 'offsideMask', 'tookRestart', 'lastStruck', 'lastKick', 'pressure', 'pressedBy', 'hinted', 'pendingVerb', 'pendingUntil', 'heldKickFired']);
     const actual = Object.keys(createMatchState());
 
     expect(actual.filter((k) => !covered.has(k))).toEqual([]);

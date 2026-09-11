@@ -30,8 +30,8 @@
 // depends on WHICH SIDE OF HIM it was. A child can learn that - shoot near the post and the best he can do
 // is put it behind.
 
-import { firstOf, type TeamId } from './ids.ts';
-import { CONTROL_R } from './possession.ts';
+import { firstOf, teamOf, type TeamId } from './ids.ts';
+import { CONTROL_R, NOBODY as NOBODY_KICK } from './possession.ts';
 import { insideOwnBox } from './ends.ts';
 import { onPitch } from './squads.ts';
 import type { MatchState } from './state.ts';
@@ -210,9 +210,25 @@ export function keeperSave(state: MatchState, sides?: readonly [SideCaps, SideCa
     // law exempts. `state.lastStruck` is the deliberate half, and it is a LOCK rather than a record: it is
     // cleared the moment the ball leaves the striker's own reach, which is a few ticks into a pass.
     //
-    // ⚠️ SO IT NEEDS A NEW FIELD - who last DELIBERATELY kicked it - set where `play.ts` applies a strike,
-    // a dribbling knock and an AI kick, and NOT set by `sim/block` or by this file. That is a digest row
-    // and a save-format change, which is why it is a separate piece of work rather than a line here.
+    // ⚠️ SO IT TOOK A NEW FIELD - `state.lastKick`, who last DELIBERATELY kicked it - written where
+    // `play.ts` applies a strike, a dribbling knock and an AI kick, and never by `sim/block` or by this
+    // file. It cost a digest row and a bump of `SIM_VERSION`, which is the price of a fact the simulation
+    // did not keep.
+    //
+    // ⚠️ AND `lastTouch === lastKick` IS THE SECOND HALF OF THE CONDITION, not decoration. The law is
+    // about a ball that reaches him FROM that kick; once anybody else has played it the ball is no longer
+    // the one his team-mate sent him, and football gives him his hands back. Without it the restriction
+    // would outlive the pass it was about and follow the ball through a whole passage of play.
+    //
+    // ⚠️ AND HIS OWN KICK IS NOT A TEAM-MATE'S. Playing his own clearance again is a different law - the
+    // second touch - and reading this one loosely would quietly implement that one too, wrongly.
+    const kicked = state.lastKick;
+    const fromOurOwn =
+      kicked !== NOBODY_KICK &&
+      kicked !== id &&
+      teamOf(kicked) === team &&
+      state.possession.lastTouch === kicked;
+    if (fromOurOwn) continue;
     //
     // ⚠️ AND THE ACCESS CLAUSE OF ITEM K BELONGS TO THAT HALF AND NOT TO THIS ONE. The plan asks for «the
     // caption and the reader say why play stopped, as they do for offside», and this law stops nothing -

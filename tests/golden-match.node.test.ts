@@ -70,8 +70,8 @@ const CHECK_EVERY = 600;
  * is the whole idea: the value of a golden master is that nobody can talk it into agreeing.
  */
 const GOLDEN: readonly number[] = [
-  2327091907, 3396233074, 1450241726, 206096927, 2012470248, 1205406999, 721705443, 1808603468,
-  850065089, 850065089,
+  2440355033, 2425300181, 1126163352, 3799686921, 755919780, 4043425600, 1686793557, 4081843104,
+  664325827, 664325827,
 ];
 
 // ========================= THE TIMES THIS HAS BEEN RE-BLESSED =========================
@@ -183,6 +183,21 @@ const GOLDEN: readonly number[] = [
 //               twelve centimetres - wholly over his own goal line, already out of play - and
 //               `lastTouch` is what tells a corner from a goal kick, so the illegal touch was AWARDING
 //               the corner. `tests/full-match` carries the whole measurement beside its corner gate.
+//
+//   2026-09-11  ⚠️ AND THIS ONE IS NOT A MATCH THAT CHANGED, which is a kind of re-blessing this file has
+//               not had before and which is worth telling apart from the others by name. `MatchState`
+//               gained `lastKick` - who last DELIBERATELY kicked the ball, for Law 12's back-pass clause,
+//               because `lastTouch` conflates a pass with a deflection - so `sim/digest` gained a row and
+//               EVERY hash moved, including the first.
+//               The proof that the match itself is untouched is the SUMMARY below, which did not move at
+//               all: same full time, same 0-0, same two balls over the goal line by an attacker, same one
+//               foul, same corner. A change of BEHAVIOUR moves the trail from the tick it happens at and
+//               leaves the ones before it alone - see the entry above, whose first three digests survived.
+//               A change of COVERAGE moves all ten and nothing else.
+//               `SIM_VERSION` goes 1 to 2 in the same commit, which is what the gate above this trail
+//               exists to force: a recording written against the old digest cannot be checked against the
+//               new one, and `sim/recorder` refuses it by version rather than by a mismatch nobody can
+//               explain.
 
 /** And what those numbers LOOK like, so a red can be described in a sentence rather than in hexadecimal. */
 const SUMMARY = {
@@ -215,7 +230,7 @@ describe('ninety seconds that must stay the same ninety seconds', () => {
   //    old world. `sim/recorder` already refuses a recording from another version; the trail below belongs
   //    to the same version, and bumping one without the other is the mistake this catches.
   it('[Interface] the trail belongs to this simulation version', () => {
-    expect(SIM_VERSION, 'the simulation version moved - the golden trail below is from the old one').toBe(1);
+    expect(SIM_VERSION, 'the simulation version moved - the golden trail below is from the old one').toBe(2);
   });
 
   it('[Right] a whole match plays out exactly as it did when this was blessed', () => {

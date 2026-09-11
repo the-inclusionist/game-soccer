@@ -143,6 +143,21 @@ export interface MatchState {
    * too early or freeze a clearance nobody else can chase.
    */
   lastStruck: number;
+  /**
+   * Who last DELIBERATELY kicked the ball, or `-1`. Not a lock: it is the record that survives the flight.
+   *
+   * ⚠️ IT EXISTS BECAUSE NEITHER NEIGHBOUR CAN ANSWER LAW 12'S BACK-PASS CLAUSE. `possession.lastTouch`
+   * conflates a pass with a DEFLECTION - `sim/block` sets it on purpose, because that is how
+   * `rules/out-of-play` tells a corner from a goal kick - and football is explicit that a keeper may
+   * handle a ball that came off a team-mate by accident, so a law read off `lastTouch` would punish the
+   * one case the law exempts. `lastStruck` is the deliberate half and is a LOCK: it clears the moment the
+   * ball leaves the striker's own reach, which is a few ticks into any pass.
+   *
+   * ⚠️ AND IT IS WRITTEN IN EXACTLY THREE PLACES, all of them in `play.ts`: a strike, a dribbling touch
+   * and an AI kick. `sim/block` must never write it and neither must `sim/save`, because a deflection and
+   * a save are not kicks - which is the whole distinction this field was added to keep.
+   */
+  lastKick: number;
 
   /**
    * Ticks of unbroken pressure the current challenger has built on the man with the ball.
@@ -227,6 +242,7 @@ export function createMatchState(
     offsideMask: 0,
     tookRestart: -1,
     lastStruck: -1,
+    lastKick: -1,
     pressure: 0,
     pressedBy: -1,
   };
@@ -265,6 +281,7 @@ export const SCALAR_FIELDS: ReadonlyArray<(s: MatchState) => number> = Object.fr
   (s) => s.offsideMask,
   (s) => s.tookRestart,
   (s) => s.lastStruck,
+  (s) => s.lastKick,
   (s) => s.pressure,
   (s) => s.pressedBy,
 ]);
