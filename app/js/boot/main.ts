@@ -306,12 +306,29 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    with a pad in her hands gets the pad's setting and not the keyboard's - which is the defect 8.0
   //    measured and closed. Storing it needs these two fields and nothing else.
   //
-  // ⚠️ AND `walkDir` HAS NO READER IN THIS GAME YET, which is owed rather than hidden. Our sampler
-  //    builds a direction from held keys and from `padCur`; it does not consult a latched walk direction,
-  //    so a child who turns the toggle on has her choice REMEMBERED and not yet ACTED ON. That is the
-  //    shape of defect this repository has named ten times - a thing that is right with no wire - and
-  //    writing it here is the only reason the eleventh will be found. `seguraTeclas()` answers true, so
-  //    the toggle is not a dead button by declaration; it is a live control with half its wire.
+  // ⚠️ AND `walkDir` HAS NO READER IN THIS GAME, which was written here as a missing WIRE and is not one.
+  //    📏 Measured 2026-09-11 against the installed engine: `walkDir` appears in four places in the whole
+  //    of `dist-pkg`, three of them comments, and the one line of code that touches it is
+  //    `input/latch-sync.js:27` - `p.walkDir = 0`, which runs only when the toggle FALLS.
+  //
+  //    ⚠️ SO THE ENGINE ONLY EVER CLEARS IT. Nothing anywhere sets it to a direction. A reader added here
+  //    would consult a field that is always zero, do nothing, and pass any gate that asked whether the
+  //    toggle was honoured - which is the same no-op trap that `ai/brain`'s receiver filter carries a note
+  //    about, and it is worth catching twice.
+  //
+  //    ⚠️ WHAT IS ACTUALLY MISSING IS THE FEATURE. The engine owns the SETTING - it resolves the toggle per
+  //    transport, stores the child's choice and clears the direction when she turns it off - and leaves the
+  //    behaviour to the game, because what "keep walking" means is different in a platformer and in
+  //    football. `seguraTeclas()` answering true means the option is OFFERED, so today a child who turns it
+  //    on is offered a control that remembers her choice and changes nothing.
+  //
+  //    ⚠️ AND IT IS ADR-0013 GROUND, so the semantics are a decision and not a detail. A child who cannot
+  //    hold a key down is the person this exists for. The shapes available, none of them invented here:
+  //      · press a direction to start walking it, press the SAME direction to stop - the name's own reading;
+  //      · press a direction to start, press any OTHER direction to turn, and a separate action to stop;
+  //      · latch only the LAST held direction, so releasing the key keeps the body going until a new press.
+  //    They differ in what a child has to be able to do, which is the whole question, and picking one by
+  //    taste at the end of a working day is how an accessibility feature ends up serving nobody.
   const latchSeats = [0, 1].map(() => ({ toggleMove: false, walkDir: 0 }));
 
   const gamepad = initGamepad({
