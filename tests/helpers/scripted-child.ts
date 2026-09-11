@@ -64,9 +64,17 @@
 // wrong so much as it is about the wrong player. Nothing should be tuned against it until there is a
 // harness whose scoring share looks like a child's.
 //
-// ⚠️ AND ONE MORE THING THE SAME MEASUREMENT TURNED UP, unexplained and worth somebody's attention: the
-// HOME side is awarded no corner at all, in either condition, across six fixtures. Eighteen corners in the
-// slate and every one of them away. That is not the harness - it happens with an empty chair too.
+// ⚠️ AND THE SAME MEASUREMENT ALSO PRODUCED A FALSE ONE, WHICH IS RECORDED BECAUSE IT REACHED A COMMIT.
+// It reported that the home side is awarded no corner at all in either condition, eighteen in the slate
+// and every one of them away, and called that an unexplained asymmetry. It is not a fact about the game:
+// `rules/referee` emits `crossedGoalLineByDefender` with an `at` AND NO `team` - the side is derived later,
+// from the position, by `play.takerFor` - so a probe reading `e.team` got `undefined` every time and filed
+// all eighteen under the same side. The goal and foul figures above are unaffected: those events do carry
+// a team, which is why they were worth reading.
+//
+// The lesson is narrower than "check your probes" and worth the words: a union of event types where only
+// SOME members carry a field will answer `undefined` rather than fail, and `undefined` sorts consistently
+// into one bucket, which looks exactly like a real asymmetry.
 //
 // ⚠️ AND THE MECHANISM IS NOT MEASURED, WHICH IS SAID PLAINLY RATHER THAN GUESSED AT. The shape matches a
 // defect this repository has already recorded once, in `sim/state` beside `tookRestart`: a body that has
