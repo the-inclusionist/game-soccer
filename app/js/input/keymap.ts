@@ -1,18 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // THE KEYBOARD, LIVE AND CHANGEABLE. One object, and the sampler and the remap panel both hold it.
 //
-// ========================= WHY THIS IS NOT `KEYBOARD_SOLO` =========================
-// The engine exports two keyboard tables and they are not the same thing:
+// ========================= WHY THIS MODULE WAS BORN, IN THE PAST TENSE =========================
+// ⚠️ EVERY SENTENCE IN THIS PARAGRAPH IS HISTORY, AND IT USED TO BE WRITTEN IN THE PRESENT. A reader met
+// the old world first and the correction second, which is the defect this file itself was carrying while
+// correcting others: a note added without retiring the claim it corrects.
 //
-//  · `input/default-bindings.ts` -> `KEYBOARD_SOLO`, keyed by the FOURTEEN positions ADR-0085 declared.
-//    Frozen, and imported by nothing inside the engine.
-//  · `input/keyboard.ts` -> `kb`, the one that is persisted, remapped and read at runtime. Its schemes
-//    carry the platformer's EIGHT positions and there is no row for a shoulder, a trigger or `select`.
+// The engine exported two keyboard tables that were not the same thing:
+//
+//  · `input/default-bindings.ts` -> `KEYBOARD_SOLO`, keyed by the FOURTEEN positions ADR-0085 declared,
+//    described here as "frozen" - which it never was; see `defaultKeymap` below.
+//  · `input/keyboard.ts` -> `kb`, the one persisted, remapped and read at runtime. Its schemes carried the
+//    platformer's EIGHT positions, with no row for a shoulder, a trigger or `select`.
 //
 // So this game read the declared table and got the right vocabulary with no way to change it, while the
-// changeable table has no vocabulary for ten of the things this game does. Neither one is a live
-// fourteen-position keyboard, so this module is one: it is BORN from the declared defaults and it is what
-// the sampler asks on every tick.
+// changeable table had no vocabulary for ten of the things this game does. Neither was a live
+// fourteen-position keyboard, so this module became one: BORN from the declared defaults, and what the
+// sampler asks on every tick.
+//
+// 📏 NONE OF THAT IS TRUE OF THE INSTALLED ENGINE ANY MORE, measured 2026-09-11 and detailed in the note
+// below: the two tables are one, it carries all fourteen, and nothing is frozen. What survives is the
+// LAST sentence - the sampler still asks this module, and that is now a choice rather than a necessity,
+// for the six reasons the note gives.
 //
 // ⚠️ IT SAID IT WAS A HOLDING PATTERN - "when the engine reconciles its two tables, this file becomes a
 // wrapper around `kb` and then nothing". 📏 THE ENGINE HAS RECONCILED THEM, measured 2026-09-11 against the

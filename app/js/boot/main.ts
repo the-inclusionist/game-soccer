@@ -80,6 +80,14 @@ export interface Booted {
    * widget is only one possible translator for her.
    */
   readonly onSigned: (fn: (text: string) => void) => void;
+  /**
+   * Which charge route this game is handing her right now.
+   *
+   * ⚠️ RETURNED BECAUSE IT IS AN ACCOMMODATION THAT MOVES, and the thing that moves it is the
+   * accessibility bar rather than anything in this file. Without a handle, "the stepped route arrives
+   * when she turns one-switch on" is a sentence no gate can check.
+   */
+  readonly charge: () => ChargeMode;
   /** Hold the world still, and let it go again. The engine's `pausar` and `retomar`, as this game wired them. */
   readonly pause: () => void;
   readonly resume: () => void;
@@ -423,6 +431,8 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
    * dead zone took all one hundred and twenty-two browser gates at once. `pausar` is only called when a
    * child asks - so a late `let` would probably survive - and "probably" is what that outage was made of.
    */
+  /** What `oneButton` was last frame, so a change can be noticed rather than polled into a rebuild. */
+  let oneButtonWas = oneButton;
   let paused = false;
   /**
    * Hold the world still AND show the card, because a frozen screen with nothing on it is not a pause.
@@ -1054,6 +1064,20 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    same object: `assisted` is REBUILT when the child changes the pace, and an edge-time write
       //    would have landed on the instance she just replaced. One assignment a frame costs nothing and
       //    cannot go stale.
+      // ⚠️ THE ONE-SWITCH SETTING IS READ EVERY FRAME, because it is a LIVE BINDING the accessibility bar
+      //    writes and `bootar` read it exactly once. `ui/assists-panel` records that a child in one-switch
+      //    mode used to be handed `hold` - the route whose whole mechanic is keeping a key down - and that
+      //    reading the setting at boot fixed it. It fixed the child who arrives already in one-switch
+      //    mode; the ☝️ icon on the bar means the moment she ASKS for it is after boot, which was the one
+      //    moment the route did not change.
+      //
+      // ⚠️ AND A CHOSEN ROUTE STILL WINS, which `chargeRouteFor` enforces and this line must not bypass:
+      //    an accommodation that refuses to be overridden is a second barrier wearing the first one's
+      //    clothes. `chosenCharge` is null until she picks one in the panel.
+      if (oneButton !== oneButtonWas) {
+        oneButtonWas = oneButton;
+        assists = { ...assists, charge: chargeRouteFor(oneButton, chosenCharge) };
+      }
       const driving = driverFor(mode);
       if (driving !== undefined) {
         driving.paused = paused;
@@ -1170,6 +1194,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
      * very functions the engine was given and ask whether they stop the world. Anything less would gate
      * a private copy and leave the pair that is actually wired unmeasured.
      */
+    charge: () => assists.charge,
     pause,
     resume,
     cameraAt: () => scene.cameraAt(),

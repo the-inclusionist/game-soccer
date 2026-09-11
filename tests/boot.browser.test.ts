@@ -16,6 +16,7 @@ import { msToTicks, quiet, ticks } from './helpers/ticks.ts';
 import { SQUAD_SIZE, firstOf } from '../app/js/sim/ids.ts';
 import { t } from '@the-inclusionist/engine/core/i18n.js';
 import { padCur } from '@the-inclusionist/engine/input/state.js';
+import { setOneButtonValue } from '@the-inclusionist/engine/core/state.js';
 import { GAMEPAD_STANDARD } from '@the-inclusionist/engine/input/default-bindings.js';
 
 const SHELL = `
@@ -209,6 +210,77 @@ describe('the shell and the engine', () => {
 // input layer without rebuilding it. What it CAN do is hold the very functions the engine was handed and
 // ask whether they stop the world - which is the claim, and the same reason `Booted` already returns the
 // state and the keymap: a composition root that hands back nothing cannot be measured.
+// ========================= ⚠️ THE ACCOMMODATION ARRIVED AT BOOT AND NEVER AGAIN =========================
+// `ui/assists-panel`'s own header records the defect and its fix: «IT WAS NOT WIRED UNTIL 2026-09-07.
+// Nothing in the composition root read the setting, so a child in one-switch mode was handed `hold` - a
+// route whose whole mechanic is keeping a key down, which is exactly what one-switch mode means she cannot
+// do.»
+//
+// ⚠️ AND THE FIX READ THE SETTING ONCE. `chargeRouteFor(oneButton, chosen)` is called in `bootar` and
+// nowhere else, and `core/state.oneButton` is a LIVE BINDING the accessibility bar writes through
+// `setOneButtonValue`. The ☝️ icon is mounted on the bar in this game, so the moment a child actually
+// turns one-switch mode on is, by definition, AFTER boot - and that is the one moment the route did not
+// change. She asked for the accommodation and kept the route she cannot use.
+//
+// ⚠️ AND A CHOSEN ROUTE STILL WINS, which is the same file's other rule: «AND IT IS A DEFAULT, NEVER A
+// LOCK. A chosen route wins: an accommodation that refuses to be overridden is a second barrier wearing
+// the first one's clothes.»
+describe('one-switch mode, turned on mid-match', () => {
+  it('[Right] changes the charge route, because that is when a child asks for it', async () => {
+    setOneButtonValue(false);
+    booted = bootar(document, window);
+    await ticks(booted, 5);
+
+    expect(booted!.charge(), 'the default route is not what boot handed her').toBe('hold');
+
+    setOneButtonValue(true);
+    await ticks(booted, 5);
+
+    expect(booted!.charge(), 'she turned one-switch on and kept the route that needs a held key')
+      .toBe('latch-stepped');
+  });
+
+  // ⚠️ [Zero] AND HER OWN CHOICE OUTRANKS THE ACCOMMODATION, which is the rule `ui/assists-panel` states
+  //    in the strongest words it uses: «AND IT IS A DEFAULT, NEVER A LOCK. A chosen route wins: an
+  //    accommodation that refuses to be overridden is a second barrier wearing the first one's clothes.»
+  //
+  //    📏 IT WAS UNGATED ON THIS PATH, which is how it was found: making the mid-match recompute pass
+  //    `null` instead of her choice broke NOTHING in the whole browser project - 155 gates green while the
+  //    rule the panel calls a barrier was being ignored. `chargeRouteFor` enforces it and the recompute
+  //    could quietly bypass it.
+  it('[Zero] but a route she chose herself is not overridden by it', async () => {
+    setOneButtonValue(false);
+    booted = bootar(document, window);
+    await ticks(booted, 5);
+
+    // She picks the timed route deliberately - neither the default nor the one-switch answer.
+    (document.querySelector('#open-assists') as HTMLButtonElement).click();
+    const select = document.querySelector('#assist-charge') as HTMLSelectElement;
+    select.value = 'latch-timed';
+    select.dispatchEvent(new Event('change'));
+    await ticks(booted, 5);
+
+    expect(booted!.charge(), 'the panel did not apply her choice').toBe('latch-timed');
+
+    setOneButtonValue(true);
+    await ticks(booted, 5);
+
+    expect(booted!.charge(), 'the accommodation overrode the route she chose').toBe('latch-timed');
+  });
+
+  it('[Zero] and turning it off again gives the default back', async () => {
+    setOneButtonValue(true);
+    booted = bootar(document, window);
+    await ticks(booted, 5);
+    expect(booted!.charge()).toBe('latch-stepped');
+
+    setOneButtonValue(false);
+    await ticks(booted, 5);
+
+    expect(booted!.charge()).toBe('hold');
+  });
+});
+
 describe('the pause', () => {
   it('[Right] the door the engine was given stops the world, and opens it again', async () => {
     booted = bootar(document, window);
