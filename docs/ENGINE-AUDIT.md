@@ -25,21 +25,36 @@ git-ignored and shared by every session on this machine. One entry was **appende
 
 ## What the engine is owed
 
-WARNING **RE-VERIFIED AGAINST THE INSTALLED ENGINE 7.0.1 ON 2026-09-07.** An audit of somebody else's
-repository goes stale silently, and a stale one makes false claims about their work. Each finding below
-was read again against `node_modules/@the-inclusionist/engine/dist-pkg`, which is the code this game
-actually consumes:
+⚠️ **RE-VERIFIED AGAINST ENGINE 8.0.0-rc.1 ON 2026-09-11, AND SEVEN OF THE EIGHT ARE CLOSED.** An
+audit of somebody else's repository goes stale silently, and a stale one makes false claims about their
+work — so this table is re-read every time the dependency moves, against
+`node_modules/@the-inclusionist/engine/dist-pkg`, which is the code this game actually consumes.
 
-| finding | as of 7.0.1 |
+| finding | as of 8.0.0-rc.1 |
 |---|---|
-| 1 · the sonar goes mono in metres | **stands** — `audio-sonar.js` still divides by `ctx.LOGICAL_W * 0.55` |
-| 2 · one-button honoured only on the keyboard | **stands** — `oneButton` appears in `keydown.js` and nowhere in `gamepad.js` |
-| 4 · the pad wizard's pt-BR literals | **FIXED** — see below; no issue is owed |
-| 6 · two keyboard tables, never reconciled | **stands** — the runtime table still carries no shoulder, trigger, `start` or `select` row |
-| 8 · a key may hold two positions at once | **stands** — nothing in `keyboard*.js` refuses it |
+| 1 · the sonar goes mono in metres | **CLOSED** — the pan denominator is `PAN_PACES * passoDoWorld(topology)`, not the screen width |
+| 2 · one-button honoured only on the keyboard | **CLOSED** — the pad has its own equivalent, and the directions count |
+| 3 · the two-player keyboard uses the numpad | **answered by decision, not by fix** — see below |
+| 4 · the pad wizard's pt-BR literals | **CLOSED at 7.0.1** |
+| 5 · an earcon cannot rise or fall | **CLOSED** — a final frequency with an exponential ramp |
+| 6 · two keyboard tables, never reconciled | **CLOSED** — the runtime table now carries all fourteen positions |
+| 7 · the remap screen announces the platformer's words | **CLOSED** — it announces the GAME's word, and says so honestly when a position has none |
+| 8 · a key may hold two positions at once | **CLOSED** — refused at the point of entry rather than moved |
 
-Findings 3, 5 and 7 are about defaults and about audio shape rather than about code that can be grepped
-for in one line; they are unchanged as written and were not re-read line by line.
+⚠️ **AND FINDING 1 WAS THE ONE THAT MATTERED MOST, SO ITS CLOSING IS WORTH THE SENTENCE.** A team-mate
+ten metres to our right panned to 0.057 — mono, on a pitch ninety metres wide. The fix takes the
+denominator from the declared topology and preserves the platformer's behaviour letter for letter: its old
+`320 * 0.55 = 176` pixels over a 16-pixel tile is exactly eleven paces, and eleven paces is what the new
+constant says. Nothing that worked stopped working, and the sonar became usable in a genre that measures
+in metres. **The consequence for this game is that spatial audio is now a real channel here and not a
+declared one**, and any row in the README that says otherwise is now the stale sentence.
+
+⚠️ **FINDING 6 CLOSING HAS A BILL ATTACHED TO US.** `app/js/input/keymap.ts` exists because the engine
+had two keyboard tables and neither was a live fourteen-position one; its own header says "when the engine
+reconciles its two tables, this file becomes a wrapper around `kb` and then nothing". The runtime table
+now carries every shoulder, trigger, `start` and `select` row it lacked, so that day has arrived and the
+module is living past its stated expiry. Retiring it is real work rather than a deletion —
+`tests/keymap.node.test.ts` is where the claim is measured — and it is owed.
 
 Building against the engine is the only thing that measures what it actually delivers. Eight defects
 surfaced, and none of them is this game's to fix.
@@ -48,7 +63,7 @@ surfaced, and none of them is this game's to fix.
 2026-09-08 as `the-inclusionist/the-inclusionist-engine` issues 121-126; two were already there - the
 one-button hole as #120, closed, and the two keyboard tables as #118, open.
 
-### 1. The sonar goes mono on a pitch measured in metres
+### 1. The sonar goes mono on a pitch measured in metres — CLOSED in 8.0
 
 `platform/audio-sonar.ts` computes the stereo pan as:
 
@@ -68,7 +83,7 @@ the width of the screen.
 This is the most consequential of the four, and it is exactly the kind of thing a third topology preset
 exists to find.
 
-### 2. One-button mode is honoured only on the keyboard
+### 2. One-button mode is honoured only on the keyboard — CLOSED in 8.0
 
 `input/keydown.ts` releases every other held game key when a new one arrives, which is what one-button
 mode means. `input/gamepad.ts`'s `pollPads` has no equivalent.
@@ -106,7 +121,7 @@ That is precisely the shape this audit proposed, and it fixes both halves at onc
 game's, so the wizard asks *"press: SHORT PASS"* in the child's language, and the engine stops carrying
 one game's vocabulary. **No issue is owed for this one.**
 
-### 5. An earcon cannot rise or fall
+### 5. An earcon cannot rise or fall — CLOSED in 8.0
 
 `platform/audio-earcons.ts` reads an `SfxDef` of `{ t, f, d }` and plays one oscillator held at ONE
 frequency for `d` seconds. There is no ramp, so a cue cannot go anywhere.
@@ -129,7 +144,7 @@ the caption **before** it checks `getSoundOn()`. A deaf child gets the informati
 dead. That single line ordering is why this game calls the engine's earcons instead of writing thirty
 lines of Web Audio of its own.
 
-### 6. There are two keyboard tables, and they were never reconciled
+### 6. There are two keyboard tables, and they were never reconciled — CLOSED in 8.0 — and it bills us for `input/keymap.ts`
 
 This is the largest of the eight, and it is the one that made "keyboard remapping comes free from the
 engine" only half true.
@@ -168,7 +183,7 @@ panel through the ports it already exposes. The panel is genuinely reusable - it
 never be indexed directly, and that discipline is what made this possible. But every consumer with more
 than eight positions will write the same file.
 
-### 7. The remap screen announces the platformer's words, or nothing
+### 7. The remap screen announces the platformer's words, or nothing — CLOSED in 8.0
 
 `ACT_LABEL` in `ui/settings-controls.ts` maps eight positions to eight i18n keys - `action1` to
 `'act.run'`, `action2` to `'act.jump'` - and the render builds each button's accessible name from it,
@@ -193,7 +208,7 @@ changed, and a whole sentence into `#ctrl-players`. Both are against pillar 3, o
 registration order on one element, which is defined behaviour and is still a thing a consumer should not
 have to know.
 
-### 8. A key can be bound to two positions in the same scheme
+### 8. A key can be bound to two positions in the same scheme — CLOSED in 8.0 — refused rather than moved
 
 `settings-controls` writes `capture.mapRef[capture.action] = [e.code]` and guards it with
 `keyUsedByOther(code, mapRef, schemes)` - which excludes `mapRef` **by reference**. In a one-player game
