@@ -100,6 +100,41 @@ describe('the cue table', () => {
   });
 
   // Two rows with the same waveform are one row. This is the gate that a copy-pasted table fails.
+  // ========================= ⚠️ A GOAL RISES AND A CONCESSION FALLS =========================
+  // This table said, for months, that pitch was the only contrast available: "the engine's earcon is ONE
+  // oscillator held at ONE frequency, so 'a goal goes up and a concession goes down' cannot be written at
+  // this layer", and filed it as a finding the engine was owed.
+  //
+  // ⚠️ THE ENGINE PAID IT, AND NAMED THIS GAME WHILE DOING SO. `platform/audio-earcons` now takes `f2`, a
+  // final frequency with an exponential ramp, and its own doc says why: «Medido ao construir o
+  // `game-soccer`: marcar e sofrer golo têm de ser distinguíveis só de ouvido - uma criança cega ouve a
+  // sala reagir e precisa de saber para que lado antes de a narração chegar.» The capability arrived and
+  // nobody claimed it.
+  //
+  // ⚠️ AND THE DIRECTION IS NOT A CHOICE MADE HERE. It is the design both files already stated before it
+  // was possible: up for hers, down for theirs. What this gate adds is that it cannot silently go back to
+  // a flat note - which is exactly what it was, gated, and passing.
+  it('[Right] the goal cues MOVE, and they move in opposite directions', () => {
+    const ours = CUES.goalFor;
+    const theirs = CUES.goalAgainst;
+
+    expect(ours.f2, 'her goal is a flat note again').not.toBeUndefined();
+    expect(theirs.f2, 'conceding is a flat note again').not.toBeUndefined();
+    expect(ours.f2!, 'her goal does not rise').toBeGreaterThan(ours.f);
+    expect(theirs.f2!, 'conceding does not fall').toBeLessThan(theirs.f);
+  });
+
+  // ⚠️ AND A RAMP HAS TO BE AUDIBLE AS A RAMP. A ramp of a few hertz is a flat note with extra arithmetic:
+  //    pitch is perceived as a RATIO, which is why the engine's ramp is exponential, so the claim is a
+  //    ratio too. A musical fourth is about 1.33 and is the smallest interval nobody argues about.
+  it('[Boundary] and the ramp is wide enough to hear, which a few hertz would not be', () => {
+    for (const name of ['goalFor', 'goalAgainst'] as const) {
+      const c = CUES[name];
+      const ratio = c.f2! > c.f ? c.f2! / c.f : c.f / c.f2!;
+      expect(ratio, `${name} ramps by too little to hear`).toBeGreaterThanOrEqual(1.33);
+    }
+  });
+
   it('[Right] no two cues are the same tone, or a child hearing them cannot tell them apart', () => {
     const heard = new Set<string>();
     for (const [name, def] of Object.entries(CUES)) {

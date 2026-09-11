@@ -37,6 +37,15 @@ export interface CueDef {
   readonly f: number;
   /** Seconds. */
   readonly d: number;
+  /**
+   * Hertz. The frequency the note ARRIVES at, or absent for a flat one.
+   *
+   * ⚠️ IT IS THE FINDING THIS GAME FILED, PAID. The note below used to say pitch was the only contrast
+   * available because the engine's earcon was one oscillator at one frequency - and
+   * `platform/audio-earcons` now takes `f2` with an exponential ramp, crediting this game by name while
+   * doing it. The ramp is exponential because pitch is perceived as a RATIO and not as a difference.
+   */
+  readonly f2?: number;
   /** The dictionary KEY of the caption, never the caption. The table would freeze at the boot language. */
   readonly cap: string;
 }
@@ -59,12 +68,20 @@ export type CueName =
 /**
  * The seven sounds a match makes.
  *
- * ⚠️ PITCH IS THE ONLY CONTRAST AVAILABLE, and it is worth saying why the obvious design is absent. The
- * engine's earcon is ONE oscillator held at ONE frequency for a duration; there is no rising figure to be
- * had, so "a goal goes up and a concession goes down" cannot be written at this layer. What is left is
- * high-and-long against low-and-short, and it is enough to tell apart - but a future engine earcon that
- * took a frequency RAMP would make this table better, and that is a finding the engine is owed rather
- * than a limitation of this game.
+ * ⚠️ THIS TABLE USED TO SAY PITCH WAS THE ONLY CONTRAST AVAILABLE, and the sentence is kept because the
+ * correction is the useful half. It said the engine's earcon is one oscillator held at one frequency, so
+ * "a goal goes up and a concession goes down" could not be written at this layer, and filed that as a
+ * finding the engine was owed.
+ *
+ * ⚠️ THE ENGINE PAID IT AND NAMED THIS GAME WHILE DOING SO. `platform/audio-earcons` takes `f2` now, and
+ * its own doc gives the reason in our words: «marcar e sofrer golo têm de ser distinguíveis só de ouvido -
+ * uma criança cega ouve a sala reagir e precisa de saber para que lado antes de a narração chegar». The
+ * capability arrived on 2026-09-11 with engine 8.0 and sat unclaimed until this line: the cues were still
+ * flat notes, gated, and passing.
+ *
+ * So the two goals MOVE now, in opposite directions, and it is the design both files stated before it was
+ * possible rather than a new choice. Everything else in the table stays a flat note on purpose - a ramp
+ * is information, and putting one on a throw-in would spend it on nothing.
  */
 export const CUES: Readonly<Record<CueName, CueDef>> = Object.freeze({
   // ⚠️ THE STAIRCASE, AND THE ONLY CUE HERE THAT IS NOT ABOUT THE MATCH. It sounds once each time the
@@ -85,10 +102,14 @@ export const CUES: Readonly<Record<CueName, CueDef>> = Object.freeze({
   //    charge staircase above it, which is one flat note repeated.
   heldKick: { t: 'triangle', f: 520, f2: 780, d: 0.12, cap: 'cue.heldKick' },
   // Ours: the highest and the longest thing in the match. Nothing else is allowed to be mistaken for it.
-  goalFor: { t: 'triangle', f: 880, d: 0.55, cap: 'cue.goalFor' },
+  // ⚠️ UP A FIFTH, AND THE INTERVAL IS THE POINT RATHER THAN THE ENDPOINTS. 880 to 1320 is 1.5, which is
+  //    heard as a rise by anybody; a ramp of a few hertz would be a flat note with extra arithmetic.
+  goalFor: { t: 'triangle', f: 880, d: 0.55, f2: 1320, cap: 'cue.goalFor' },
   // Theirs: low, and shorter. Not a sad noise - a different one. ADR-0049 has no room for a game that
   // punishes a child with its own soundtrack.
-  goalAgainst: { t: 'triangle', f: 262, d: 0.45, cap: 'cue.goalAgainst' },
+  // ⚠️ AND DOWN A FIFTH, the same interval in the other direction: 262 to 175. The two are the same
+  //    gesture mirrored, which is what makes them one thing a child learns instead of two.
+  goalAgainst: { t: 'triangle', f: 262, d: 0.45, f2: 175, cap: 'cue.goalAgainst' },
   // Play stopped. Which restart it is arrives in the sentence; three near-identical beeps would only make
   // that sentence harder to hear.
   outOfPlay: { t: 'sine', f: 440, d: 0.12, cap: 'cue.outOfPlay' },

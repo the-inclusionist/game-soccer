@@ -56,7 +56,7 @@ work — so this table is re-read every time the dependency moves, against
 | 2 · one-button honoured only on the keyboard | **CLOSED** — the pad has its own equivalent, and the directions count |
 | 3 · the two-player keyboard uses the numpad | **answered by decision, not by fix** — see below |
 | 4 · the pad wizard's pt-BR literals | **CLOSED at 7.0.1** |
-| 5 · an earcon cannot rise or fall | **CLOSED** — a final frequency with an exponential ramp |
+| 5 · an earcon cannot rise or fall | **CLOSED** — a final frequency with an exponential ramp, and ⚠️ **CLAIMED on 2026-09-11**: the goal cues sat flat for a day after the capability arrived |
 | 6 · two keyboard tables, never reconciled | **CLOSED** — the runtime table now carries all fourteen positions |
 | 7 · the remap screen announces the platformer's words | **CLOSED** — it announces the GAME's word, and says so honestly when a position has none |
 | 8 · a key may hold two positions at once | **CLOSED** — refused at the point of entry rather than moved |
