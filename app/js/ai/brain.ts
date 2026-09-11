@@ -855,11 +855,42 @@ function receiverFor(state: MatchState, carrier: PlayerId, playable: Playable): 
     // man who has run furthest up the pitch - he is carrying the ball at the goal. Almost nobody is ever
     // ahead of him.
     //
-    // ⚠️ WHAT IT DOES NOT SAY is what to put in its place, and that is left open on purpose. A square ball
-    // is how football keeps possession, and it is also how a match becomes twenty-two men passing sideways
-    // for five minutes - which is the thing this line was written against. The next attempt owes a measured
-    // answer to "what does a receiver have to be, if not two metres further forward", and it should arrive
-    // with the same counters attached.
+    // ========================= ⚠️ AND THE SWEEP THAT ANSWERED THAT SAYS: LEAVE IT ALONE =========================
+    // The question was "what does a receiver have to be, if not two metres further forward". Four
+    // definitions, six fixtures each, nobody at the keyboard:
+    //
+    //     definition                                goals   multi-touch goals   possessions   multi-touch
+    //     A  ahead > 2 m, as it is                     29            2 (6.9%)          4,078         9.6%
+    //     B  square allowed (ahead > -2)                24            1 (4.2%)          4,547        11.0%
+    //     C  any direction, forward preferred           8            0 (0.0%)          1,799        36.4%
+    //     D  the freest man, no preference             15            0 (0.0%)          2,415        14.4%
+    //
+    //                                               corners   goal kicks   throw-ins   fouls
+    //     A                                               8           26          23      28
+    //     B                                               6           22          18      17
+    //     C                                               0            2           0      16
+    //     D                                               9           42           0      10
+    //
+    // ⚠️ THE PASSING GAME IS REACHABLE AND IT IS NOT WORTH HAVING. Definition C nearly quadruples the share
+    // of possessions with more than one toucher - 9.6% to 36.4%, so the manipulation unquestionably landed
+    // - and takes the match apart: eight goals instead of twenty-nine, no corner at all, no throw-in at
+    // all, two goal kicks. That is twenty-two men passing sideways for five minutes, which is precisely
+    // what the line above was written against, now measured rather than feared.
+    //
+    // ⚠️ AND THE DECIDING COLUMN IS MULTI-TOUCH GOALS, WHICH NEVER MOVES OFF ZERO. A scores 2 of 29 that
+    // way, B scores 1 of 24, and the two definitions that actually produce passing score NONE. So more
+    // passing does not buy team goals; it buys possession without penetration and costs the goals that
+    // were there. The receiver filter is not what stands between this game and a passing attack.
+    //
+    // ⚠️ WHICH WALKS BACK HALF OF THE NOTE ABOVE. "Refusing every ball that is not forward refuses the
+    // passing game" is true and is measured. The implication anybody would draw from it - that this line
+    // is therefore why the attack has nothing in it - is NOT supported: loosening it produces more passes
+    // and fewer goals, with team goals still at zero. The price paid here buys something.
+    //
+    // ⚠️ AND ONE TRAP IS RECORDED FOR WHOEVER TRIES NEXT: the forward requirement is enforced TWICE. This
+    // filter is one; the score below is the other, because `bestScore` starts at 0 and `ahead * sqrt(room)`
+    // cannot be positive for a man who is not ahead. Removing the filter alone is a no-op, and measuring
+    // that no-op would report that square balls change nothing.
     if (ahead <= 2) continue; // a square or backward ball is not what this is for
 
     const d2 = dist2(me, at);
