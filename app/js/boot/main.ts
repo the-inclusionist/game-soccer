@@ -232,6 +232,31 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     //
     // So what is owed is a decision about the contrast axis, and then both writers land together.
     // `docs/ENGINE-AUDIT.md` records the measurement; this note records why it is not a one-liner.
+    //
+    // ========================= ⚠️ AND `setPauseActor` IS DELIBERATELY NOT SUPPLIED =========================
+    // It is the fourth field 9.0.0 added and the one a reader will most reasonably think is missing here,
+    // since this game plainly has two seats. It is not missing; it is unreachable, and the reason is worth
+    // a paragraph so nobody wires it for symmetry.
+    //
+    // The engine's own note says the field exists so that «a criança do SEGUNDO assento» can remap through
+    // the pause card, and that `problems` pushes a line when a game declares more than one player without
+    // it. 📏 This game declares NO `players` at all, so the engine sees one, reports nothing, and loses
+    // nothing - and declaring them would not be an improvement:
+    //
+    //   · the sampler reads OUR map and only ours - `createSampler({ keymap: () => keymaps[seat] })` - and
+    //     `keymaps` is loaded by `loadKeymap` from this game's own storage key, `kJogo('soccer', 'keymap')`
+    //     and `keymap.duo1`;
+    //   · nothing in `app/` reads the engine's live table at runtime. Declaring `players` would mount a
+    //     SECOND remap route that edits a table this game never consults, so a child who remapped there
+    //     would change nothing and be told nothing. That is worse than one route;
+    //   · and the second seat is already reachable: `ui/controls-panel` offers every one of the fourteen
+    //     positions for both seats, which `docs/ENGINE-AUDIT.md` finding 3 records as the reason this game
+    //     may bind its own numpad where the engine's default cannot.
+    //
+    // ⚠️ AND `semAtorDePausa` IS NOT DECLARED EITHER, which is the honest reading rather than the tidy one.
+    // The engine's note calls declaring it «aceitar a perda em vez de a corrigir» - and there is no loss to
+    // accept here, because there is no second player declared to lose anything. Declaring a decline for a
+    // capability nobody asked this game for would be a false statement in the other direction.
     declines: {
       semAssistenteDePad: true,
       // ⚠️ DECLINED, AND DECLINING IS THE HONEST ANSWER RATHER THAN THE CONVENIENT ONE. Engine 8.0
