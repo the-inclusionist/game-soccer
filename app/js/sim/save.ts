@@ -95,6 +95,38 @@ export const KEEPER_REACH = 2.6;
  */
 const PARRY_KEEP = 1 / 3;
 
+// ========================= AND THE LOOP IS WHERE THE GOALS COME FROM, MEASURED 2026-09-11 =========================
+// Two separate items arrived at this constant from opposite directions. The keeper measurement above found
+// a median of five ticks between saves and called it a parry loop; the off-ball measurement in `ai/plan`
+// found that attacks never last long enough for a run to finish, which is what a possession stuck
+// bouncing looks like from the other end. `sim/block` had already written that the shot volume is
+// "upstream of everything measured here". Three records, one suspect - so it was swept.
+//
+// Twelve fixtures, a child playing:
+//
+//     PARRY_KEEP   saves/match   gap p50   goals   corners   goal kicks
+//       1/3             82.8        16t     1.50      1.83         2.83
+//       0.7             38.8        83t     0.67      3.17         3.67
+//       1.1              6.8      1725t     0.17      0.00         0.08
+//
+// ⚠️ THE LEVER WORKS AND IT IS THE WRONG LEVER. A firmer parry does break the loop - saves halve, and
+// the gap between them goes from a quarter of a second to a second and a half - and it takes the goals
+// with it, because THE LOOP IS WHERE THE GOALS COME FROM. Eighty-three saves a match reads like pure
+// waste until you take it away and the scoring goes with it: those bounces are the attacks, counted once
+// per bounce. At 1.1 the game stops existing - two tenths of a goal and not one corner in twelve matches.
+//
+// ⚠️ AND IT IS THE TRADE THE DEV HAS ALREADY RULED ON. Corners and goal kicks have been under band for
+// weeks and 0.7 puts both of them in or beside it - at exactly the cost of the goals. That is the same
+// one-for-one the shot error sweep found, and the ruling from 2026-09-07 covers it word for word:
+// corners and goal kicks are bought with goals, and a children's game keeps the goals. So nothing here
+// moves, and the table is written down so the next person to arrive at this constant from a fourth
+// direction does not have to re-run it.
+//
+// ⚠️ AND IT CORRECTS HALF OF WHAT I WROTE ABOVE. The note on the keeper's reach says taking it away
+// would "convert a loop that ends in a parry into a loop that ends in a goal", which is still the honest
+// prediction for THAT lever. What I did not know when I wrote it is that the loop is load-bearing: it is
+// not a defect sitting in front of the football, it is most of the football there is.
+
 /**
  * How far across the ball he gets, as a multiple of the pace he leaves on it.
  *
