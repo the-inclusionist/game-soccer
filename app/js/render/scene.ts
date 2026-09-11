@@ -32,7 +32,7 @@ import { NOBODY } from '../sim/possession.ts';
 import { onPitch } from '../sim/squads.ts';
 import type { MatchState } from '../sim/state.ts';
 import { GOAL, PITCH } from '../sim/units.ts';
-import { MARKER, markerCells } from './marker-pixels.ts';
+import { MARKER, hintCells, markerCells } from './marker-pixels.ts';
 import { centreCircle, penaltySpotAt, pitchLines } from './pitch-marks.ts';
 import { bodyCells, outlineOf } from './body-pixels.ts';
 import { SX, SY, SZ, WORLD_PX, project } from '../project.ts';
@@ -225,10 +225,10 @@ function shadowTexture(app: PIXI.Application, w: number, h: number): PIXI.Textur
  * which no amount of reading either half of this function would check. It is a gate in the node project
  * now, including the one that catches "the same wedge, one pixel lower".
  */
-function markerTexture(app: PIXI.Application, seat: number, colour: number): PIXI.Texture {
+function markerTexture(app: PIXI.Application, cells: readonly (readonly [number, number])[], colour: number): PIXI.Texture {
   const g = new PIXI.Graphics();
   g.beginFill(OUTLINE).drawRect(0, 0, MARKER.w * ART, MARKER.h * ART).endFill();
-  for (const [x, y] of markerCells(seat)) g.beginFill(colour).drawRect(x * ART, y * ART, ART, ART).endFill();
+  for (const [x, y] of cells) g.beginFill(colour).drawRect(x * ART, y * ART, ART, ART).endFill();
   return app.renderer.generateTexture(g);
 }
 
@@ -383,7 +383,11 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
   // ⚠️ TWO COLOURS AS WELL AS TWO SHAPES, and the colours are the SECOND cue rather than the first. Yellow
   //    and white both separate from grass and from every kit this game generates; a colour-blind child
   //    reads the silhouette, and everyone else gets the colour for free.
-  const markerTex = [markerTexture(app, 0, 0xffe64d), markerTexture(app, 1, 0xffffff)];
+  const markerTex = [markerTexture(app, markerCells(0), 0xffe64d), markerTexture(app, markerCells(1), 0xffffff)];
+  // ⚠️ THE HINT IS DIMMER AS WELL AS A DIFFERENT SHAPE, and the shape is what carries it. A grey mark
+  //    against two bright ones says "not yours yet" to a child who sees colour, and the hollow chevron
+  //    says the same thing to one who does not - which is the order those two have to come in here.
+  const hintTex = markerTexture(app, hintCells(), 0x9aa7b4);
   // ⚠️ ONE TEXTURE PER DISTINCT KIT, NOT ONE PER BODY. Twenty-two textures where four will do is twenty-two
   //    uploads at boot on a machine that has none to spare - and the colours come from `kitFor`, so the
   //    renderer holds no table of its own to disagree with the crest.
@@ -423,6 +427,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
   world.addChild(ball);
 
   const chevrons: PIXI.Sprite[] = [];
+  const hints: PIXI.Sprite[] = [];
   for (let seat = 0; seat < 2; seat++) {
     const c = new PIXI.Sprite(markerTex[seat]);
     c.anchor.set(0.5, 1);
@@ -430,6 +435,13 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
     c.visible = false;
     world.addChild(c);
     chevrons.push(c);
+
+    const h = new PIXI.Sprite(hintTex);
+    h.anchor.set(0.5, 1);
+    h.zIndex = Z.HUD;
+    h.visible = false;
+    world.addChild(h);
+    hints.push(h);
   }
 
   // Which kits are on the pitch right now. The draw needs it every frame, because the stride picks a
@@ -518,9 +530,24 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
         const who = controlled[seat];
         const on = who !== undefined && who !== NOBODY;
         chevrons[seat].visible = on;
-        if (!on) continue;
+        if (!on) {
+          hints[seat].visible = false;
+          continue;
+        }
         const at = project({ x: state.players[who].p.x, y: state.players[who].p.y, z: 0 });
         chevrons[seat].position.set(Math.round(at.x), Math.round(at.y) - 13 * ART);
+
+        // ⚠️ IT IS READ FROM THE WORLD AND NOT WORKED OUT HERE. `state.hinted` is the answer `play`
+        //    hands her when she presses, so the mark and the press cannot disagree - and a renderer that
+        //    found its own nearest body would be a second answer to the question the mark exists to
+        //    answer. Only drawn for a seat that is actually being driven: a mark for a chair nobody is
+        //    in is the defect the empty seat plan already forbids.
+        const hinted = state.hinted[seat] ?? NOBODY;
+        const show = hinted !== NOBODY && hinted >= 0 && onPitch(state, hinted);
+        hints[seat].visible = show;
+        if (!show) continue;
+        const spot = project({ x: state.players[hinted].p.x, y: state.players[hinted].p.y, z: 0 });
+        hints[seat].position.set(Math.round(spot.x), Math.round(spot.y) - 13 * ART);
       }
 
       app.render();

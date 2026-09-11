@@ -31,6 +31,7 @@ const SHELL = `
           <p id="m-phase">-</p>
           <p id="m-ball">-</p>
           <p id="m-you">-</p>
+          <p id="m-hint"></p>
           <ul id="m-options"></ul>
           <p id="m-charge"></p>
           <p id="m-lagging"></p>
@@ -268,6 +269,27 @@ describe('what a child sees', () => {
     const shown = document.querySelector('#m-you')?.textContent ?? '';
     expect(shown, 'the mirror never said who the child is').not.toBe('-');
     // A shirt number, because that is the whole point of the line: which ONE of the eleven.
+    expect(shown, `no shirt number in "${shown}"`).toMatch(/\d/);
+  });
+
+  // ⚠️ AND WHO A PRESS OF SWITCH WOULD HAND HER, which on screen is a hollow chevron over another body
+  //    and for a blind child is only this line. The mark is the one channel she cannot have, so the
+  //    sentence is not a caption beside the picture - it IS the hinted switch, for her.
+  //
+  // ⚠️ AND THE UNIT GATE WOULD PASS WITH THIS WIRE CUT, which is why this exists separately.
+  //    `ui/mirror.hintLine` is measured in the node project against a state built by hand; nothing there
+  //    can tell whether the composition root ever asks it. That is the shape eight modules in this
+  //    repository already had - and it was nearly nine: the first frame captured after this landed had no
+  //    chevron visible anywhere in it, and it took a probe to establish that the sprite was drawn and the
+  //    hinted body simply happened to be outside a twenty-metre window.
+  it('[Right] and who a press of switch would hand her', async () => {
+    booted = bootar(document, window);
+
+    await new Promise((r) => setTimeout(r, 350));
+
+    const shown = document.querySelector('#m-hint')?.textContent ?? '';
+    expect(shown, 'the mirror never said who a switch would give her').not.toBe('');
+    // A shirt number, for the same reason the line above needs one: which ONE of the eleven.
     expect(shown, `no shirt number in "${shown}"`).toMatch(/\d/);
   });
 

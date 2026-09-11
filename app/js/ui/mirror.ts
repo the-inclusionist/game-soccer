@@ -46,6 +46,27 @@ export function youLine(state: MatchState, who: PlayerId, t: Translate): string 
   return t(mine ? 'hud.you.shirtBall' : 'hud.you.shirt', shirt);
 }
 
+/**
+ * Who a press of switch would hand this seat, or nothing when there is nobody to give.
+ *
+ * ⚠️ THE MARK IS THE ONE CHANNEL A BLIND CHILD CANNOT HAVE, so this sentence is not a convenience
+ * beside the picture - it is the whole feature for her. She is who the hinted switch was built for twice
+ * over: once because it takes a reaction-time demand out of the control, and once because without a
+ * number she has no way at all of knowing who the press would give her.
+ *
+ * ⚠️ AND IT READS `state.hinted` RATHER THAN WORKING IT OUT. The renderer draws that body and `play`
+ * hands her that body; a third derivation here would be a third answer, and the day any two disagreed the
+ * child with the fewest ways to check would be the one told the wrong number.
+ *
+ * ⚠️ NOTHING TO SAY IS SAID WITH NOTHING, as everywhere else in this module. "Switch to nobody" is a
+ * sentence a reader announces and she listens to, and it was never information.
+ */
+export function hintLine(state: MatchState, seat: number, t: Translate): string {
+  const who = state.hinted[seat] ?? -1;
+  if (who < 0 || !onPitch(state, who)) return '';
+  return t('hud.switch.to', { shirt: shirtOf(who) });
+}
+
 /** A place on the pitch. The engine's `Spot` shape, restated so this module imports no engine at all. */
 interface Spot {
   readonly x: number;

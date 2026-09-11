@@ -15,7 +15,7 @@
 // test could only ever assert that a function was called; this asserts what it says. The same split the
 // earcon captions use, and for the same reason.
 import { describe, expect, it } from 'vitest';
-import { chargeLine, laggingLine, spotLines, youLine } from '../app/js/ui/mirror.ts';
+import { chargeLine, hintLine, laggingLine, spotLines, youLine } from '../app/js/ui/mirror.ts';
 import { createMatchState } from '../app/js/sim/state.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
 import { RED } from '../app/js/rules/cards.ts';
@@ -226,5 +226,46 @@ describe('the line that says the machine is losing time', () => {
 
   it('[Interface] and the sentence is a dictionary key, like every other', () => {
     expect(laggingLine(5000, echo)).toMatch(/^hud\./);
+  });
+});
+
+// ========================= AND WHO A PRESS WOULD HAND HER =========================
+// The hint exists on screen as a hollow chevron over another body. ⚠️ THAT IS A MARK, AND A MARK IS THE
+// one channel this game cannot offer a blind child - so the sentence is not a convenience beside the
+// picture, it is the whole feature for her. She is the child the hinted switch was built for twice over:
+// once because it removes a reaction-time demand, and once because without a number she has no way to
+// know who she would get.
+describe('who a press would hand her', () => {
+  it('[Right] names the hinted body by its shirt number', () => {
+    const state = createMatchState();
+    state.phase = 'live';
+    state.hinted[0] = 7;
+
+    expect(hintLine(state, 0, echo)).toContain('hud.switch.to');
+  });
+
+  // ⚠️ NOTHING TO SAY IS SAID WITH NOTHING, which is the rule this module already follows for the
+  //    charge line and the lagging line. A sentence reading "switch to nobody" is worse than a blank: a
+  //    reader announces it, she listens to it, and it was never information.
+  it('[Zero] says nothing at all when there is nobody to switch to', () => {
+    const state = createMatchState();
+    state.phase = 'live';
+    state.hinted[0] = -1;
+
+    expect(hintLine(state, 0, echo)).toBe('');
+  });
+
+  // ⚠️ AND A SENT-OFF BODY IS NOT OFFERED, through `onPitch` - the one function that answers "is he
+  //    playing". Naming a player who has left the pitch would be the mirror telling her to switch to
+  //    somebody who is not there, which is the shape of defect this file already records once.
+  it('[Boundary] and never names a body that has been sent off', () => {
+    const state = createMatchState();
+    state.phase = 'live';
+    state.hinted[0] = 7;
+    // A red card is the whole of it: `sim/squads.onPitch` answers false the moment the card is there,
+    // and the squad count is about how many a side FIELDS rather than about who has been sent off.
+    state.cards[7] = RED;
+
+    expect(hintLine(state, 0, echo)).toBe('');
   });
 });

@@ -45,6 +45,7 @@ const SHELL = `
           <p id="m-phase">-</p>
           <p id="m-ball">-</p>
           <p id="m-you">-</p>
+          <p id="m-hint"></p>
           <ul id="m-options"></ul>
           <p id="m-charge"></p>
           <p id="m-lagging"></p>

@@ -31,7 +31,7 @@ import {
 } from '../drivers/driver.ts';
 import { createTurnPanel } from '../ui/turn-panel.ts';
 import { clockText } from '../ui/clock.ts';
-import { chargeLine, laggingLine, spotLines, youLine } from '../ui/mirror.ts';
+import { chargeLine, hintLine, laggingLine, spotLines, youLine } from '../ui/mirror.ts';
 import { attackDirOf } from '../sim/ends.ts';
 import { outcomeFor, outcomeKey } from '../ui/outcome.ts';
 import { crestCanvas } from '../ui/crest-canvas.ts';
@@ -801,6 +801,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     phase: doc.querySelector<HTMLElement>('#m-phase'),
     ball: doc.querySelector<HTMLElement>('#m-ball'),
     you: doc.querySelector<HTMLElement>('#m-you'),
+    hint: doc.querySelector<HTMLElement>('#m-hint'),
     options: doc.querySelector<HTMLElement>('#m-options'),
     lagging: doc.querySelector<HTMLElement>('#m-lagging'),
     charge: doc.querySelector<HTMLElement>('#m-charge'),
@@ -925,6 +926,17 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
           .map((who, seat) =>
             seating === 1 ? youLine(state, who, t) : `${t('keys.seat', { n: seat + 1 })}: ${youLine(state, who, t)}`,
           )
+          .join(' - ');
+      }
+      // ⚠️ THE LINE THAT MAKES THE MARK REACHABLE WITHOUT EYES. The hollow chevron over another body is
+      //    the one channel a blind child cannot have, so this sentence is not a caption for the picture -
+      //    it IS the hinted switch, for her. Written here rather than only in `ui/mirror`, because eight
+      //    modules in this repository have been right, gated and connected to nothing.
+      if (mirror.hint !== null) {
+        mirror.hint.textContent = state.controlled
+          .slice(0, seating)
+          .map((_, seat) => hintLine(state, seat, t))
+          .filter((line) => line !== '')
           .join(' - ');
       }
     },

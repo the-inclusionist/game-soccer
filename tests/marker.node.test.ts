@@ -11,9 +11,18 @@
 // to be different in, which is exactly why the shapes are DATA here and gated, rather than two calls to
 // `drawRect` nobody ever compares.
 import { describe, expect, it } from 'vitest';
-import { MARKER, markerCells } from '../app/js/render/marker-pixels.ts';
+import { MARKER, hintCells, markerCells } from '../app/js/render/marker-pixels.ts';
 
-const cells = [markerCells(0), markerCells(1)];
+// ⚠️ THREE PLANS NOW, AND THE GATES BELOW WALK EVERY PAIR OF THEM. Two shapes needed one comparison;
+//    three need three, and the one people forget is the pair that does not involve the new arrival. A
+//    hint marker checked only against seat 0 could be seat 1's bars exactly.
+const cells = [markerCells(0), markerCells(1), hintCells()];
+const NAMES = ['seat 0', 'seat 1', 'the hint'];
+const PAIRS: readonly (readonly [number, number])[] = [
+  [0, 1],
+  [0, 2],
+  [1, 2],
+];
 const key = (c: readonly (readonly [number, number])[]): string =>
   [...c].map(([x, y]) => `${x},${y}`).sort().join(' ');
 
@@ -43,33 +52,49 @@ describe('a marker', () => {
   });
 });
 
-describe('telling the two seats apart', () => {
-  it('[Right] the two shapes are not the same shape', () => {
-    expect(key(cells[0])).not.toBe(key(cells[1]));
+describe('telling the three marks apart', () => {
+  it('[Right] no two of the shapes are the same shape', () => {
+    for (const [a, b] of PAIRS) {
+      expect(key(cells[a]), `${NAMES[a]} and ${NAMES[b]} are the same silhouette`).not.toBe(key(cells[b]));
+    }
   });
 
-  // ⚠️ THE ASSERTION THAT CATCHES THE LAZY VERSION. "Make the second one the same wedge, one pixel lower"
-  //    passes every test above and is invisible in play: two children see the same silhouette and learn
-  //    to look at the colour, which is what the shape was supposed to save them from.
-  it('[Right] and one is not just the other moved', () => {
-    for (let dx = -MARKER.w; dx <= MARKER.w; dx++) {
-      for (let dy = -MARKER.h; dy <= MARKER.h; dy++) {
-        const shifted = cells[0].map(([x, y]) => [x + dx, y + dy] as const);
-        expect(key(shifted), `seat 1 is seat 0 shifted by ${dx},${dy}`).not.toBe(key(cells[1]));
+  // ⚠️ THE ASSERTION THAT CATCHES THE LAZY VERSION. "Make the new one the same wedge, one pixel lower"
+  //    passes every test above and is invisible in play: two marks show the same silhouette and a child
+  //    learns to look at the colour, which is what the shape was supposed to save her from.
+  it('[Right] and none is just another one moved', () => {
+    for (const [a, b] of PAIRS) {
+      for (let dx = -MARKER.w; dx <= MARKER.w; dx++) {
+        for (let dy = -MARKER.h; dy <= MARKER.h; dy++) {
+          const shifted = cells[a].map(([x, y]) => [x + dx, y + dy] as const);
+          expect(key(shifted), `${NAMES[b]} is ${NAMES[a]} shifted by ${dx},${dy}`).not.toBe(key(cells[b]));
+        }
       }
     }
   });
 
   it('[Right] and they differ by more than a single pixel, which nobody can see at this size', () => {
-    const mine = new Set(cells[0].map(([x, y]) => `${x},${y}`));
-    const theirs = new Set(cells[1].map(([x, y]) => `${x},${y}`));
-    const onlyOne = [...mine].filter((c) => !theirs.has(c)).length + [...theirs].filter((c) => !mine.has(c)).length;
+    for (const [a, b] of PAIRS) {
+      const mine = new Set(cells[a].map(([x, y]) => `${x},${y}`));
+      const theirs = new Set(cells[b].map(([x, y]) => `${x},${y}`));
+      const onlyOne =
+        [...mine].filter((c) => !theirs.has(c)).length + [...theirs].filter((c) => !mine.has(c)).length;
 
-    expect(onlyOne).toBeGreaterThanOrEqual(3);
+      expect(onlyOne, `${NAMES[a]} and ${NAMES[b]} differ by too little to see`).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it('[Zero] a seat nobody is sitting in has no marker rather than a blank one', () => {
     expect(markerCells(2)).toEqual([]);
     expect(markerCells(-1)).toEqual([]);
+  });
+
+  // ⚠️ AND THE HINT IS NOT A SEAT, which is why it has a function of its own rather than being seat 2.
+  //    Nobody drives it; it is a place a press would take her. Answering `markerCells(2)` with it would
+  //    make "a mark over a body nobody is driving" reachable again, which is the one thing the gate above
+  //    exists to forbid.
+  it('[Interface] the hint has its own plan and is not reachable as a third seat', () => {
+    expect(hintCells().length, 'the hint has no shape').toBeGreaterThan(0);
+    expect(markerCells(2), 'the hint leaked in as a seat').toEqual([]);
   });
 });

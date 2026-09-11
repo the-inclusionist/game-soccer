@@ -49,6 +49,37 @@ const BARS: readonly Cell[] = Object.freeze([
 ]);
 
 /**
+ * The hint: an OPEN chevron, two shoulders closing to a point.
+ *
+ * ⚠️ SOLID AGAINST HOLLOW IS THE DIFFERENCE, and at five by four it is the largest one left. Seat 0 is
+ * a filled wedge and seat 1 is two bars; a shape that is neither filled nor horizontal is the third
+ * silhouette this box has room for. It survives every colour-blindness filter and a screen with no colour
+ * at all, which is the same reason the first two differ in shape rather than in shade.
+ *
+ * ⚠️ AND BEING OPEN IS WHAT IT MEANS, not only how it is told apart. The seat marks say "this is you";
+ * this one says "a press would bring you here". A hollow outline reads as provisional against a solid
+ * one - the mark is there and the body under it is not yours yet.
+ */
+const HINT: readonly Cell[] = Object.freeze([
+  [1, 0],
+  [3, 0],
+  [1, 1],
+  [3, 1],
+  [2, 2],
+]);
+
+/**
+ * The cells of the switch hint. It is deliberately NOT `markerCells(2)`.
+ *
+ * ⚠️ THE HINT IS NOT A SEAT. Nobody drives it - it is a place a press would take her - and answering
+ * the seat function with it would make "a mark over a body nobody is driving" reachable again, which is
+ * the one thing the empty plan below exists to forbid.
+ */
+export function hintCells(): readonly Cell[] {
+  return HINT;
+}
+
+/**
  * The cells for one seat, or an empty plan for a seat nobody is sitting in.
  *
  * ⚠️ EMPTY RATHER THAN A DEFAULT. A third seat does not exist, and answering with the first seat's wedge
