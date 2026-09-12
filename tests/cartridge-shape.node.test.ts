@@ -31,7 +31,7 @@
 // owns its random stream), in `the-inclusionist-docs/docs/2-Architecture/adr/`.
 import { describe, expect, it } from 'vitest';
 import { join } from 'node:path';
-import { bodyOf, sourcesUnder } from './helpers/sources.ts';
+import { bodyOf, code, sourcesUnder } from './helpers/sources.ts';
 import { DICTS, installDicts } from '../app/js/i18n/index.ts';
 
 const ROOT = 'app/js';
@@ -46,6 +46,41 @@ describe('the cartridge shape', () => {
     for (const name of ['declaration.ts', 'narration.ts', 'play.ts', 'project.ts']) {
       expect(SOURCES, `${name} is not being looked at`).toContain(join(ROOT, name));
     }
+  });
+
+  // ⚠️ AND THE COMMENT STRIPPER IS GATED TOO, because every absence gate in this file and in `tests/i18n`
+  //    reads the tree through it. It is the single line of code that can make eight gates unable to fail:
+  //    strip too much and a real call site disappears, so the gate finds nothing and reports compliance;
+  //    strip too little and a header that NAMES a forbidden thing trips its own gate, which is the defect
+  //    the stripper was written for in the first place. Neither direction announces itself.
+  //
+  // ⚠️ ONE BOUNDARY IS KNOWN AND DELIBERATELY NOT CLOSED. `code()` is a regex and not a parser, so a `//`
+  //    inside a string literal - `'https://…'` in real code - would truncate that line. Measured
+  //    2026-09-11 across the whole tree: the only two occurrences are `file://` inside BLOCK comments in
+  //    `boot/boot.ts` and `input/keymap.ts`, which the block pass has already removed before the line pass
+  //    runs, so nothing is truncated today. Making the stripper string-aware would change what eight
+  //    gates see, which is not a change to make for a hazard that is currently latent - but it is written
+  //    down here so that the day a URL appears in real code, the reason a gate went quiet is on record.
+  it('[Zero] the comment stripper drops comments and keeps code, or nothing below can fail', () => {
+    const kept = code("const a = t('kept.key');");
+    const dropped = code("// const b = t('dropped.key');");
+    const blocked = code("/* a header naming t('mentioned.key') */ const c = 1;");
+    // ⚠️ THE CASE THAT DISTINGUISHES A STRIPPER FROM A LINE-EATER, and the first draft of this gate
+    //    did not have it. A stripper mutated to eat the WHOLE line that carries a trailing comment - and
+    //    with it any real code in front of that comment - passed all fifteen gates in this file and in
+    //    `tests/i18n`, because the dropped case and the kept case above look identical to both strippers.
+    //    `render/digit-pixels` is full of code with trailing comments, so the mutation would have hidden
+    //    real lines from every absence gate while every one of them stayed green.
+    const trailing = code("const d = t('trailing.key'); // a note about it");
+
+    expect(kept, 'the stripper ate real code').toContain("t('kept.key')");
+    expect(dropped, 'a commented-out call site still counts as a call site').not.toContain('dropped.key');
+    expect(blocked, 'a header that names a thing would trip its own gate').not.toContain('mentioned.key');
+    expect(blocked, 'the block pass ate the code after it').toContain('const c = 1;');
+    expect(trailing, 'the stripper ate the code in front of a trailing comment').toContain(
+      "t('trailing.key')",
+    );
+    expect(trailing, 'the trailing comment survived the stripper').not.toContain('a note about it');
   });
 
   // ⚠️ SPEC D14, AND THE ENGINE'S OWN USER STORY: «I want the engine to carry no game state, so that two
