@@ -218,6 +218,48 @@ describe('the digest', () => {
     expect(PERTURBATIONS).toHaveLength(SCALAR_FIELDS.length);
   });
 
+  // ⚠️ AND THE OTHER SEVENTEEN ROWS, for the same reason. `ball`, `players` and `possession` were three of
+  //    the six gated names, but gated COARSELY - moving the ball changes the hash, which says nothing about
+  //    whether the hash can see the ball's HEIGHT, or a body's facing, or who touched it last. Seven ball
+  //    rows, eight body rows and two possession rows, and a coarse gate covers all seventeen with one
+  //    assertion that any one of them satisfies alone.
+  //
+  // ⚠️ THE BODY ROWS ARE PERTURBED ON A BODY IN THE MIDDLE OF THE SQUAD, not on player zero. The digest
+  //    walks every body, so a row read from the wrong index would still move the hash when body zero moved;
+  //    picking one that is neither first nor last is the cheapest guard against a row that happens to be
+  //    right for the body a test chose.
+  const DEEP: ReadonlyArray<readonly [string, (s: MatchState) => void]> = [
+    ['ball.p.x', (s) => { s.ball.p.x += 1; }],
+    ['ball.p.y', (s) => { s.ball.p.y += 1; }],
+    ['ball.p.z', (s) => { s.ball.p.z += 1; }],
+    ['ball.v.x', (s) => { s.ball.v.x += 1; }],
+    ['ball.v.y', (s) => { s.ball.v.y += 1; }],
+    ['ball.v.z', (s) => { s.ball.v.z += 1; }],
+    ['ball.grounded', (s) => { s.ball.grounded = !s.ball.grounded; }],
+    ['players[7].p.x', (s) => { s.players[7].p.x += 1; }],
+    ['players[7].p.y', (s) => { s.players[7].p.y += 1; }],
+    ['players[7].v.x', (s) => { s.players[7].v.x += 1; }],
+    ['players[7].v.y', (s) => { s.players[7].v.y += 1; }],
+    ['players[7].facing.x', (s) => { s.players[7].facing.x += 1; }],
+    ['players[7].facing.y', (s) => { s.players[7].facing.y += 1; }],
+    ['players[7].target.x', (s) => { s.players[7].target.x += 1; }],
+    ['players[7].target.y', (s) => { s.players[7].target.y += 1; }],
+    ['possession.holder', (s) => { s.possession.holder += 1; }],
+    ['possession.lastTouch', (s) => { s.possession.lastTouch += 1; }],
+  ];
+
+  it('[Interface] and every ball, body and possession row moves the hash on its own', () => {
+    for (const [name, change] of DEEP) {
+      const before = createMatchState();
+      const after = createMatchState();
+      change(after);
+
+      expect(digest(after), `changing ${name} alone did not move the hash`).not.toBe(digest(before));
+    }
+
+    expect(DEEP).toHaveLength(BALL_FIELDS.length + BODY_FIELDS.length + POSSESSION_FIELDS.length);
+  });
+
   it('[Interface] the hash is a 32-bit unsigned integer, so it survives being written down', () => {
     const h = digest(createMatchState());
 
