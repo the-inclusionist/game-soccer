@@ -46,6 +46,39 @@ describe('the think schedule', () => {
     expect(decisions).toBeLessThanOrEqual((600 * SQUAD_SIZE * 2) / 4);
   });
 
+  // ⚠️ AND THE GATE ABOVE MEASURES A SUM WHEN THE REQUIREMENT IS A PEAK. Measured 2026-09-11 by changing
+  // `(tick + id) % THINK_PERIOD` to `tick % THINK_PERIOD` - which is the plan's own named mutation, "remove
+  // the stagger" - every one of the three gates in this describe stayed GREEN. All twenty-two then think on
+  // tick 0 and none on the five after it: six hundred ticks still cost 2 200 decisions, the average is still
+  // under four, and the frame that has to draw twenty-two decisions is the dropped frame on the Positivo
+  // tablet that pillar 1 names. A sum over six hundred ticks averages away exactly the spike it forbids.
+  //
+  // ⚠️ THE MUTATION IS CAUGHT, AND THAT IS THE TRAP. Eight gates went red in `ai-brain`, `ai-fouls` and
+  // `golden-match` - all of them saying "the match is no longer the recorded match", none of them saying
+  // "a frame got four times dearer". A golden trail is re-blessable BY DESIGN, because the AI gets retuned
+  // on purpose; the day someone re-blesses it for a legitimate reason, a cost regression rides along and the
+  // only gate with a cost number in it is still green. So the peak is measured here, where it is the claim.
+  it('[Performance] no single tick costs more than four decisions, however the total falls out', () => {
+    const perTick: number[] = [];
+
+    for (let tick = 0; tick < THINK_PERIOD; tick++) {
+      let thinking = 0;
+      for (let id = 0; id < SQUAD_SIZE * 2; id++) {
+        if (thinksThisTick(id, tick)) thinking += 1;
+      }
+      perTick.push(thinking);
+    }
+
+    // ⚠️ FOUR IS WRITTEN OUT AS WELL AS DERIVED, because an expectation computed only from `THINK_PERIOD`
+    // and `SQUAD_SIZE` moves with the constants it exists to pin - the trap this project has met before.
+    // Twenty-two over six is three and four-sixths, so four is the ceiling and three the floor.
+    expect(Math.max(...perTick)).toBe(4);
+    expect(Math.max(...perTick)).toBe(Math.ceil((SQUAD_SIZE * 2) / THINK_PERIOD));
+
+    // And no tick is idle: an empty tick is a crowded one somewhere else in the period.
+    expect(Math.min(...perTick)).toBe(Math.floor((SQUAD_SIZE * 2) / THINK_PERIOD));
+  });
+
   it('[Interface] the schedule is a pure function of the tick, so a replay reproduces it', () => {
     expect(thinksThisTick(7, 13)).toBe(thinksThisTick(7, 13));
     expect(thinksThisTick(7, 13)).toBe(thinksThisTick(7, 13 + THINK_PERIOD));
