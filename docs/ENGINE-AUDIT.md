@@ -87,6 +87,7 @@ work — so this table is re-read every time the dependency moves, against
 | 8 · a key may hold two positions at once | **CLOSED** — refused at the point of entry rather than moved |
 | 9 · the move toggle's direction is only ever cleared | **STILL OPEN in 9.0.0** — `input/latch-sync.d.ts` is byte-identical between 8.0.0 and 9.0.0 |
 | 10 · `createGame` could not reach the pause card, the contrast writers or the second seat | **CLOSED in 9.0.0** — the four fields above, and see below |
+| 11 · the bar's own navigation is not reachable from a game `createGame` mounted | **OPEN, found 2026-09-11** — see below |
 
 ⚠️ **AND FINDING 1 WAS THE ONE THAT MATTERED MOST, SO ITS CLOSING IS WORTH THE SENTENCE.** A team-mate
 ten metres to our right panned to 0.057 — mono, on a pitch ninety metres wide. The fix takes the
@@ -354,6 +355,34 @@ CSS filter the engine already builds (`#cvd` holds six filters after boot; `filt
 and `alcanceDoModo` are all exported), while **contrast** is three repainted palettes at the 3:1, 4.5:1 and
 7:1 ratios across kits, pitch and crests — real render work against a measurable target, for which
 `teams/clubs` already owns `LUMA_GAP` and a luminance comparison.
+
+### 11. The accessibility bar's navigation exists inside `createGame` and no game can reach it
+
+ADR-0044 item 7 is the directional driving the quick accessibility bar instead of the character.
+`CreateGameOptions` asks the GAME for it — `naBarraDe?(i)` and `navBar?(i, k)` — and its own note says
+«Opcionais porque um hospedeiro pode não ter barra nenhuma… O jogo de plataforma os fornece; um quiz sem
+HUD de a11y, não».
+
+📏 **AND THE ENGINE ALREADY HAS THE IMPLEMENTATION.** `ui/pause-icons` declares `entrarNaBarra(i)`,
+`naBarraDe(i)` and `navBar(i, k, temStart?)` on the API that `createGame` builds internally when it mounts
+the bar. Measured against 9.0.0: the `Engine` interface has nineteen members and **none of them is that
+API** — `pausa` exposes only `mostrar` and `esconder`.
+
+So a game mounted by `createGame` is asked to supply a behaviour the engine implements and does not hand
+back. This game answers `naBarraDe: () => false` and `navBar: () => {}`, which the contract reads as
+"nobody is in the bar" — so item 7 is unreachable here, and the bar that IS mounted cannot be driven by a
+directional.
+
+⚠️ **AND IT IS THE SAME SHAPE AS FINDING 10, which 9.0.0 closed.** That one was `createGame` accepting no
+way to say what a pause item does, while the engine held `getPauseActs` on the same internal API. The fix
+there was to add the door. The bar looks like the half of that work that was not done — which is a guess
+about intent and is marked as one.
+
+📌 **WHAT IS NOT VERIFIED, and would decide the shape of the fix:** whether a game is expected to call
+`initPauseIcons` itself to get that API. It is exported, and this game already deep-calls
+`initSettingsControls` for the remap panel — but `createGame` has already called `initPauseIcons` once, and
+calling it twice would mount a second bar. Reading that properly is the next step, and it is a reading of
+somebody else's module rather than a change to this one.
 
 ## What was drafted here and has since landed
 
