@@ -413,30 +413,28 @@ describe('the pause', () => {
   // abaixo, no `getPauseMenu`. Montar sem o pôr deixaria o laço tão aberto como estava.» It sets
   // `#vp-pause-0` for this, and `motor.nav` carries `navPause`, `navDialog` and `sharedDialogOpen` ready
   // to be handed back.
-  // ⚠️ AND THE DIRECTIONAL STEP IS NOT WORKING YET, which is why this gate asks the smaller question. What
-  // is proven and locked in below is that opening the card puts focus ON AN ITEM OF IT - with the stubs,
-  // focus stayed on `#game-region`, so a child arriving by keyboard had to Tab in from outside.
+  // ========================= ⚠️ AND THIS GATE WATCHED THE WRONG THING TWICE =========================
+  // It asked whether `document.activeElement` moved, and reported that the directional did not work.
+  // It does. `ui/menu-nav.navPause` says why in its own words: «este menu não usa foco do navegador -
+  // seleciona por classe, porque é desenhado dentro da tela do jogador». It moves `.pm-sel`, never the
+  // browser's focus, so a gate on focus can only ever report a working feature as broken.
   //
-  // 📏 WHAT WAS RULED OUT, so the next attempt does not repeat it:
-  //   · the callbacks being absent - all four are forwarded to `motor.nav` now, and typed;
-  //   · nothing being focused - `menuFocus` fixed that, and the assertion below is what proves it;
-  //   · the engine preferring `navDialog` over `navPause` because `sharedDialogOpen()` answers non-null -
-  //     tested by returning `null` from it, and the directional still did not move.
+  // 📏 MEASURED with a fake standard pad and one `down` edge: `.pm-sel` moved to `acessibilidade` and
+  // `#sr-status` read "♿ Acessibilidade, 2 de 7" - the position and total item 3 of ADR-0044 asks for,
+  // spoken, because this menu announces its own moves (nothing else can: no focus, no
+  // `aria-activedescendant`, no live region of its own).
   //
-  // So `navPause(menu, 0, k)` is reached and does not move focus, and the remaining candidate is the one
-  // not tested: `menu-nav` keeps its own notion of the SELECTED item (`pauseSetSel`), and `menuFocus` may
-  // set the DOM focus without setting that. Verifying it means reading another team's navigation model
-  // properly rather than guessing at it a fourth time.
-  it('[Right] opening the card puts focus on one of its items, not outside it', async () => {
+  // So the claim is the SELECTION and the announcement, which is what a child actually gets.
+  it('[Right] the directional steps through the card, and the new item is spoken', async () => {
     const original = navigator.getGamepads;
-    const down = GAMEPAD_STANDARD.down as number;
+    const downBtn = GAMEPAD_STANDARD.down as number;
     let held = false;
     (navigator as unknown as { getGamepads: () => unknown[] }).getGamepads = () => [
       {
         id: 'fake standard pad',
         index: 0,
         mapping: 'standard',
-        buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: held && i === down, value: 0 })),
+        buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: held && i === downBtn, value: 0 })),
         axes: [0, 0, 0, 0],
       },
     ];
@@ -444,17 +442,25 @@ describe('the pause', () => {
     try {
       booted = bootar(document, window);
       await ticks(booted, 5);
-      const outside = document.activeElement;
-
       booted!.pause();
 
       const card = document.querySelector('#vp-pause-0') as HTMLElement;
-      expect(card.hidden, 'the card did not open').toBe(false);
-      const now = document.activeElement;
-      expect(now, 'focus stayed where it was, so she has to Tab in from outside').not.toBe(outside);
-      expect(card.contains(now), 'focus is not on the card at all').toBe(true);
-      expect((now as HTMLElement).className, 'focus is on the card but not on an ITEM').toContain('pm-btn');
-      void held;
+      expect(card.hidden, 'the card did not open, so stepping through it proves nothing').toBe(false);
+      const items = card.querySelectorAll('.pause-menu:not([hidden]) .pm-btn').length;
+      expect(items, 'the card offered nothing to step through').toBeGreaterThan(1);
+
+      held = true;
+      await quiet(150);
+      held = false;
+      await quiet(150);
+
+      const sel = card.querySelector('.pm-sel') as HTMLElement | null;
+      expect(sel, 'the directional selected nothing at all').not.toBeNull();
+      // ⚠️ AND IT IS SPOKEN, which is the half no picture and no focus assertion could show. A menu that
+      //    moves in silence is a menu a blind child cannot use, and this one has no other channel.
+      const said = document.querySelector('#sr-status')?.textContent ?? '';
+      expect(said, 'the new item was selected in silence').not.toBe('');
+      expect(said, 'the announcement does not say where she is in the list').toMatch(/\d+\D+\d+/);
     } finally {
       (navigator as unknown as { getGamepads: typeof original }).getGamepads = original;
     }

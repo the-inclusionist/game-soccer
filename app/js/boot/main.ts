@@ -450,12 +450,13 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   const pause = (): void => {
     paused = true;
     motor.pausa.mostrar(0);
-    // ⚠️ AND SOMETHING HAS TO BE FOCUSED, or the directional has nothing to step FROM. `mostrar` reveals
-    //    the card and re-evaluates which items action; it does not choose one. `menuFocus` is the engine's
-    //    own answer - "foca o item atual (se já for um deles) ou o primeiro" - and without it a pad's
-    //    `navPause` is handed a menu whose selection is outside it, which is where the focus stays.
-    const card = doc.querySelector<HTMLElement>('#vp-pause-0');
-    if (card !== null) motor.nav.menuFocus(card);
+    // ⚠️ AND NOTHING IS FOCUSED ON PURPOSE, which is the opposite of what stood here for an hour. This
+    //    card does not use the browser's focus at all: `ui/menu-nav.navPause` says so in its own words -
+    //    «este menu não usa foco do navegador - seleciona por classe, porque é desenhado dentro da tela do
+    //    jogador» - and it carries the selection in `.pm-sel`, falling back to the first item when there
+    //    is none. A `menuFocus` call here gave the card a SECOND notion of "current": the pad moved
+    //    `.pm-sel` while the browser's focus sat on whichever item got focused first, and a child hearing
+    //    both would have no way to know which one was real.
   };
   const resume = (): void => {
     paused = false;
