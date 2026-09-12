@@ -1080,6 +1080,16 @@ describe('when a frame throws', () => {
     await quiet(300);
 
     expect(booted!.state.tick, 'the loop kept running after it threw').toBe(ranAfter);
-    expect(document.querySelector('#sr-alert')?.textContent ?? '', 'it broke in silence').not.toBe('');
+    const said = document.querySelector('#sr-alert')?.textContent ?? '';
+    expect(said, 'it broke in silence').not.toBe('');
+
+    // ⚠️ AND WHAT IT SAYS HAS TO BE A SENTENCE, NOT THE ERROR. This game used to pass its own handler -
+    //    `aoFalhar: (err) => srAlert(String(err))` - so the alert region received a developer's error
+    //    string: a blind child heard "TypeError: Cannot read properties of null" and a sighted one saw
+    //    nothing at all. The engine owns this announcement by design, and its own doc says why: the
+    //    message is the same in every game and the channel - screen reader, narration and what is SEEN -
+    //    is infrastructure. ADR-0054 calls the missing half the one that matters, because a blind child
+    //    does not see a frozen screen and silence reads the same as thinking.
+    expect(said, 'the alert is a raw error object, not something a child can use').not.toMatch(/Error|TypeError|null|undefined/);
   });
 });

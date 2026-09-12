@@ -1175,7 +1175,20 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       }
     },
     MAX_DT_FRAMES,
-    { aoFalhar: (err: unknown) => srAlert(String(err)) },
+    // ⚠️ THE ENGINE'S ANNOUNCEMENT AND NOT THIS GAME'S, and the line it replaces was worse than nothing
+    //    in one specific way. It was `aoFalhar: (err) => srAlert(String(err))`, so the alert region
+    //    received a DEVELOPER'S ERROR STRING: measured, a blind child heard "TypeError: Cannot read
+    //    properties of null" and a sighted child saw nothing at all.
+    //
+    // ⚠️ AND THE ENGINE OWNS THIS BY DESIGN, which its own doc states: «VEM DA ENGINE E NÃO DE CADA JOGO
+    //    porque a mensagem é a mesma em todos e o canal (leitor de tela + narração + o que se VÊ) é
+    //    infraestrutura». ADR-0054 calls the half that was missing the one that matters - «criança cega
+    //    não vê tela congelada» - because without an announcement blind mode cannot tell "it froze" from
+    //    "it is thinking", and silence is identical in both.
+    //
+    //    It is DELIVERED and not installed: a game that builds the loop without passing this still STOPS,
+    //    because stopping is not optional. What it loses is saying so.
+    { aoFalhar: motor.aoFalhar },
   );
   scene.app.ticker.start();
 
