@@ -20,6 +20,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { bootar } from '../app/js/boot/main.ts';
 import { project, WORLD_PX } from '../app/js/project.ts';
 import { STADIUM_LAYERS } from '../app/js/render/stadium-layers.ts';
+import { ticks } from './helpers/ticks.ts';
 
 const SHELL_SRC = await import('./boot.browser.test.ts?raw');
 const SHELL = (() => {
@@ -136,6 +137,42 @@ describe('where the camera actually goes', () => {
 
     expect(Number.isFinite(at.x)).toBe(true);
     expect(Number.isFinite(at.y)).toBe(true);
+  });
+
+  // ⚠️ ADR-0001 ASKS FOR ROUNDING AT TWO POINTS AND ONLY ONE OF THEM WAS GATED. `tests/project` sweeps a
+  //    grid of world positions and proves `projectPx` returns whole pixels - but that is the projection,
+  //    a pure function, and the plan is explicit that rounding the sprites alone is not enough: the world
+  //    CONTAINER has to land on a whole pixel too, or the baked pitch slides sub-pixel underneath sprites
+  //    that have snapped, and NEAREST sampling turns the difference into a shimmer. `scene.ts` does round
+  //    it - `world.position.set(-camX, -camY)` from the rounded pair - and nothing anywhere asked.
+  //
+  // ⚠️ AND THE CAMERA HAS TO BE MOVING FOR THE QUESTION TO MEAN ANYTHING, which is why the distinct-values
+  //    assertion is not decoration. A camera parked on an integer by accident passes an integrality check
+  //    without the check having tested anything - and this file's own history is a camera read while the
+  //    page was starved, so a reading taken across ticks that did not happen is the known failure here.
+  it('[Many] and it lands on a whole pixel every time, while it is moving', async () => {
+    booted = bootar(document, window);
+    booted!.state.phase = 'live';
+
+    const seenX = new Set<number>();
+    const seenY = new Set<number>();
+
+    for (let sample = 0; sample < 20; sample++) {
+      await ticks(booted, 5);
+      const at = booted!.cameraAt();
+
+      expect(Number.isInteger(at.x), `camera x was ${String(at.x)} on sample ${String(sample)}`).toBe(
+        true,
+      );
+      expect(Number.isInteger(at.y), `camera y was ${String(at.y)} on sample ${String(sample)}`).toBe(
+        true,
+      );
+      seenX.add(at.x);
+      seenY.add(at.y);
+    }
+
+    // A camera that never moved would pass the integrality check above without it having asked anything.
+    expect(seenX.size + seenY.size, 'the camera never moved, so nothing was tested').toBeGreaterThan(2);
   });
 
   it('[Right] with the ball in the middle it sits well down the world, as a tele camera should', async () => {
