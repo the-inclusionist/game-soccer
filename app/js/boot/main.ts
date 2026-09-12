@@ -38,6 +38,7 @@ import { crestCanvas } from '../ui/crest-canvas.ts';
 import type { Command } from '../sim/command.ts';
 import { createSampler } from '../input/sampler.ts';
 import { initGamepad } from '@the-inclusionist/engine/input/gamepad.js';
+import type { NavKeys } from '@the-inclusionist/engine/input/edges.js';
 import { padCur } from '@the-inclusionist/engine/input/state.js';
 import { criarArestaComAlternancia } from '@the-inclusionist/engine/input/latch-edge.js';
 import { buildPreset } from '../input/preset.ts';
@@ -390,7 +391,6 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    no per-screen pause menu, no modal dialogs, nobody to join mid-match and nobody to respawn. Each
   //    stub below DECLARES an absence rather than pretending at one, which is the same posture
   //    `createGame`'s `declines` takes - the engine simply has no such field here yet.
-  const noElement = (): HTMLElement | null => null;
   const words = buildPreset((key: string) => t(key));
   // ⚠️ ONE RECORD PER SEAT FOR THE ENGINE'S MOVE TOGGLE, and the honesty about it is the point. The
   //    engine resolves the toggle PER TRANSPORT and writes the answer here, so a child who turns it on
@@ -450,6 +450,12 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   const pause = (): void => {
     paused = true;
     motor.pausa.mostrar(0);
+    // ⚠️ AND SOMETHING HAS TO BE FOCUSED, or the directional has nothing to step FROM. `mostrar` reveals
+    //    the card and re-evaluates which items action; it does not choose one. `menuFocus` is the engine's
+    //    own answer - "foca o item atual (se já for um deles) ou o primeiro" - and without it a pad's
+    //    `navPause` is handed a menu whose selection is outside it, which is where the focus stays.
+    const card = doc.querySelector<HTMLElement>('#vp-pause-0');
+    if (card !== null) motor.nav.menuFocus(card);
   };
   const resume = (): void => {
     paused = false;
@@ -537,10 +543,28 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     navTitle: () => {},
     naBarraDe: () => false,
     navBar: () => {},
-    sharedDialogOpen: noElement,
-    navDialog: () => {},
-    getPauseMenu: noElement,
-    navPause: () => {},
+    // ========================= ⚠️ THE CARD OPENS NOW, SO IT HAS TO BE WALKABLE =========================
+    // These four were `() => null` and `() => {}`, and they were HONEST while nothing ever opened the
+    // pause card. The moment `pause()` started revealing it, a child on a pad met a card she could leave
+    // only with START and could not step through at all - half a menu, which for somebody navigating by
+    // ear is no menu.
+    //
+    // ⚠️ AND THE ENGINE NAMED THE FIX WHERE IT MOUNTS THE CARD: «O ID É O QUE A PRÓPRIA ENGINE PROCURA,
+    //    logo abaixo, no `getPauseMenu`. Montar sem o pôr deixaria o laço tão aberto como estava.» It sets
+    //    `#vp-pause-0` for exactly this, and `motor.nav` - one of the nineteen members of `Engine` and
+    //    until now one of the twelve nothing read - carries the three steps ready to hand back.
+    //
+    // ⚠️ AND THEY ARE FORWARDED RATHER THAN REIMPLEMENTED. `ui/menu-nav`'s own header calls itself the cure
+    //    for a duplication; writing a second focus walker here would be the fifteenth version of push/pop,
+    //    which is the phrase `create-game` uses about the scene stack for the same reason.
+    sharedDialogOpen: () => motor.nav.sharedDialogOpen(),
+    navDialog: (menu: HTMLElement, k: NavKeys) => {
+      motor.nav.navDialog(menu, k);
+    },
+    getPauseMenu: () => doc.querySelector<HTMLElement>('#vp-pause-0'),
+    navPause: (menu: HTMLElement, i: number, k: NavKeys) => {
+      motor.nav.navPause(menu, i, k);
+    },
     setPauseActor: () => {},
     modalInput: () => {},
     hasModal: () => false,

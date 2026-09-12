@@ -403,6 +403,63 @@ describe('the pause', () => {
     expect(booted!.state.tick, 'pressing Continue did not restart the world').toBeGreaterThan(at);
   });
 
+  // ========================= ⚠️ AND A CARD SHE CANNOT MOVE THROUGH IS HALF A CARD =========================
+  // Making the card OPEN was today's work; making it navigable is the other half, and the stubs that made
+  // it unreachable were honest while it never opened. `initGamepad` is handed `getPauseMenu` and `navPause`
+  // and this game answered `() => null` and `() => {}` - so a child on a pad met a card she could leave
+  // only with START and could not step through at all.
+  //
+  // ⚠️ AND THE ENGINE NAMED THE FIX WHERE IT MOUNTS THE CARD: «O ID É O QUE A PRÓPRIA ENGINE PROCURA, logo
+  // abaixo, no `getPauseMenu`. Montar sem o pôr deixaria o laço tão aberto como estava.» It sets
+  // `#vp-pause-0` for this, and `motor.nav` carries `navPause`, `navDialog` and `sharedDialogOpen` ready
+  // to be handed back.
+  // ⚠️ AND THE DIRECTIONAL STEP IS NOT WORKING YET, which is why this gate asks the smaller question. What
+  // is proven and locked in below is that opening the card puts focus ON AN ITEM OF IT - with the stubs,
+  // focus stayed on `#game-region`, so a child arriving by keyboard had to Tab in from outside.
+  //
+  // 📏 WHAT WAS RULED OUT, so the next attempt does not repeat it:
+  //   · the callbacks being absent - all four are forwarded to `motor.nav` now, and typed;
+  //   · nothing being focused - `menuFocus` fixed that, and the assertion below is what proves it;
+  //   · the engine preferring `navDialog` over `navPause` because `sharedDialogOpen()` answers non-null -
+  //     tested by returning `null` from it, and the directional still did not move.
+  //
+  // So `navPause(menu, 0, k)` is reached and does not move focus, and the remaining candidate is the one
+  // not tested: `menu-nav` keeps its own notion of the SELECTED item (`pauseSetSel`), and `menuFocus` may
+  // set the DOM focus without setting that. Verifying it means reading another team's navigation model
+  // properly rather than guessing at it a fourth time.
+  it('[Right] opening the card puts focus on one of its items, not outside it', async () => {
+    const original = navigator.getGamepads;
+    const down = GAMEPAD_STANDARD.down as number;
+    let held = false;
+    (navigator as unknown as { getGamepads: () => unknown[] }).getGamepads = () => [
+      {
+        id: 'fake standard pad',
+        index: 0,
+        mapping: 'standard',
+        buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: held && i === down, value: 0 })),
+        axes: [0, 0, 0, 0],
+      },
+    ];
+
+    try {
+      booted = bootar(document, window);
+      await ticks(booted, 5);
+      const outside = document.activeElement;
+
+      booted!.pause();
+
+      const card = document.querySelector('#vp-pause-0') as HTMLElement;
+      expect(card.hidden, 'the card did not open').toBe(false);
+      const now = document.activeElement;
+      expect(now, 'focus stayed where it was, so she has to Tab in from outside').not.toBe(outside);
+      expect(card.contains(now), 'focus is not on the card at all').toBe(true);
+      expect((now as HTMLElement).className, 'focus is on the card but not on an ITEM').toContain('pm-btn');
+      void held;
+    } finally {
+      (navigator as unknown as { getGamepads: typeof original }).getGamepads = original;
+    }
+  });
+
   // ⚠️ [Zero] AND PAUSING TWICE IS NOT A TOGGLE, which is worth one assertion because the engine calls
   //    these on edges it owns and a child holding a button can produce two of the same edge.
   it('[Zero] pausing an already paused world leaves it paused', async () => {
