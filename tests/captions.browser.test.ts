@@ -16,6 +16,7 @@
 // announcement in half. The caption is for eyes that cannot hear.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bootar } from '../app/js/boot/main.ts';
+import { until } from './helpers/ticks.ts';
 import { msToTicks, ticks } from './helpers/ticks.ts';
 import { t } from '@the-inclusionist/engine/core/i18n.js';
 import { setCaptionsOnValue, captionsOn } from '@the-inclusionist/engine/core/state.js';
@@ -37,14 +38,14 @@ beforeEach(() => {
   document.body.innerHTML = SHELL;
 });
 
-async function waitFor(what: () => boolean, why: string, timeoutMs = 6000): Promise<void> {
-  const until = Date.now() + timeoutMs;
-  while (Date.now() < until) {
-    if (what()) return;
-    await new Promise((r) => setTimeout(r, 40));
-  }
-  throw new Error(`timed out waiting for: ${why}`);
-}
+/**
+ * ⚠️ PATIENCE IN TICKS, NOT IN SECONDS. This was `Date.now() + 6000`, and measured under the full browser
+ * project six seconds is about thirty-six ticks of football - not reliably enough for a goal to be judged,
+ * narrated and written to the caption line. It passed alone and failed in the suite. `tests/helpers/ticks`
+ * holds the shared version so the next file does not reinvent it, which is what happened here and in
+ * `tests/stands`.
+ */
+const waitFor = (what: () => boolean, why: string): Promise<void> => until(booted, what, why);
 
 const caption = (): string => document.querySelector('#caption')?.textContent ?? '';
 const alerted = (): string => document.querySelector('#sr-alert')?.textContent ?? '';

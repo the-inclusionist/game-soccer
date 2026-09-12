@@ -39,11 +39,26 @@ export async function ticks(booted: Booted | null, n: number): Promise<void> {
   const from = booted?.state.tick ?? 0;
   await expect
     .poll(() => (booted?.state.tick ?? 0) - from, {
-      timeout: 10_000,
+      timeout: ceilingFor(n),
       interval: 10,
     })
     .toBeGreaterThanOrEqual(n);
 }
+
+/**
+ * The wall-clock ceiling for a wait of `n` ticks.
+ *
+ * ⚠️ IT WAS A FLAT TEN SECONDS AND THAT REBUILT THE BUG THIS FILE EXISTS TO REMOVE. The measurement above
+ * says the world runs at SIX ticks a second under the full project, so ten seconds buys about sixty ticks -
+ * and `tests/boot`'s goalmouth shot asks for `msToTicks(4000)`, which is 240. Forty seconds of wall clock
+ * against a ten-second ceiling: not a race it could lose, a race it could not win. Exactly the arithmetic
+ * this file diagnosed in `tests/stands` an hour earlier, reintroduced by its own fix.
+ *
+ * ⚠️ SO THE CEILING SCALES WITH THE REQUEST, at a floor of THREE ticks a second - half the measured rate,
+ * so a machine twice as contended as the one measured still finishes. It is a backstop against a stopped
+ * loop and nothing else, which is why being generous costs nothing: a healthy run never reaches it.
+ */
+const ceilingFor = (n: number): number => Math.max(10_000, (n / 3) * 1000);
 
 /**
  * The same wait, expressed in the unit the gates were written in.
@@ -70,3 +85,37 @@ export const msToTicks = (ms: number): number => Math.max(1, Math.round((ms / 10
  * a commit, and the stopped loop after it has been made to throw.
  */
 export const quiet = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Wait for a CONDITION, with the patience measured in ticks rather than in seconds.
+ *
+ * ⚠️ A WALL-CLOCK DEADLINE ON A CONDITION THE WORLD HAS TO PRODUCE IS THE SAME BET AS A SLEEP, one step
+ * removed. `tests/captions` gave its own `waitFor` six seconds: measured under the full browser project
+ * that is about thirty-six ticks of football, and a goal that has to be judged, narrated and then written
+ * to the caption line does not reliably fit in it. It passed alone and failed in the suite, which is the
+ * signature this file exists to remove - and `tests/stands` had already met it and fixed it locally by
+ * refusing to judge a reading taken while the page was starved.
+ *
+ * So patience here is TICKS: it gives up when the world has advanced `patienceTicks` without the condition
+ * coming true, which means the machine delivered the frames and the thing genuinely did not happen. The
+ * wall-clock ceiling stays, generous, for the one thing it is good for - a loop that never returns is
+ * worse than one that fails - and it is deliberately far too long to be the thing that fires first.
+ */
+export async function until(
+  booted: Booted | null,
+  what: () => boolean,
+  why: string,
+  patienceTicks = 240,
+): Promise<void> {
+  const from = booted?.state.tick ?? 0;
+  const wall = Date.now() + 120_000;
+  while (Date.now() < wall) {
+    if (what()) return;
+    const ran = (booted?.state.tick ?? 0) - from;
+    if (ran >= patienceTicks) {
+      throw new Error(`timed out waiting for: ${why} (after ${String(ran)} ticks of football)`);
+    }
+    await new Promise((r) => setTimeout(r, 16));
+  }
+  throw new Error(`timed out waiting for: ${why} (the loop stopped producing ticks)`);
+}

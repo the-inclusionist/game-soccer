@@ -33,6 +33,19 @@ export default defineConfig({
         // the integer-pixel gate and the PixiJS surface underneath them.
         test: {
           name: 'browser',
+          /**
+           * ⚠️ THE DEFAULT KILLED GATES THAT WERE STILL WORKING. Measured 2026-09-11: inside the full
+           * browser project the game runs at SIX ticks a second rather than sixty, so a gate that waits
+           * for four seconds of football - `tests/boot`'s goalmouth shot asks for 240 ticks - legitimately
+           * needs forty seconds of wall clock. Two such gates failed at about twenty seconds while the
+           * world was still delivering frames, which is the test runner giving up on a healthy test.
+           *
+           * ⚠️ AND RAISING IT IS NOT THE SAME MOVE AS RAISING A SLEEP. A sleep asks the machine to be fast;
+           * this asks the runner to be patient while `tests/helpers/ticks` watches the thing that actually
+           * matters - whether the world advanced. The helper still fails a stopped loop, at a ceiling that
+           * scales with the ticks requested, so nothing here waits for ever.
+           */
+          testTimeout: 120_000,
           root: import.meta.dirname,
           include: ['tests/**/*.browser.test.{js,ts}'],
           browser: {

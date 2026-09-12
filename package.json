@@ -49,15 +49,11 @@
     "build depended on whatever the other session had saved that minute; a version does not move under you.",
     "`pixi.js` is pinned to the engine's EXACT peer version: two PixiJS in one page is a bug, not a",
     "fallback.",
-    "⚠️ `@mintplex-labs/piper-tts-web` IS HERE TO PATCH A GAP IN THE ENGINE'S OWN PACKAGE, and it is the",
-    "first defect the registry install found. `dist-pkg/platform/tts.js` imports it at runtime and the",
-    "engine declares it as a DEV dependency, so it does not travel to anyone who installs from npm - the",
-    "import simply fails to resolve. It was invisible for as long as every game consumed the engine by",
-    "`file:`, because a symlink reaches into the engine's own node_modules. This line comes out the day the",
-    "engine moves it to `dependencies`."
+    "⚠️ AND THE `@mintplex-labs/piper-tts-web` LINE IS GONE, BECAUSE THE REASON FOR IT WAS FALSE. It said `dist-pkg/platform/tts.js` imports the package at runtime while the engine declares it as a DEV dependency, so the import would not resolve for anyone installing from the registry. ⏱ Measured 2026-09-11 against BOTH the installed 8.0.0 and the published 9.0.0: the string `mintplex` appears in `platform/tts.js` exactly twice, and both are COMMENTS. There is no import, no `require` and no dynamic `import()` anywhere in `dist-pkg`. ADR-0094 put that one line on the GAME's side - the engine owns the voices and the game names the provider - so the engine is right not to declare it.",
+    "⚠️ AND NOTHING HERE IMPORTED IT EITHER: zero hits across `app`, `tests` and `scripts`. This game declines the neural voice (`semVozNeural`), so it never passes `carregarVozNeural` and never needed the provider at all. The cost was not theoretical - `piper-tts-web` peers on `onnxruntime-web`, which npm installs, and `node_modules` went from 269 MB to 127 MB when the line came out. `npm run validate` is green without it.",
+    "⚠️ AND WHETHER THE CLAIM WAS EVER TRUE IS NOT KNOWN, which is said rather than guessed: it may have been accurate against 7.0.1 and gone stale when ADR-0094 moved the import, or it may have been wrong when written. Either way a claim about somebody else's package needs re-reading every time the dependency moves, which is the rule `docs/ENGINE-AUDIT.md` already states and this line was outside of."
   ],
   "dependencies": {
-    "@mintplex-labs/piper-tts-web": "^1.0.4",
     "@the-inclusionist/engine": "^9.0.0",
     "pixi.js": "7.4.2"
   },
