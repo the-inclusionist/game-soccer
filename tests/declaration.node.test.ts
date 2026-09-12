@@ -25,6 +25,16 @@ import { PACE_M, PITCH } from '../app/js/sim/units.ts';
 import { NOBODY } from '../app/js/sim/possession.ts';
 import type { MatchPhase } from '../app/js/rules/phase.ts';
 import { CHARGE_MODES } from '../app/js/input/charge.ts';
+import { playTick } from '../app/js/play.ts';
+import { emptyFrame } from '../app/js/sim/command.ts';
+import { DT } from '../app/js/sim/ball.ts';
+import { withPeriod } from '../app/js/rules/profile.ts';
+import { CLUBS } from '../app/js/teams/roster.ts';
+import { onPitch } from '../app/js/sim/squads.ts';
+import { firstOf } from '../app/js/sim/ids.ts';
+
+/** The five-minute school match, which is the game the Dev settled on. */
+const SWEEP_PROFILE = withPeriod(MATCH_PROFILE, 5);
 
 /** A `t` that RETURNS ITS KEY, so a test can measure which key was asked for and catch a raw literal. */
 const keyEcho = (key: string) => 't:' + key;
@@ -254,6 +264,88 @@ describe('field 8 - targetsOf', () => {
     state.possession.holder = 9;
 
     expect(d.targetsOf(0).length).toBeLessThanOrEqual(4);
+  });
+
+  // ⚠️ AND "NEVER" WAS GATED ON ONE HAND-PLACED STATE. The gate above sets a carrier, asks once, and is
+  // named `never more than four` - which is a claim about every state a match can reach, answered by the
+  // single state the test happened to build. The bound is the highest-leverage decision in this design
+  // (a sonar that beeps ten times says nothing), and it is the sonar of a child who cannot see the pitch,
+  // so it is worth asking of football rather than of a fixture.
+  //
+  // So this one plays a real five-minute match with nobody driving and asks the declaration on EVERY tick,
+  // through every phase, restart, booking and change of ends. Deterministic - no clock and no `random`
+  // under `sim/`, `rules/` or `ai/` - so it is a repeatable measurement, not a soak.
+  //
+  // ⚠️ THE SEAT FOLLOWS AN ON-PITCH MAN, because that is what a seat is. A sent-off player is switched
+  // away from by the boot, so pinning the seat to a fixed id would sweep a state the game prevents and
+  // report a defect that is not one.
+  it('[Many] and "never" means every tick of a whole match, not one arranged state', () => {
+    const state = createMatchState(SWEEP_PROFILE);
+    state.phase = 'live';
+    const sides = { 0: CLUBS[0].ratings, 1: CLUBS[1].ratings };
+    // ⚠️ THE SEAT FOLLOWS THE BALL WHEN WE HAVE IT, and the first version of this sweep did not - it took
+    // the first on-pitch home player, which in a 4-4-2 is the GOALKEEPER. He is never the carrier, so
+    // every one of twelve thousand ticks took the off-the-ball branch and the sweep reported a worst case
+    // of ONE. A maximum of one is impossible if the branch being measured had ever run; the ceiling was
+    // green because nothing came near it, and the sweep would have certified a bound it never tested.
+    const ours = () => {
+      const holder = state.possession.holder;
+      if (holder !== NOBODY && holder >= firstOf(HOME) && holder < firstOf(HOME) + SQUAD_SIZE) {
+        if (onPitch(state, holder)) return holder;
+      }
+      for (let i = 1; i < SQUAD_SIZE; i++) {
+        const id = firstOf(HOME) + i;
+        if (onPitch(state, id)) return id;
+      }
+      return firstOf(HOME);
+    };
+    const d = createDeclaration({
+      state: () => state,
+      profile: () => SWEEP_PROFILE,
+      ourTeam: () => HOME,
+      controlledBy: () => ours(),
+      t: keyEcho,
+      charge: () => 'hold',
+    });
+
+    let worst = 0;
+    let asked = 0;
+    const phaseNow = (): string => state.phase;
+
+    for (let tick = 0; tick < 40_000 && phaseNow() !== 'fullTime'; tick++) {
+      playTick(state, emptyFrame(tick), DT, SWEEP_PROFILE, sides);
+      const spots = d.targetsOf(0);
+      asked += 1;
+      if (spots.length > worst) worst = spots.length;
+
+      expect(spots.length, `${String(spots.length)} targets on tick ${String(tick)} in ${phaseNow()}`).toBeLessThanOrEqual(4);
+      // A NaN coordinate is the silent version of the same failure: the sonar pans to nowhere and says
+      // nothing, with no gate anywhere reporting a wrong number.
+      for (const s of spots) {
+        expect(Number.isFinite(s.x) && Number.isFinite(s.y), `spot off the number line on tick ${String(tick)}`).toBe(true);
+      }
+    }
+
+    // The match has to have actually been played, or the sweep measured an empty loop.
+    expect(phaseNow()).toBe('fullTime');
+    expect(asked).toBeGreaterThan(10_000);
+    // ⚠️ MEASURED 2026-09-11: THE CEILING OF FOUR IS NEVER REACHED - the most football ever offers is
+    // THREE. That is not a slack bound, it is the attack diagnosis arriving from the accessibility side:
+    // `receiverFor` refuses all but a fraction of its candidates, so a carrier rarely has three legal open
+    // team-mates AND the goal at once. The ceiling gate was green because nothing came near it.
+    expect(worst).toBeLessThanOrEqual(4);
+
+    // ⚠️ AND THIS IS THE ASSERTION WITH TEETH, because it is the one a child feels. A sonar that offers
+    // exactly one thing is not a choice - it is an instruction, and the whole claim of `targetsOf` is that
+    // a child who cannot see the pitch sweeps it, hears two or three distinct directions, picks one and
+    // passes. If the passing game degrades to a single option this goes red and says so HERE, in the
+    // accessibility register, rather than as a moved average in a band table.
+    //
+    // ⚠️ AND IT IS DELIBERATELY NOT `toBe(3)`. An exact measurement of a played match is a golden trail
+    // wearing a gate's clothes: it goes red whenever the AI is legitimately retuned, gets re-blessed, and
+    // carries a real regression through in the re-blessing. The floor is the requirement; three is the
+    // observation, and it belongs in this comment.
+    expect(worst, 'the sonar never offered a choice - only one option, all match').toBeGreaterThanOrEqual(2);
   });
 
   // WARNING: THE DEFENDERS ARE PARKED OFF THE PASSING LINE ON PURPOSE, and it took a surviving mutation
