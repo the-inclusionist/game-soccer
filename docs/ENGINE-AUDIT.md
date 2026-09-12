@@ -87,7 +87,7 @@ work — so this table is re-read every time the dependency moves, against
 | 8 · a key may hold two positions at once | **CLOSED** — refused at the point of entry rather than moved |
 | 9 · the move toggle's direction is only ever cleared | **STILL OPEN in 9.0.0** — `input/latch-sync.d.ts` is byte-identical between 8.0.0 and 9.0.0 |
 | 10 · `createGame` could not reach the pause card, the contrast writers or the second seat | **CLOSED in 9.0.0** — the four fields above, and see below |
-| 11 · the bar's own navigation is not reachable from a game `createGame` mounted | **OPEN, found 2026-09-11** — see below |
+| 11 · the bar's own navigation is not reachable from a game `createGame` mounted | **OPEN, found 2026-09-11** — and a game cannot work around it: see below |
 
 ⚠️ **AND FINDING 1 WAS THE ONE THAT MATTERED MOST, SO ITS CLOSING IS WORTH THE SENTENCE.** A team-mate
 ten metres to our right panned to 0.057 — mono, on a pitch ninety metres wide. The fix takes the
@@ -378,11 +378,21 @@ way to say what a pause item does, while the engine held `getPauseActs` on the s
 there was to add the door. The bar looks like the half of that work that was not done — which is a guess
 about intent and is marked as one.
 
-📌 **WHAT IS NOT VERIFIED, and would decide the shape of the fix:** whether a game is expected to call
-`initPauseIcons` itself to get that API. It is exported, and this game already deep-calls
-`initSettingsControls` for the remap panel — but `createGame` has already called `initPauseIcons` once, and
-calling it twice would mount a second bar. Reading that properly is the next step, and it is a reading of
-somebody else's module rather than a change to this one.
+📏 **AND THE OPEN QUESTION IS NOW READ RATHER THAN GUESSED, and the answer is worse than "unverified".**
+`initPauseIcons(ctx)` is exported and RETURNS the API, and mounting is separate — `buildScreenPause` and
+`buildQuickBar` are methods on the returned object — so a game could call it and touch neither. That is not
+the problem.
+
+⚠️ **THE PROBLEM IS THAT `naBarraDe` ANSWERS FROM CLOSURE STATE.** "Who is in the bar" is tracked inside
+the instance, by `entrarNaBarra` and `sairDaBarra`. And the thing that puts a child in the bar is the pause
+card's `acessibilidade` item — one of `ITENS_DA_ENGINE`, actioned by **`createGame`'s own instance**, whose
+`entrarNaBarra` calls `acts.resume?.()` to leave the card first. So a game that builds a SECOND instance to
+answer `naBarraDe` would be asking an object that was never entered: the child is in the bar according to
+instance A, and instance B — the one the pad consults — says no.
+
+Two instances, two answers, and the honest one is unreachable. So the fix is not on the game's side at all:
+`createGame` has to hand back the instance it already built, the way 9.0.0 handed back `pausa.mostrar`.
+That makes this finding the same fix as finding 10 and not merely the same shape.
 
 ## What was drafted here and has since landed
 
