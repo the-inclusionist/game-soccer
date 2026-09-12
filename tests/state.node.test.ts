@@ -11,7 +11,13 @@
 // exists to catch - a millimetre of divergence per tick is invisible for a minute and decisive after ten.
 import { describe, expect, it } from 'vitest';
 import { AWAY, HOME, SQUAD_SIZE, teamOf } from '../app/js/sim/ids.ts';
-import { createMatchState } from '../app/js/sim/state.ts';
+import {
+  BALL_FIELDS,
+  BODY_FIELDS,
+  POSSESSION_FIELDS,
+  SCALAR_FIELDS,
+  createMatchState,
+} from '../app/js/sim/state.ts';
 import { digest } from '../app/js/sim/digest.ts';
 import { PITCH } from '../app/js/sim/units.ts';
 
@@ -119,6 +125,37 @@ describe('the digest', () => {
 
     expect(actual.filter((k) => !covered.has(k))).toEqual([]);
     expect([...covered].filter((k) => !actual.includes(k))).toEqual([]);
+  });
+
+  // ⚠️ THE GATE ABOVE CATCHES ONE DIRECTION AND THIS ONE CATCHES THE OTHER. `covered` catches a state
+  //    field that ARRIVES with no digest row - the direction somebody thought about. Nothing caught a row
+  //    that LEAVES while the field stays, and that direction is worse: the field is still in `covered`, so
+  //    the list above stays green while the digest quietly stops seeing part of the world.
+  //
+  // ⚠️ MEASURED 2026-09-11, by deleting the row for `pressure`, then `tookRestart`, then `heldKickFired[0]`
+  //    and running the whole node project each time. Every one was caught by exactly ONE gate out of 902,
+  //    and it was `golden-match` - the hash. That is the trap, not the safety net: a golden hash is
+  //    re-blessed on purpose whenever the game changes, and the digest is at once the future network's
+  //    desync detector AND the golden replay's own premise. The one gate standing between a lost row and a
+  //    silent divergence is the very number the loss corrupts, so on the day it is legitimately re-blessed
+  //    the missing row rides along and nothing anywhere says so again.
+  //
+  // ⚠️ SIXTEEN OF THE TWENTY-TWO FIELDS HAVE NO BEHAVIOUR GATE. Six do - `ball`, `players`, `possession`,
+  //    `offsidePasser`, `offsideMask` and `lastKick`, the last two written the day they arrived. Pinning
+  //    the lengths is not a substitute for the other sixteen; it is the cheap half that makes a DELETION
+  //    impossible to land quietly, and the per-field behaviour gates remain the honest half.
+  //
+  // ⚠️ AND A PINNED NUMBER IS THE RIGHT INSTRUMENT HERE, which is not true of most pinned numbers in this
+  //    repository. A count of rows is a STRUCTURAL fact, not a measurement of a played match: it changes
+  //    only when an author deliberately adds or removes a row, and then updating it is the point - the
+  //    diff makes the author say out loud that the world's hash now covers something different. What must
+  //    never be pinned is an observation the game produces, because that reddens on a legitimate retune,
+  //    gets re-blessed, and carries regressions through in the re-blessing.
+  it('[Interface] and no row can leave the digest without somebody saying so', () => {
+    expect(SCALAR_FIELDS.length, 'a scalar row was added or removed').toBe(25);
+    expect(BALL_FIELDS.length, 'a ball row was added or removed').toBe(7);
+    expect(BODY_FIELDS.length, 'a body row was added or removed').toBe(8);
+    expect(POSSESSION_FIELDS.length, 'a possession row was added or removed').toBe(2);
   });
 
   it('[Interface] the hash is a 32-bit unsigned integer, so it survives being written down', () => {
