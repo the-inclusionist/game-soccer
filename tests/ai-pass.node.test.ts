@@ -190,13 +190,30 @@ describe('a carrier under pressure', () => {
 describe('a rating that finally reaches the pitch', () => {
   // ⚠️ `think` DID `void skills`. The clubs' six numbers were accepted and discarded, so "every club is a
   //    side" was true of the roster and false of the match. This is the first place one bites.
+  // ⚠️ THE NAME SAYS AN ORDERING AND THE ASSERTION SAID A DIFFERENCE. This was
+  //    `expect(aim(good)).not.toBe(aim(bad))`, which passes just as happily if the sharp passer aims
+  //    WORSE than the poor one - the one outcome the gate exists to forbid. `passing` is a rating applied
+  //    at the point of action, and the direction it is applied in is the whole of what makes it a rating
+  //    rather than a number in a struct.
+  //
+  // ⚠️ AND `aim` MEASURED THE WRONG ANGLE. It was `|atan2(vy, vx)|` - the kick's absolute bearing - while
+  //    the quantity the name describes is the DEVIATION from the line to the team-mate. The setup puts the
+  //    carrier at (30, 28) and the mate at (44, 26), so the intended line is about -0.142 rad and not
+  //    zero: an error that pushed a kick TOWARD zero bearing scored as straighter while being further off
+  //    the pass. The proxy only held while the mate happened to be level with the carrier.
   it('[Right] a sharper passer aims straighter than a poor one', () => {
-    const good = decideKick(pressed(sharp).s, MATCH_PROFILE.playable, { 0: sharp, 1: AVERAGE })!;
-    const bad = decideKick(pressed(poor).s, MATCH_PROFILE.playable, { 0: poor, 1: AVERAGE })!;
+    const good = pressed(sharp);
+    const bad = pressed(poor);
+    const kickGood = decideKick(good.s, MATCH_PROFILE.playable, { 0: sharp, 1: AVERAGE })!;
+    const kickBad = decideKick(bad.s, MATCH_PROFILE.playable, { 0: poor, 1: AVERAGE })!;
 
-    const aim = (k: { vx: number; vy: number }) => Math.abs(Math.atan2(k.vy, k.vx));
-    // The intended line is toward the team-mate; the poor passer's is further off it.
-    expect(aim(good)).not.toBe(aim(bad));
+    const wanted = (p: ReturnType<typeof pressed>) =>
+      Math.atan2(p.s.players[p.mate].p.y - p.s.players[p.carrier].p.y, p.s.players[p.mate].p.x - p.s.players[p.carrier].p.x);
+    const off = (k: { vx: number; vy: number }, want: number) => Math.abs(Math.atan2(k.vy, k.vx) - want);
+
+    expect(off(kickGood, wanted(good)), 'the sharp passer is no straighter than the poor one').toBeLessThan(
+      off(kickBad, wanted(bad)),
+    );
   });
 
   it('[Zero] and the same club passes the same way every time - no dice', () => {
