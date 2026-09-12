@@ -8,10 +8,26 @@ import { describe, expect, it } from 'vitest';
 import { DICTS, installDicts } from '../app/js/i18n/index.ts';
 import { bodyOf, sourcesUnder } from './helpers/sources.ts';
 
-/** The same tree every absence gate in this repository reads. See `tests/helpers/sources`. */
-const ROOT = 'app/js';
 import { availableLocales } from '@the-inclusionist/engine/core/i18n.js';
 import { PHASES } from '../app/js/rules/phase.ts';
+
+/** The same tree every absence gate in this repository reads. See `tests/helpers/sources`. */
+const ROOT = 'app/js';
+
+/**
+ * The FIRST argument of `t()`, single- or back-quoted, with no interpolation in it.
+ *
+ * ⚠️ ONE COPY, AND THE REASON IS THE SECOND GATE BELOW. That gate exists to prove this pattern still
+ * finds the keys, because a pattern matching nothing makes the orphan gate pass by finding no orphans.
+ * Written out twice - which is how it was first committed - the two copies can drift, and then the
+ * self-check certifies a regex the gate does not use: the same "action and assertion through different
+ * tables" defect this project keeps meeting, in the one place whose whole job is to catch it.
+ *
+ * `[,)]` at the end so that `t('hud.ball.with', { club })` counts: a key with parameters is still a key.
+ * Safe to share between the two gates because both read it with `matchAll`, which takes its own copy
+ * rather than carrying `lastIndex` from one call to the next.
+ */
+const ASKED_KEY = /(?:^|[^A-Za-z0-9_$.])t\(\s*(?:'([^'\n]+)'|`([^`\n$]+)`)\s*[,)]/g;
 
 const codes = Object.keys(DICTS) as (keyof typeof DICTS)[];
 
@@ -85,9 +101,7 @@ describe('the three dictionaries', () => {
   //    otherwise would be the "correct and useless" failure this project keeps naming. Those are covered by
   //    the phase gate above, by the seating gates, and by the club fixtures. This one closes the literals.
   it('[Many] every literal key a call site asks for exists in the dictionaries', () => {
-    // The FIRST argument of `t()`, single- or back-quoted, with no interpolation in it. `[,)]` at the end
-    // so that `t('hud.ball.with', { club })` counts: a key with parameters is still a key.
-    const asked = /(?:^|[^A-Za-z0-9_$.])t\(\s*(?:'([^'\n]+)'|`([^`\n$]+)`)\s*[,)]/g;
+    const asked = ASKED_KEY;
     const known = new Set(Object.keys(DICTS.en));
     const orphans: string[] = [];
 
@@ -107,7 +121,7 @@ describe('the three dictionaries', () => {
   //    if a refactor moves the keys somewhere this pattern cannot see, this goes red and says so rather
   //    than letting the gate above report coverage it no longer has.
   it('[Zero] and the pattern still finds the keys, or the gate above proves nothing', () => {
-    const asked = /(?:^|[^A-Za-z0-9_$.])t\(\s*(?:'([^'\n]+)'|`([^`\n$]+)`)\s*[,)]/g;
+    const asked = ASKED_KEY;
     const found = new Set<string>();
 
     for (const file of sourcesUnder(ROOT)) {
