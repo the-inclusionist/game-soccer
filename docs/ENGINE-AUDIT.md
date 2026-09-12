@@ -35,8 +35,33 @@ none removed**, and exactly **two** differ.
 
 | file | what moved |
 |---|---|
-| `ui/pause-icons.d.ts` | `seguraTeclas` becomes `() => boolean` where it was `boolean`, in `EscritoresVisuais` and in the `initPauseIcons` options. **This is the whole of the major bump.** |
-| `boot/create-game.d.ts` | four new **optional** fields: `getPauseActs`, `setPauseActor`, `setTemaDoJogador`, `setCorrecaoDoJogador` |
+| `ui/pause-icons.d.ts` | `seguraTeclas` becomes `() => boolean` where it was `boolean`, in `EscritoresVisuais` and in the `initPauseIcons` options. **This is the whole of the source-breaking change.** |
+| `boot/create-game.d.ts` | four new **optional** fields — `getPauseActs`, `setPauseActor`, `setTemaDoJogador`, `setCorrecaoDoJogador` — **and `mount(declaration, ganchos?)` / `unmount()`, which is the headline** |
+
+⚠️ **AND THE FIRST VERSION OF THIS SECTION MISSED THE HEADLINE, which is recorded because of HOW it was
+missed.** The `.js` files were diffed too and the same two differ — so "exactly two modules changed" held —
+but the `create-game.d.ts` diff is 105 lines and it was read through `head -60`. The four optional fields
+are in the first sixty; `mount` and `unmount` are not. A conclusion drawn from a truncated diff is a
+conclusion about the truncation.
+
+**`mount()` and `unmount()` are ADR-0142, built.** That record was read on 2026-09-11 carrying «⚠️ NOT
+BUILT, so no `confirmed-by`» and a list of gates named so they would not be invented later. 9.0.0
+implements it: `create-game.js` now keeps a mutable `cartucho` pointer, `declines` became a function
+reading through it, the host problems and the cartridge problems were split into
+`problemasDoHospedeiro` and `problemasDoCartucho()`, and `REACH_NOTICE_ID` is imported so the reach
+warning can be taken back down — which is the one thing the record said «no amount of shell code reaches
+inside the engine» to do.
+
+Its own doc states the two rules that matter to a consumer: `mount` **throws** on a malformed declaration
+rather than reporting it, because the contract is a precondition and not a diagnostic; and `problems` and
+`alcance` describe the mounted cartridge **because they are derived, not because `mount` copies them**.
+
+⚠️ **SO ADR-0139 §5'S DEBT IS PAID.** That clause said `engine.problems` and `engine.alcance` are not to
+be trusted in platform mode and that the platform must re-run `conformanceProblems` itself — «a duplicate
+of a diagnostic the engine owns, and it is a debt, not a design». There is no longer anything to
+duplicate. Nothing in the cartridge plan for this game changes, because a cartridge still supplies half of
+`CreateGameOptions` and never calls `createGame` — what changes is that the platform shell no longer
+inherits a knowingly-stale diagnostic.
 
 ⚠️ **AND THE BREAKING CHANGE DOES NOT REACH THIS GAME.** We never import `ui/pause-icons`, never call
 `initPauseIcons` and never build an `EscritoresVisuais`; our `declaration.seguraTeclas()` was always a
