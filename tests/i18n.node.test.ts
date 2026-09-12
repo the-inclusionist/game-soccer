@@ -6,6 +6,10 @@
 // between that and a release.
 import { describe, expect, it } from 'vitest';
 import { DICTS, installDicts } from '../app/js/i18n/index.ts';
+import { bodyOf, sourcesUnder } from './helpers/sources.ts';
+
+/** The same tree every absence gate in this repository reads. See `tests/helpers/sources`. */
+const ROOT = 'app/js';
 import { availableLocales } from '@the-inclusionist/engine/core/i18n.js';
 import { PHASES } from '../app/js/rules/phase.ts';
 
@@ -63,6 +67,57 @@ describe('the three dictionaries', () => {
     }
 
     expect(missing, 'a child would read the key instead of the word').toEqual([]);
+  });
+
+  // ⚠️ THE PENALTY WORD WAS A MISSING KEY AND THE FIX GATED ITS FAMILY, NOT ITS CLASS. `hud.phase.penalty`
+  //    did not exist; `t()` falls back to the key, so a blind child at a penalty heard the string
+  //    "hud.phase.penalty" read out and nothing anywhere was red. The gate written that day walks `PHASES`
+  //    - which is right, and covers the ONE key family that is built by concatenation. Every other key in
+  //    this game is a plain literal at a call site, and a typo in any of them fails exactly the same way
+  //    and is caught by nothing.
+  //
+  // ⚠️ MEASURED 2026-09-11: forty-three literal keys across the tree, all forty-three present. So this
+  //    gate is born green on the code and red on the fault - which is the only way round that is useful
+  //    for an absence gate, and the reason to write it while the absence is true.
+  //
+  // ⚠️ WHAT IT DOES NOT COVER, SAID PLAINLY. A key assembled at run time - `t(`hud.phase.${state.phase}`)`,
+  //    `t(`seats.${option.value}`)`, `t(club.nameKey)` - cannot be read from the source, and claiming
+  //    otherwise would be the "correct and useless" failure this project keeps naming. Those are covered by
+  //    the phase gate above, by the seating gates, and by the club fixtures. This one closes the literals.
+  it('[Many] every literal key a call site asks for exists in the dictionaries', () => {
+    // The FIRST argument of `t()`, single- or back-quoted, with no interpolation in it. `[,)]` at the end
+    // so that `t('hud.ball.with', { club })` counts: a key with parameters is still a key.
+    const asked = /(?:^|[^A-Za-z0-9_$.])t\(\s*(?:'([^'\n]+)'|`([^`\n$]+)`)\s*[,)]/g;
+    const known = new Set(Object.keys(DICTS.en));
+    const orphans: string[] = [];
+
+    for (const file of sourcesUnder(ROOT)) {
+      const body = bodyOf(file);
+      for (const hit of body.matchAll(asked)) {
+        const key = hit[1] ?? hit[2];
+        if (key !== undefined && !known.has(key)) orphans.push(`${key} (in ${file})`);
+      }
+    }
+
+    expect(orphans, 'a call site asks for a word no dictionary has').toEqual([]);
+  });
+
+  // ⚠️ AND THE REGEX IS ITSELF GATED, because a pattern that matches nothing makes the gate above pass by
+  //    finding no orphans - the purest form of a gate that cannot fail. Forty-three is the measured count;
+  //    if a refactor moves the keys somewhere this pattern cannot see, this goes red and says so rather
+  //    than letting the gate above report coverage it no longer has.
+  it('[Zero] and the pattern still finds the keys, or the gate above proves nothing', () => {
+    const asked = /(?:^|[^A-Za-z0-9_$.])t\(\s*(?:'([^'\n]+)'|`([^`\n$]+)`)\s*[,)]/g;
+    const found = new Set<string>();
+
+    for (const file of sourcesUnder(ROOT)) {
+      for (const hit of bodyOf(file).matchAll(asked)) {
+        const key = hit[1] ?? hit[2];
+        if (key !== undefined) found.add(key);
+      }
+    }
+
+    expect(found.size, 'the key scan stopped finding keys').toBeGreaterThanOrEqual(40);
   });
 
   it('[Right] every dictionary is handed to the engine, not just the first', () => {

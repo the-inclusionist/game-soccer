@@ -30,43 +30,13 @@
 // `createGame`), `ADR-0140` (standalone PWA and cartridge from one source) and `ADR-0141` (a cartridge
 // owns its random stream), in `the-inclusionist-docs/docs/2-Architecture/adr/`.
 import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { bodyOf, sourcesUnder } from './helpers/sources.ts';
 import { DICTS, installDicts } from '../app/js/i18n/index.ts';
 
 const ROOT = 'app/js';
 
-/**
- * Every `.ts` under `app/js`, including the ones at its top level.
- *
- * ⚠️ WALKED RATHER THAN GLOBBED, and that is a defect this project has paid for. A pattern of
- * `app/js/**` + `*.ts` skips the files in the ROOT of the tree - which here are `declaration.ts`,
- * `narration.ts`, `play.ts` and `project.ts` - and returns a shorter list with no error at all. A gate
- * that silently stops looking at four files is worse than no gate.
- */
-function sourcesUnder(dir: string): string[] {
-  let found: string[] = [];
-  let entries: string[];
-  try {
-    entries = readdirSync(dir);
-  } catch {
-    return found;
-  }
-  for (const name of entries) {
-    const full = join(dir, name);
-    if (statSync(full).isDirectory()) found = found.concat(sourcesUnder(full));
-    else if (name.endsWith('.ts')) found.push(full);
-  }
-  return found;
-}
-
-/** Strip line and block comments, so a header that NAMES a forbidden thing does not trip its own gate. */
-function code(text: string): string {
-  return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-}
-
 const SOURCES = sourcesUnder(ROOT);
-const bodyOf = (file: string): string => code(readFileSync(file, 'utf8'));
 
 describe('the cartridge shape', () => {
   it('[Zero] the walk found the whole tree, or every gate below proves nothing', () => {
