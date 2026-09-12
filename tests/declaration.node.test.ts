@@ -310,6 +310,15 @@ describe('field 8 - targetsOf', () => {
 
     let worst = 0;
     let asked = 0;
+    // ⚠️ THE LOOP RECORDS AND THE ASSERTIONS COME AFTER, and the first version of this gate did the
+    // opposite - twelve thousand `expect` calls inside the loop. Alone it ran in 1.4 s; under the full
+    // `validate`, with the browser project transforming beside it, it passed the node project's five-second
+    // ceiling and was KILLED while healthy. That is the third arithmetic impossibility this repository has
+    // built into a wait and the first one in a testTimeout: a deadline a correct test cannot meet under
+    // load is not a deadline, it is a flake with a stack trace. Recording the first offender keeps the
+    // tick and the phase in the failure message, which is the only thing the per-tick `expect` bought.
+    let tooMany: string | null = null;
+    let offTheNumberLine: string | null = null;
     const phaseNow = (): string => state.phase;
 
     for (let tick = 0; tick < 40_000 && phaseNow() !== 'fullTime'; tick++) {
@@ -317,14 +326,20 @@ describe('field 8 - targetsOf', () => {
       const spots = d.targetsOf(0);
       asked += 1;
       if (spots.length > worst) worst = spots.length;
-
-      expect(spots.length, `${String(spots.length)} targets on tick ${String(tick)} in ${phaseNow()}`).toBeLessThanOrEqual(4);
+      if (spots.length > 4 && tooMany === null) {
+        tooMany = `${String(spots.length)} targets on tick ${String(tick)} in ${phaseNow()}`;
+      }
       // A NaN coordinate is the silent version of the same failure: the sonar pans to nowhere and says
       // nothing, with no gate anywhere reporting a wrong number.
       for (const s of spots) {
-        expect(Number.isFinite(s.x) && Number.isFinite(s.y), `spot off the number line on tick ${String(tick)}`).toBe(true);
+        if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) {
+          offTheNumberLine ??= `spot (${String(s.x)}, ${String(s.y)}) on tick ${String(tick)}`;
+        }
       }
     }
+
+    expect(tooMany, 'the sonar offered more than a child can hold').toBe(null);
+    expect(offTheNumberLine, 'a target that is not a place').toBe(null);
 
     // The match has to have actually been played, or the sweep measured an empty loop.
     expect(phaseNow()).toBe('fullTime');
@@ -346,7 +361,10 @@ describe('field 8 - targetsOf', () => {
     // carries a real regression through in the re-blessing. The floor is the requirement; three is the
     // observation, and it belongs in this comment.
     expect(worst, 'the sonar never offered a choice - only one option, all match').toBeGreaterThanOrEqual(2);
-  });
+    // ⚠️ AND THE CEILING IS DECLARED, GENEROUSLY, for the one thing a deadline is good for: a match that
+    // never reaches full time would otherwise hang the suite. `tests/helpers/ticks` argues this at length
+    // for the browser - a backstop against a stopped loop, far too long to be the thing that fires first.
+  }, 120_000);
 
   // WARNING: THE DEFENDERS ARE PARKED OFF THE PASSING LINE ON PURPOSE, and it took a surviving mutation
   // to find out why it matters. With them standing between carrier and receiver, the pass was already
