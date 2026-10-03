@@ -30,12 +30,14 @@ let booted: ReturnType<typeof bootar> = null;
 beforeEach(() => {
   booted?.stop();
   booted = null;
-  // ⚠️ NORMALISED THROUGH THE TOGGLE, NOT THROUGH STORAGE, and the first version of this used storage and
-  //    leaked state between cases. The engine's `librasOpen` is a module-level `let` read ONCE at import
-  //    (`store.getBool('incl_libras', false)`), so clearing the key afterwards changes what a future
-  //    import would see and nothing about the module that is already loaded. The only handle on it is the
-  //    toggle itself.
-  if (booted?.motor.deafMode.isOn()) booted.motor.deafMode.toggle();
+  // ⚠️ CLEARED THROUGH STORAGE NOW, NOT THROUGH THE TOGGLE, and the comment that was here says why
+  //    the old shape no longer applies: «The engine's `librasOpen` is a module-level `let` read ONCE at
+  //    import, so clearing the key afterwards changes what a future import would see and nothing about
+  //    the module that is already loaded.» In 11.0 there is no module-level `let` to normalise - deaf mode
+  //    is per-root (`motor.deafMode`), built fresh on every boot FROM `localStorage.getBool('incl_libras')`.
+  //    So the handle that persists state across tests IS storage now, and clearing it before the next boot
+  //    is what resets. The key is pinned here from `ui/vlibras.ts:115` because the engine does not export it.
+  localStorage.removeItem('incl_libras');
   document.body.innerHTML = SHELL;
 });
 

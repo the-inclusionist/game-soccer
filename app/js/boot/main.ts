@@ -230,6 +230,18 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
      * broken a case inside the engine.
      */
     getPauseActs: () => ({ resume: () => resume() }),
+    /**
+     * ⚠️ THE ENGINE OWNS WHEN THE CARD OPENS, THE GAME OWNS WHETHER THE WORLD MOVES. ADR-0144 §2 and
+     * its symmetry a few hundred lines above: `createGame` opens its card on START (ADR-0122), then asks
+     * the game to freeze; we hide our card and ask the game to resume. The engine calls this with
+     * `'paused'` or `'playing'`; the game sets its own flag and the driver reads it on the next frame.
+     *
+     * ⚠️ AND IT IS WHAT CLOSES THE SIX-ERROR CHAIN FROM 11.0. Removing our `initGamepad` cut the
+     * `pausar`/`retomar` callbacks the engine used to call for us. Without this, the engine's own card
+     * opens on START and the world keeps playing underneath - the exact defect `tests/boot.browser`
+     * «START pauses the world through the engine» caught at 39-vs-24 ticks.
+     */
+    setPhase: (p) => { paused = p === 'paused'; },
     // ========================= ⚠️ AND TWO ACCESSIBILITY ICONS ARE MISSING FROM THIS GAME =========================
     // 📏 Measured 2026-09-11 with the card open: `PAUSE_ICONS` declares TEN and the bar mounts EIGHT -
     // blind, tts, libras, tea, altmove, face, eyes, voice. The two absent are `contrast` (🌗) and `cvd`
