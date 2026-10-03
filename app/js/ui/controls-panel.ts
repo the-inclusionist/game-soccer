@@ -33,7 +33,7 @@
 // it - and every synchronous assertion about the panel would read the unrepaired attribute.
 
 import { initSettingsControls } from '@the-inclusionist/engine/ui/settings-controls.js';
-import { focaveisNoDom, initFocusTrap } from '@the-inclusionist/engine/ui/focus-trap.js';
+import { focusablesInDom, initFocusTrap } from '@the-inclusionist/engine/ui/focus-trap.js';
 import type { Action, ActionPreset } from '@the-inclusionist/engine/core/actions.js';
 import { defaultKeymapFor, prettyKey, type Keymap, type Seating } from '../input/keymap.ts';
 
@@ -144,7 +144,8 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
   const labelOf = (action: Action): string => {
     const override = SLOT_LABEL[action];
     if (override !== undefined) return ports.t(override);
-    return ports.words()[action]?.label ?? action;
+    const keys = ports.words()[action];
+    return keys === undefined ? action : ports.t(keys.labelKey);
   };
 
   /**
@@ -236,8 +237,9 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
   //    rewritten in the same change, and it now asserts the refusal.
 
   const api = initSettingsControls({
+    t: ports.t,
     $: (<T extends Element>(sel: string) => doc.querySelector(sel) as T | null) as never,
-    acoesDoJogo: () => WORLD_POSITIONS.map((acao) => ({ acao, rotulo: labelOf(acao) })),
+    gameActions: () => WORLD_POSITIONS.map((action) => ({ action, label: labelOf(action) })),
     srSay: ports.srSay,
     srAlert: ports.srAlert,
     store: {
@@ -273,7 +275,7 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
     //    surface at the next boot. This is the same per-seat rule `kbFor` uses, one step back in time -
     //    injected rather than duplicated inside the engine, because "how many seats maps to which bucket"
     //    is the consumer's rule and a second copy of it would diverge the day either one changed.
-    kbPadraoFor: (i: number) => defaultKeymapFor(i, ports.seats() as Seating) as never,
+    defaultSchemeFor: (i: number) => defaultKeymapFor(i, ports.seats() as Seating) as never,
     getNumPlayers: () => ports.seats(),
     // The engine calls this after a write; the un-doubling is driven from our own diff instead, because
     // this port is handed nothing and the answer needs to know what the map looked like BEFORE.
@@ -310,9 +312,9 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
    * targets are not multiplied by the integer scale. The port exists for exactly this.
    */
   const trap = initFocusTrap({
-    overlayDeCima: () => (open ? panel : null),
-    focoAtual: () => doc.activeElement,
-    focaveisDe: focaveisNoDom,
+    topOverlay: () => (open ? panel : null),
+    currentFocus: () => doc.activeElement,
+    focusablesIn: focusablesInDom,
     win: doc,
   });
   trap.attach();

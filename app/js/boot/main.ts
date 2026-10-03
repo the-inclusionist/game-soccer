@@ -6,15 +6,14 @@
 // the page and once by a test. `bootar()` is called by `boot.ts` and by nobody else.
 
 import { createGame, type Engine } from '@the-inclusionist/engine';
-import { registerDict, t } from '@the-inclusionist/engine/core/i18n.js';
 import { startLoop } from '@the-inclusionist/engine/core/loop.js';
-import { srAlert, srSay } from '@the-inclusionist/engine/core/a11y-sr.js';
 import { createDeclaration } from '../declaration.ts';
 import { playTick } from '../play.ts';
 import { createScene, LOGICAL } from '../render/scene.ts';
 import { MATCH_PROFILE, PRACTICE_PROFILE, type RulesProfile } from '../rules/profile.ts';
 import type { ChargeMode } from '../input/charge.ts';
-import { installDicts } from '../i18n/index.ts';
+import { DICTS } from '../i18n/index.ts';
+import { ACCOMMODATIONS } from '../accommodations.ts';
 import { narrate, announce } from '../narration.ts';
 import { CLUBS, fixtureOf } from '../teams/roster.ts';
 import { CONTROLLED_BY_SEAT } from '../sim/command.ts';
@@ -37,20 +36,12 @@ import { outcomeFor, outcomeKey } from '../ui/outcome.ts';
 import { crestCanvas } from '../ui/crest-canvas.ts';
 import type { Command } from '../sim/command.ts';
 import { createSampler } from '../input/sampler.ts';
-import { initGamepad } from '@the-inclusionist/engine/input/gamepad.js';
-import type { NavKeys } from '@the-inclusionist/engine/input/edges.js';
-import { padCur } from '@the-inclusionist/engine/input/state.js';
-import { criarArestaComAlternancia } from '@the-inclusionist/engine/input/latch-edge.js';
-import { buildPreset } from '../input/preset.ts';
-import * as mixer from '@the-inclusionist/engine/platform/audio.js';
-import * as engineState from '@the-inclusionist/engine/core/state.js';
-import { toggleLibras, vlibrasOpen, vlibrasSay, vlTick } from '@the-inclusionist/engine/ui/vlibras.js';
+import { PRESET } from '../input/preset.ts';
 import { createSound } from '../audio/sound.ts';
-import * as store from '@the-inclusionist/engine/platform/storage.js';
+import { createStorage } from '@the-inclusionist/engine/platform/storage.js';
 import { codeFromKey, indexOf, loadKeymap, saveKeymap, type Keymap, type Seating } from '../input/keymap.ts';
 import { createControlsPanel } from '../ui/controls-panel.ts';
 import { chargeRouteFor, createAssistsPanel, DEFAULT_ASSISTS, type Assists } from '../ui/assists-panel.ts';
-import { oneButton } from '@the-inclusionist/engine/core/state.js';
 import { withPeriod } from '../rules/profile.ts';
 
 export interface Booted {
@@ -106,10 +97,16 @@ export interface Booted {
  * `problems` - a game that boots half-wired into empty panels is worse than one that refuses.
  */
 export function bootar(doc: Document = document, win: Window = window): Booted | null {
+  // ⚠️ THE STORE IS AN INSTANCE NOW, not a namespace. Engine 10.0 removed every module-level export of
+  //    `platform/storage` in favour of `createStorage(backend)` - a game builds its own, so a test can
+  //    pass a memory backend without touching `localStorage`. The `win` injected into `bootar` is the
+  //    browser's window in a page and the test's window in a gate - `win.localStorage` picks the right
+  //    one on its own.
+  const store = createStorage(win.localStorage ?? null);
+
   const pitch = doc.querySelector<HTMLElement>('#pitch');
   if (pitch === null) return null;
 
-  installDicts(registerDict);
 
   // ⚠️ CHANGING THE SESSION RESTARTS THE MATCH, and that is honest rather than lazy. A practice pitch has
   //    a different squad on it and a different owner of the clock - `tick` is the one contract field that
@@ -161,7 +158,28 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    cannot see it: the read is inside a closure, so it is legal to the compiler and fatal at run time.
   //    Nothing called this port before, because the field did not exist before.
   let chosenCharge: ChargeMode | null = null;
-  let assists: Assists = { ...DEFAULT_ASSISTS, charge: chargeRouteFor(oneButton, chosenCharge) };
+  // ⚠️ THE ROUTE IS CHOSEN AFTER `createGame`, NOT HERE, and the one-line reason is that the setting it
+  //    reads lives on the root: engine 10.0 emptied `core/state` of bindings and `motor.settings.oneButton`
+  //    is the read now. The route is set immediately below the `createGame` call, before the first frame, so
+  //    a child already in one-switch mode still never sees a frame of the hold route.
+  let assists: Assists = { ...DEFAULT_ASSISTS };
+
+  /**
+   * The root's translator, reachable from a closure the declaration keeps.
+   *
+   * ⚠️ THIS INDIRECTION EXISTS BECAUSE THE DECLARATION IS AN ARGUMENT TO `createGame`, so `motor` does
+   * not exist while it is being built: `t: (key) => motor.t(key)` is a block-scoped read before declaration
+   * and TypeScript refuses it outright (TS2448), which is the compiler being right rather than pedantic.
+   *
+   * ⚠️ AND THE FALLBACK IS UNREACHABLE, MEASURED RATHER THAN HOPED. `createGame` DOES invoke the
+   * declaration during boot - this file records the frame that cost 122 browser gates when `holdsAtOnce`
+   * closed over a `let` declared further down - so the question is whether any boot-time check CALLS `t`.
+   * Read in the engine: the nine `FIELD_CHECKS` of `core/contract` are shape checks, and `readerProblems`,
+   * the only one that looks at `nameAt` and `objectiveOf`, asks `typeof d[f] === 'function'` and never
+   * invokes them. So nothing resolves a word until the first drawing, which is after the line below.
+   * If a future engine does resolve one at boot, the symptom is a raw key seen once - not a crash.
+   */
+  let translate: (key: string, params?: Record<string, string | number>) => string = (key) => key;
 
   const motor = createGame({
     declaration: createDeclaration({
@@ -169,7 +187,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       profile: () => profile,
       ourTeam: () => HOME,
       controlledBy: (seat) => CONTROLLED_BY_SEAT[seat],
-      t: (key) => t(key),
+      t: (key) => translate(key),
       // ⚠️ READ LIVE, NEVER CAPTURED. `holdsAtOnce` is how many fingers this game asks for, and the
       //    stepped charge route removes one of them - so a captured value would report the hardest route
       //    to a child who had already chosen the easiest, which is the accommodation being announced
@@ -266,8 +284,22 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     // The engine's note calls declaring it «aceitar a perda em vez de a corrigir» - and there is no loss to
     // accept here, because there is no second player declared to lose anything. Declaring a decline for a
     // capability nobody asked this game for would be a false statement in the other direction.
+    // The words of every surface the engine draws for this game, in the three languages.
+    dictionaries: DICTS,
+    // ⚠️ ADR-0085: the fourteen positions as this game's words - so the help screen, the remap screen and
+    //    the voice command reader all name buttons in football's vocabulary instead of in the engine's.
+    preset: PRESET,
+    // ⚠️ REQUIRED AND COMPLETE (ADR-0153). See `app/js/accommodations.ts` for the eleven this game
+    //    offers, the seven it refuses, and why the refusals are two different kinds of "no".
+    accommodations: ACCOMMODATIONS,
     declines: {
-      semAssistenteDePad: true,
+      // ⚠️ `semAssistenteDePad` WAS DECLARED HERE AND ENGINE 11.0 REMOVED THE FIELD, so the decline is gone
+      //    rather than renamed. ADR-0231's reason, in the engine's own words beside the interface: «the wizard
+      //    is accessibility the engine offers to every game, and the engine's accessibility is not declinable»
+      //    (ADR-0122). We were declining a mapping wizard for the second seat on the grounds that this game
+      //    binds its own numpad - which `docs/ENGINE-AUDIT.md` finding 3 still records as true - but the two
+      //    were never the same claim: owning a keyboard table is not a reason a child may not be offered a pad.
+      //    Nothing replaces it, and nothing is lost: the wizard now mounts for every game, this one included.
       // ⚠️ DECLINED, AND DECLINING IS THE HONEST ANSWER RATHER THAN THE CONVENIENT ONE. Engine 8.0
       //    names this game as one of three in the catalogue with no neural voice and nothing saying so,
       //    and it is right that the silence was the defect. But the line it asks for names a provider that
@@ -286,9 +318,13 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    cannot read gets the system voice, and on a school Chromebook that may not exist in Portuguese
       //    - the engine's own sentence, and it is about our audience exactly. Adopting the voice is a
       //    decision with a 135 MB and an offline-budget consequence, and it belongs to the Dev.
-      semVozNeural: true,
+      noNeuralVoice: true,
     },
   });
+
+  // The root exists from here, so the two things that had to wait for it are done before anything draws.
+  translate = motor.t;
+  assists = { ...assists, charge: chargeRouteFor(motor.settings.oneButton, chosenCharge) };
 
   for (const problem of motor.problems) console.warn('[shell]', problem);
 
@@ -391,7 +427,6 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    no per-screen pause menu, no modal dialogs, nobody to join mid-match and nobody to respawn. Each
   //    stub below DECLARES an absence rather than pretending at one, which is the same posture
   //    `createGame`'s `declines` takes - the engine simply has no such field here yet.
-  const words = buildPreset((key: string) => t(key));
   // ⚠️ ONE RECORD PER SEAT FOR THE ENGINE'S MOVE TOGGLE, and the honesty about it is the point. The
   //    engine resolves the toggle PER TRANSPORT and writes the answer here, so a child who turns it on
   //    with a pad in her hands gets the pad's setting and not the keyboard's - which is the defect 8.0
@@ -420,7 +455,6 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //      · latch only the LAST held direction, so releasing the key keeps the body going until a new press.
   //    They differ in what a child has to be able to do, which is the whole question, and picking one by
   //    taste at the end of a working day is how an accessibility feature ends up serving nobody.
-  const latchSeats = [0, 1].map(() => ({ toggleMove: false, walkDir: 0 }));
 
   /**
    * Is the world held still?
@@ -431,8 +465,8 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
    * dead zone took all one hundred and twenty-two browser gates at once. `pausar` is only called when a
    * child asks - so a late `let` would probably survive - and "probably" is what that outage was made of.
    */
-  /** What `oneButton` was last frame, so a change can be noticed rather than polled into a rebuild. */
-  let oneButtonWas = oneButton;
+  /** What `motor.settings.oneButton` was last frame, so a change can be noticed rather than polled into a rebuild. */
+  let oneButtonWas = motor.settings.oneButton;
   let paused = false;
   /**
    * Hold the world still AND show the card, because a frozen screen with nothing on it is not a pause.
@@ -449,7 +483,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
    */
   const pause = (): void => {
     paused = true;
-    motor.pausa.mostrar(0);
+    motor.pause.show(0);
     // ⚠️ AND NOTHING IS FOCUSED ON PURPOSE, which is the opposite of what stood here for an hour. This
     //    card does not use the browser's focus at all: `ui/menu-nav.navPause` says so in its own words -
     //    «este menu não usa foco do navegador - seleciona por classe, porque é desenhado dentro da tela do
@@ -460,120 +494,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   };
   const resume = (): void => {
     paused = false;
-    motor.pausa.esconder(0);
+    motor.pause.hide(0);
   };
 
-  const gamepad = initGamepad({
-    getGamepads: () => (win.navigator.getGamepads ? win.navigator.getGamepads() : []),
-    $: (sel: string) => doc.querySelector(sel),
-    rotuloDaAcao: (action: string) => words[action as keyof typeof words]?.label ?? null,
-    srSay,
-    srAlert,
-    frontOverlay: () => {},
-    // ========================= ⚠️ THE PAUSE IS A FOUR-PIECE WIRE AND THIS GAME HAS NONE OF IT =========================
-    // These four stubs, the `pauseHost` this shell never passes, and `getPauseActs` - which engine 9.0.0
-    // added on 2026-09-11 - are one feature, and it is worth writing the whole chain down because the new
-    // field reads like the missing piece and is actually the LAST piece.
-    //
-    // 📏 Measured 2026-09-11, in order:
-    //   1. `drivers/driver` declares `paused` and `advance()` reads it - `if (driver.paused) return 0` -
-    //      and NOTHING IN THIS REPOSITORY EVER WRITES IT. A pause that cannot be engaged. That is the
-    //      eleventh instance of a thing that is right with no wire, and this one is ours.
-    //   2. `pausar` and `retomar` below are the engine's door to it, and they are empty.
-    //   3. ⚠️ AND THIS STEP WAS WRONG AS WRITTEN, so the correction stays where the claim was. It said
-    //      `host.pauseHost` is never passed so `createGame` mounts no card at all. Measured: `createGame`
-    //      does `o.host.pauseHost ?? $('#game-region')`, and this game HAS a `#game-region`, so the card
-    //      `#vp-pause-0` has been in the DOM from the first boot - hidden, with fifteen items in it.
-    //      Nothing was missing but somebody to open it, which `Engine.pausa.mostrar` does.
-    //   4. `getPauseActs`, which is now supplied with the one entry this game can answer for. Before it,
-    //      `resume` itself was HIDDEN by the engine's own §5 filter, so the card opened with no way off it
-    //      but the START button.
-    //
-    // ⚠️ AND THE SEVEN ITEMS ARE A DECISION, NOT A TABLE TO FILL IN. ADR-0106 §5 forbids a dead button and
-    // the engine enforces it - `itensQueAccionam` hides what the game cannot action - so each of the seven
-    // has to be answered honestly. `resume` this game plainly can. `quit` has nowhere to go: there is no
-    // title scene, and a "quit" that restarts the match is a different verb wearing the word. The engine
-    // actions three of them itself (`options`, `pmback`, `acessibilidade`, read from `ITENS_DA_ENGINE`),
-    // which leaves the rest to be decided one at a time against what a child would expect to happen.
-    //
-    // So the order is 1, 2, 3, then 4 - and STEP 1 AND 2 ARE DONE: `paused` below is written by these two
-    // doors and read by the driver every frame. Steps 3 and 4 - the card and its table - are not, and the
-    // paragraph above is the order they have to happen in.
-    // ⚠️ THESE TWO ARE ONE FACT AND MUST MOVE TOGETHER, and wiring the first without the second made the
-    //    pause INESCAPABLE for an hour. `input/gamepad.js` branches on the PAIR - `const rodando =
-    //    ctx.mundoRodando(), pausado = ctx.menuDePausa()` - and when neither is true it treats the game as
-    //    a TITLE SCREEN and hands the directional to `navTitle`, which it calls the safe behaviour for a
-    //    scene it does not recognise. So a held world that answers "no menu" is a world the engine
-    //    believes is a title screen, and START never reaches `retomar`.
-    //
-    // ⚠️ AND THERE IS NO CARD YET, WHICH DOES NOT MAKE THIS A LIE. The engine's question is behavioural -
-    //    it routes START and the directional by the answer - so "the pause is open" and "the world is
-    //    held" are the same answer here. When the card arrives (step 3) it becomes the same answer for a
-    //    second reason rather than a different one.
-    //
-    // ⚠️ AND `mundoRodando` IS CORRECT AND CURRENTLY UNFALSIFIABLE, which is said rather than papered over
-    //    with a gate that cannot fail. Reverting it to a hard-coded `true` breaks nothing measurable:
-    //    `input/gamepad.js` tests `if (pausado)` BEFORE the running branch, so START still resumes. The
-    //    only consumer that would notice is the pad wizard - it does `padWizAutoResume =
-    //    ctx.mundoRodando()` and resumes on exit, so an always-true answer would silently let go of a
-    //    pause a child had set. This game declines that wizard (`semAssistenteDePad`), so the path is
-    //    unreachable and no honest gate can reach it either. It stays right because it is right, and the
-    //    day the wizard is accepted is the day it becomes testable.
-    mundoRodando: () => !paused,
-    menuDePausa: () => paused,
-    pausar: pause,
-    retomar: resume,
-    isAttractActive: () => false,
-    stopAttract: () => {},
-    isTouchMode: () => false,
-    hideTouchControls: () => {},
-    getPlayers: () => [{ pad: 0 }],
-    getNumPlayers: () => 1,
-    // ⚠️ THE PAD HAS TO SAY IT WAS THE PAD, AND IN 8.0 SAYING SO IS MANDATORY. The engine measured that
-    //    `arestaDoJogador` had ZERO production callers, so `entradaDe(i).emUso` answered "keyboard" for
-    //    everybody and the toggle a child was actually offered was the KEYBOARD's, with the pad in her
-    //    hands. The pad was the only transport that stayed identifiable without this - it never passes
-    //    through the key set - which is exactly why the gap was invisible: the module knew which pad the
-    //    edge came from and the state machine did not.
-    // ⚠️ AND IT IS THE LATCH-AWARE ONE, NOT THE RAW PORT, because the engine's own header says so: this
-    //    is the version that also resolves the toggle for this device on this player. Passing the raw one
-    //    compiles, runs, and quietly loses her the setting - the shape of defect this repository keeps
-    //    naming. A held pad button stopped reaching the input layer at all until this line existed, and
-    //    one browser gate is the only thing that noticed.
-    arestaDoJogador: criarArestaComAlternancia(() => latchSeats),
-    navTitle: () => {},
-    naBarraDe: () => false,
-    navBar: () => {},
-    // ========================= ⚠️ THE CARD OPENS NOW, SO IT HAS TO BE WALKABLE =========================
-    // These four were `() => null` and `() => {}`, and they were HONEST while nothing ever opened the
-    // pause card. The moment `pause()` started revealing it, a child on a pad met a card she could leave
-    // only with START and could not step through at all - half a menu, which for somebody navigating by
-    // ear is no menu.
-    //
-    // ⚠️ AND THE ENGINE NAMED THE FIX WHERE IT MOUNTS THE CARD: «O ID É O QUE A PRÓPRIA ENGINE PROCURA,
-    //    logo abaixo, no `getPauseMenu`. Montar sem o pôr deixaria o laço tão aberto como estava.» It sets
-    //    `#vp-pause-0` for exactly this, and `motor.nav` - one of the nineteen members of `Engine` and
-    //    until now one of the twelve nothing read - carries the three steps ready to hand back.
-    //
-    // ⚠️ AND THEY ARE FORWARDED RATHER THAN REIMPLEMENTED. `ui/menu-nav`'s own header calls itself the cure
-    //    for a duplication; writing a second focus walker here would be the fifteenth version of push/pop,
-    //    which is the phrase `create-game` uses about the scene stack for the same reason.
-    sharedDialogOpen: () => motor.nav.sharedDialogOpen(),
-    navDialog: (menu: HTMLElement, k: NavKeys) => {
-      motor.nav.navDialog(menu, k);
-    },
-    getPauseMenu: () => doc.querySelector<HTMLElement>('#vp-pause-0'),
-    navPause: (menu: HTMLElement, i: number, k: NavKeys) => {
-      motor.nav.navPause(menu, i, k);
-    },
-    setPauseActor: () => {},
-    modalInput: () => {},
-    hasModal: () => false,
-    joinPlayer: () => false,
-    respawnPlayer: () => {},
-    clearWaitingBadge: () => {},
-    spriteBase: '',
-  } as never);
 
   // ⚠️ THE SONAR IS THE POINT OF `targetsOf`, AND NOTHING WAS CALLING IT. The declaration answers "where
   //    can I put the ball next" and the engine turns that into spatial audio - but a game has to ask. The
@@ -599,7 +522,12 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   // ⚠️ AND THE MIXER IS THE ENGINE'S. Its categories are what the child's own audio menu switches, its
   //    master gain is what the hearing-loss filter hangs off, and a game that opened its own
   //    `AudioContext` would be loud in exactly the settings where she turned everything down.
-  mixer.initAudioMixer();
+  // ⚠️ THE MIXER IS NO LONGER INITIALISED HERE, and the line that did it is gone rather than renamed.
+  //    Engine 10.0 removed every module-level export of `platform/audio` in favour of `createAudio({...})`,
+  //    and under `createGame` the root has already built one: `motor.audio`. Calling an initialiser a second
+  //    time was never the risk - having a SECOND mixer is, because the child's audio menu, the hearing-loss
+  //    filter and the master gain all hang off the root's instance, and a game with its own would be loud in
+  //    exactly the settings where she turned everything down.
   const captionHost = doc.querySelector<HTMLElement>('#caption');
   // A caption that never clears is a lie about the present: "Goal for you!" would still be on the screen
   // ten minutes later. Each new caption cancels the last one's timer, so a burst does not blank the line
@@ -625,16 +553,22 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   };
 
   const sound = createSound({
-    ensureAC: () => mixer.ensureAC(),
-    catNode: (cat: string) => mixer.catNode(cat),
-    audioOut: () => mixer.audioOut(),
-    noiseHit: (mat: string) => mixer.noiseHit(mat),
-    tone: (f: number, d: number, ty?: OscillatorType, w?: number, v?: number) => mixer.tone(f, d, ty, w, v),
+    t: motor.t,
+    ensureAC: () => motor.audio.ensureAC(),
+    catNode: (cat: string) => motor.audio.catNode(cat),
+    audioOut: () => motor.audio.audioOut(),
+    noiseHit: (mat: string) => motor.audio.noiseHit(mat),
+    tone: (f: number, d: number, ty?: OscillatorType, w?: number, v?: number) => motor.audio.tone(f, d, ty, w, v),
     // Read every time: a child changes these from the engine's audio menu mid-match, and a value captured
     // at boot would answer with whatever was true before she touched anything.
-    soundOn: () => mixer.soundOn,
-    volume: () => mixer.volume,
-    captionsOn: () => engineState.captionsOn,
+    soundOn: () => motor.audio.soundOn,
+    volume: () => motor.audio.volume,
+    // ⚠️ AND THIS ONE GAINED A SECOND WAY TO BE TRUE, which is a repair and not a rename. It read
+    //    `engineState.captionsOn` - the captions SETTING alone. `motor.deafMode.captionsOn()` is the setting
+    //    OR deaf mode being on, which is the engine's own definition of "does this sound get its caption
+    //    now": a child in deaf mode who never found the captions switch used to get silent earcons and no
+    //    line, and nothing anywhere reported it.
+    captionsOn: () => motor.deafMode.captionsOn(),
     caption: showCaption,
   });
 
@@ -652,40 +586,40 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     ['#mode-label', 'tools.mode'],
   ] as const) {
     const el = doc.querySelector<HTMLElement>(id);
-    if (el !== null) el.textContent = t(key);
+    if (el !== null) el.textContent = motor.t(key);
   }
   for (const [sel, prefix] of [
     ['#session option', 'tools.session'],
     ['#mode option', 'tools.mode'],
   ] as const) {
     for (const option of doc.querySelectorAll<HTMLOptionElement>(sel)) {
-      option.textContent = t(`${prefix}.${option.value}`);
+      option.textContent = motor.t(`${prefix}.${option.value}`);
     }
   }
 
   const seatsLabel = doc.querySelector<HTMLElement>('#seats-label');
-  if (seatsLabel !== null) seatsLabel.textContent = t('seats.label');
+  if (seatsLabel !== null) seatsLabel.textContent = motor.t('seats.label');
   for (const option of doc.querySelectorAll<HTMLOptionElement>('#seats option')) {
-    option.textContent = t(`seats.${option.value}`);
+    option.textContent = motor.t(`seats.${option.value}`);
   }
 
   const openLabel = doc.querySelector<HTMLElement>('#open-controls');
-  if (openLabel !== null) openLabel.textContent = t('keys.open');
+  if (openLabel !== null) openLabel.textContent = motor.t('keys.open');
   const ctrlTitle = doc.querySelector<HTMLElement>('#ctrl-title');
-  if (ctrlTitle !== null) ctrlTitle.textContent = t('keys.title');
+  if (ctrlTitle !== null) ctrlTitle.textContent = motor.t('keys.title');
   const ctrlReset = doc.querySelector<HTMLElement>('#ctrl-reset');
-  if (ctrlReset !== null) ctrlReset.textContent = t('keys.reset');
+  if (ctrlReset !== null) ctrlReset.textContent = motor.t('keys.reset');
   const ctrlClose = doc.querySelector<HTMLElement>('#ctrl-close');
-  if (ctrlClose !== null) ctrlClose.textContent = t('keys.close');
+  if (ctrlClose !== null) ctrlClose.textContent = motor.t('keys.close');
 
   const controls = createControlsPanel({
     doc,
     maps: () => keymaps,
     seats: () => seating,
-    words: () => buildPreset((key: string) => t(key)),
-    t: (key: string, params?: Record<string, string | number>) => t(key, params),
-    srSay,
-    srAlert,
+    words: () => PRESET,
+    t: (key: string, params?: Record<string, string | number>) => motor.t(key, params),
+    srSay: motor.say,
+    srAlert: motor.alert,
     // ⚠️ THE SEATING GOES IN, and leaving it out was a real defect rather than a tidiness one: the solo
     //    map and the two-seat pair are kept in different places precisely so one cannot overwrite the
     //    other, and a save that always wrote the solo key would have done exactly that - a child remaps
@@ -694,7 +628,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   });
 
   const assistsOpen = doc.querySelector<HTMLElement>('#open-assists');
-  if (assistsOpen !== null) assistsOpen.textContent = t('assist.open');
+  if (assistsOpen !== null) assistsOpen.textContent = motor.t('assist.open');
   for (const [id, key] of [
     ['#assist-title', 'assist.title'],
     ['#assist-charge-label', 'assist.charge'],
@@ -703,12 +637,12 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     ['#assist-close', 'assist.close'],
   ] as const) {
     const el = doc.querySelector<HTMLElement>(id);
-    if (el !== null) el.textContent = t(key);
+    if (el !== null) el.textContent = motor.t(key);
   }
 
   const assistsPanel = createAssistsPanel({
     doc,
-    t: (key: string, params?: Record<string, string | number>) => t(key, params),
+    t: (key: string, params?: Record<string, string | number>) => motor.t(key, params),
     current: () => assists,
     onChange: (next) => {
       const paceChanged = next.tempo !== assists.tempo;
@@ -762,11 +696,11 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   const librasBtn = doc.querySelector<HTMLButtonElement>('#open-libras');
   const paintLibras = (): void => {
     if (librasBtn === null) return;
-    librasBtn.textContent = t('libras.open');
-    librasBtn.setAttribute('aria-pressed', vlibrasOpen() ? 'true' : 'false');
+    librasBtn.textContent = motor.t('libras.open');
+    librasBtn.setAttribute('aria-pressed', motor.deafMode.isOn() ? 'true' : 'false');
   };
   librasBtn?.addEventListener('click', () => {
-    toggleLibras();
+    motor.deafMode.toggle();
     paintLibras();
   });
   paintLibras();
@@ -790,7 +724,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     //    codes; which seat a code belongs to is answered by that seat's own map, which is exactly why the
     //    two maps are gated as sharing no key at all. The pad is seat-indexed because a pad is a device
     //    per child, which a keyboard is not.
-    return samplers.map((s2, seat) => s2.sample(down, t2, padCur[seat] ?? null));
+    return samplers.map((s2, seat) => s2.sample(down, t2, motor.input.padCur[seat] ?? null));
   };
 
   const advanceOne = (st: typeof state, fr: { tick: number; cmds: readonly Command[] }, dt: number) => {
@@ -798,9 +732,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       // The tone first, then the sentence: the ear needs the alert before the explanation, and a screen
       // reader takes a second to get through "the ball went out for a throw-in to Campo".
       sound.forEvent(event, HOME);
-      const sentence = narrate(event, { period: st.period, us: HOME, t: (k) => t(k) });
-      if (announce(event).urgent) srAlert(sentence);
-      else srSay(sentence);
+      const sentence = narrate(event, { period: st.period, us: HOME, t: (k) => motor.t(k) });
+      if (announce(event).urgent) motor.alert(sentence);
+      else motor.say(sentence);
 
       // ⚠️ AND THE SAME SENTENCE FOR A CHILD WHO CANNOT HEAR IT. `srSay` and `srAlert` are LIVE REGIONS,
       //    read by a screen reader - which a deaf child does not use. Until this line the whole narration
@@ -811,14 +745,22 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       // ⚠️ HONOURING THE SAME SWITCH the engine already owns, and for the same reason the earcons do: a
       //    game that captioned its sounds and ignored the preference for its sentences would hand a child
       //    a control that half works.
-      if (engineState.captionsOn) showCaption(sentence);
+      if (motor.deafMode.captionsOn()) showCaption(sentence);
 
       // ⚠️ THE SAME SENTENCE AGAIN, for a child who reads neither a live region nor a caption line. Three
       //    channels carrying ONE sentence is the point: the reader for a blind child, the caption for a
       //    deaf one who reads Portuguese, and the interpreter for a deaf one whose first language is
       //    Libras - which is a different person, and the one this game reached last.
-      if (vlibrasOpen()) {
-        vlibrasSay(sentence);
+      if (motor.deafMode.isOn()) {
+        // ⚠️ `vlibrasSay(sentence)` STOOD HERE AND ENGINE 11.0 REMOVED IT, which is a change of owner
+        //    rather than a loss of channel. `libras.say` and `libras.tick` are gone because «the interpreter
+        //    answers the sonar, not announcements» (ADR-0234): the engine's deaf mode now signs what the
+        //    sonar found, on its own clock, so a game that also pushed its sentences at the interpreter
+        //    would be signing the same event twice from two schedules.
+        //
+        //    ⚠️ AND THIS GAME'S OWN SINK STAYS, because it is not the engine's. `signed` is the seam
+        //    `onSigned` hands to a gate, and `tests/libras.browser` is what reads it: the assertion that a
+        //    narrated sentence reaches a signing channel at all is ours to keep making.
         signed?.(sentence);
       }
     }
@@ -827,8 +769,8 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   const fixtureLine = doc.querySelector<HTMLElement>('#m-fixture');
   const sessionTitle = (): string =>
     profile === PRACTICE_PROFILE
-      ? t('hud.practice')
-      : `${t(fixture.home.nameKey)} x ${t(fixture.away.nameKey)}`;
+      ? motor.t('hud.practice')
+      : `${motor.t(fixture.home.nameKey)} x ${motor.t(fixture.away.nameKey)}`;
   const paintFixtureLine = (): void => {
     if (fixtureLine === null) return;
     fixtureLine.replaceChildren();
@@ -839,9 +781,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     // Badge, name, badge, name - the crests are decoration beside text that already says who is playing.
     fixtureLine.append(
       crestCanvas(doc, fixture.home.crest),
-      ` ${t(fixture.home.nameKey)} x `,
+      ` ${motor.t(fixture.home.nameKey)} x `,
       crestCanvas(doc, fixture.away.crest),
-      ` ${t(fixture.away.nameKey)}`,
+      ` ${motor.t(fixture.away.nameKey)}`,
     );
   };
   paintFixtureLine();
@@ -855,9 +797,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     away: doc.querySelector<HTMLSelectElement>('#away-club'),
   };
   const homeLabel = doc.querySelector<HTMLElement>('#home-club-label');
-  if (homeLabel !== null) homeLabel.textContent = t('clubs.yours');
+  if (homeLabel !== null) homeLabel.textContent = motor.t('clubs.yours');
   const awayLabel = doc.querySelector<HTMLElement>('#away-club-label');
-  if (awayLabel !== null) awayLabel.textContent = t('clubs.theirs');
+  if (awayLabel !== null) awayLabel.textContent = motor.t('clubs.theirs');
 
   /**
    * Redraw both lists.
@@ -877,7 +819,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       for (const [i, club] of CLUBS.entries()) {
         const option = doc.createElement('option');
         option.value = String(i);
-        option.textContent = t(club.nameKey);
+        option.textContent = motor.t(club.nameKey);
         option.disabled = i === theirs;
         select.append(option);
       }
@@ -925,7 +867,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       : createTurnPanel({
           host: panelHost,
           doc,
-          t: (key, params) => t(key, params),
+          t: (key, params) => motor.t(key, params),
           onCommit: (cmd) => {
             pending = cmd;
             turn?.commit();
@@ -1007,9 +949,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     if (endPanel === null || endShown) return;
     endShown = true;
     const outcome = outcomeFor(state.goals, HOME);
-    if (endTitle !== null) endTitle.textContent = t(outcomeKey(outcome));
+    if (endTitle !== null) endTitle.textContent = motor.t(outcomeKey(outcome));
     if (endScore !== null) {
-      endScore.textContent = `${t(fixture.home.nameKey)} ${state.goals[0]} - ${state.goals[1]} ${t(fixture.away.nameKey)}`;
+      endScore.textContent = `${motor.t(fixture.home.nameKey)} ${state.goals[0]} - ${state.goals[1]} ${motor.t(fixture.away.nameKey)}`;
     }
     endPanel.hidden = false;
     endAgain?.focus();
@@ -1053,7 +995,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
   //    paces to your right" while the ball was LOOSE and that spot WAS the ball. Every gate was green:
   //    the wire gate asks that the label is not empty, and no gate can ask whether a sentence is true of
   //    a situation it does not name.
-  mirror.options?.setAttribute('aria-label', t('hud.spot.label'));
+  mirror.options?.setAttribute('aria-label', motor.t('hud.spot.label'));
   // ⚠️ REWRITTEN ONLY WHEN IT CHANGES. This runs sixty times a second, and rebuilding four list items on
   //    every frame is DOM churn a school tablet pays for - pillar 1 is the dominant constraint here, not
   //    an afterthought. Comparing the joined text is one string compare against several allocations.
@@ -1068,11 +1010,11 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       // In the turn mode `advance` runs nothing at all - by design, not by omission. Time passing is not
       // what moves that match; a committed decision is.
       // On the PRESS edge, not while held: a sonar that repeats sixty times a second is a siren.
-      // Polled once per frame, before anything reads it - the engine writes into `padCur` from here.
-      gamepad.pollPads();
+      // Polled once per frame, before anything reads it - the engine writes into `motor.input.padCur` from here.
       // The engine's loop hook. It decides nothing any more - the mode is our state - but the widget's
       // own bookkeeping still expects to be ticked.
-      vlTick();
+      // ⚠️ `vlTick()` WAS CALLED HERE EVERY FRAME AND 11.0 REMOVED IT. The engine drives its own
+      //    interpreter now; a game ticking it was the shape of the old widget, which had to be woken.
 
       // ⚠️ THE POSITION, AND FROM EVERY SEATED KEYBOARD. `select` is where ADR-0085 puts session functions,
       //    so hard-coding `KeyF` meant a child who moved the key lost the sonar with no way back to it -
@@ -1099,9 +1041,9 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       // ⚠️ AND A CHOSEN ROUTE STILL WINS, which `chargeRouteFor` enforces and this line must not bypass:
       //    an accommodation that refuses to be overridden is a second barrier wearing the first one's
       //    clothes. `chosenCharge` is null until she picks one in the panel.
-      if (oneButton !== oneButtonWas) {
-        oneButtonWas = oneButton;
-        assists = { ...assists, charge: chargeRouteFor(oneButton, chosenCharge) };
+      if (motor.settings.oneButton !== oneButtonWas) {
+        oneButtonWas = motor.settings.oneButton;
+        assists = { ...assists, charge: chargeRouteFor(motor.settings.oneButton, chosenCharge) };
       }
       const driving = driverFor(mode);
       if (driving !== undefined) {
@@ -1117,7 +1059,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       if (mirror.clock !== null) mirror.clock.textContent = clockText(state.tick);
       if (state.phase === 'fullTime') showEnd();
       // The mirror speaks WORDS, not field names. `throwIn` is an identifier; "lateral" is what happened.
-      if (mirror.phase !== null) mirror.phase.textContent = t(`hud.phase.${state.phase}`);
+      if (mirror.phase !== null) mirror.phase.textContent = motor.t(`hud.phase.${state.phase}`);
       // ⚠️ WHOSE BALL IT IS, and not where it is in metres. A coordinate is a number a sighted child
       //    already has from the screen and a blind one cannot use; possession is the fact the game turns
       //    on, it changes constantly, and it is the thing a text mirror is for.
@@ -1125,8 +1067,8 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
         const holder = state.possession.holder;
         mirror.ball.textContent =
           holder === NOBODY
-            ? t('hud.ball.loose')
-            : t('hud.ball.with', { club: t(teamOf(holder) === HOME ? fixture.home.nameKey : fixture.away.nameKey) });
+            ? motor.t('hud.ball.loose')
+            : motor.t('hud.ball.with', { club: motor.t(teamOf(holder) === HOME ? fixture.home.nameKey : fixture.away.nameKey) });
       }
       // ⚠️ WHICH OF THE ELEVEN SHE IS DRIVING, which until now existed ONLY as a five-pixel wedge over a
       //    head. Every other line of this mirror has a second route to a child who cannot see - the score
@@ -1142,7 +1084,7 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    all. The SAME spots are asked for here, never worked out a second time.
       if (mirror.options !== null) {
         const me = state.controlled[0];
-        const lines = spotLines(state.players[me].p, motor.declaration.targetsOf(0), attackDirOf(HOME, state.period), t);
+        const lines = spotLines(state.players[me].p, motor.declaration.targetsOf(0), attackDirOf(HOME, state.period), motor.t);
         const joined = lines.join('\u0000');
         if (joined !== optionsWere) {
           optionsWere = joined;
@@ -1164,20 +1106,20 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       //    hardware pillar 1 names - a stutter is indistinguishable from a lull if you cannot see, and
       //    from your own mistake if you can.
       if (mirror.lagging !== null) {
-        const said = laggingLine(driverFor(mode)?.droppedMs ?? 0, t);
+        const said = laggingLine(driverFor(mode)?.droppedMs ?? 0, motor.t);
         if (mirror.lagging.textContent !== said) mirror.lagging.textContent = said;
       }
       const step = samplers[0]?.charging() ?? 0;
       if (step !== chargeWas) {
         if (step > chargeWas) sound.chargeStep();
         chargeWas = step;
-        if (mirror.charge !== null) mirror.charge.textContent = chargeLine(step, t);
+        if (mirror.charge !== null) mirror.charge.textContent = chargeLine(step, motor.t);
       }
       if (mirror.you !== null) {
         const seated = state.controlled.slice(0, seating);
         mirror.you.textContent = seated
           .map((who, seat) =>
-            seating === 1 ? youLine(state, who, t) : `${t('keys.seat', { n: seat + 1 })}: ${youLine(state, who, t)}`,
+            seating === 1 ? youLine(state, who, motor.t) : `${motor.t('keys.seat', { n: seat + 1 })}: ${youLine(state, who, motor.t)}`,
           )
           .join(' - ');
       }
@@ -1194,14 +1136,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       if (mirror.hint !== null) {
         mirror.hint.textContent = state.controlled
           .slice(0, seating)
-          .map((_, seat) => hintLine(state, seat, t))
+          .map((_, seat) => hintLine(state, seat, motor.t))
           .filter((line) => line !== '')
           .join(' - ');
       }
     },
     MAX_DT_FRAMES,
     // ⚠️ THE ENGINE'S ANNOUNCEMENT AND NOT THIS GAME'S, and the line it replaces was worse than nothing
-    //    in one specific way. It was `aoFalhar: (err) => srAlert(String(err))`, so the alert region
+    //    in one specific way. It was `aoFalhar: (err) => motor.alert(String(err))`, so the alert region
     //    received a DEVELOPER'S ERROR STRING: measured, a blind child heard "TypeError: Cannot read
     //    properties of null" and a sighted child saw nothing at all.
     //
@@ -1213,7 +1155,17 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     //
     //    It is DELIVERED and not installed: a game that builds the loop without passing this still STOPS,
     //    because stopping is not optional. What it loses is saying so.
-    { aoFalhar: motor.aoFalhar },
+    // ⚠️ `speed` IS NEW AND REQUIRED IN 11.0, AND PASSING IT CHANGES BEHAVIOUR ON PURPOSE. ADR-0180's
+    //    game speed - the child's own 100%..50% - reached every other surface and never reached this loop,
+    //    because the loop used to read the settings store by import and this game never passed a port. The
+    //    engine made it required for exactly that reason: «an optional port defaulting to 100% would ignore
+    //    the child's choice in every game that forgot it - silently».
+    //
+    //    ⚠️ AND IT IS NOT THE SAME DIAL AS THE PACE ASSIST, which is why both multiply and neither is
+    //    a duplicate. `speed` is an engine-wide accommodation set in the child's own menu; the assisted
+    //    driver's `tempo` is this game's clock mode, chosen per match in the assists panel. A child who
+    //    slowed the engine AND picked the gentle pace asked for both.
+    { speed: motor.gameSpeed, onFailure: motor.onFailure },
   );
   scene.app.ticker.start();
 

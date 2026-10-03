@@ -48,6 +48,7 @@ export default defineConfig({
           testTimeout: 120_000,
           root: import.meta.dirname,
           include: ['tests/**/*.browser.test.{js,ts}'],
+          setupFiles: ['./tests/setup.browser.ts'],
           browser: {
             enabled: true,
             headless: true,

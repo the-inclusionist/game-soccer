@@ -21,6 +21,8 @@ import { CUES, cueFor, type CueName } from './cues.ts';
 
 /** Everything this layer needs from outside itself. The engine supplies all of it in `boot/main.ts`. */
 export interface SoundPorts {
+  /** The root's translator. The earcons need it (`AudioEarconsCtx.t`, 11.0) so a captioned sound reads in the page's language. */
+  readonly t: (key: string, params?: Record<string, string | number>) => string;
   readonly ensureAC: () => AudioContext | null;
   readonly catNode: (cat: string) => AudioNode | null;
   readonly audioOut: () => AudioNode | null;
@@ -65,6 +67,7 @@ export interface Sound {
 
 export function createSound(ports: SoundPorts): Sound {
   const earcons = createAudioEarcons({
+    t: ports.t,
     SFX: CUES,
     ensureAC: ports.ensureAC,
     catNode: ports.catNode,

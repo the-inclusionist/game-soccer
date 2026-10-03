@@ -14,7 +14,7 @@
 // that failed because a trap outlived its dialog. It failed here too, for the same reason, in a test file
 // where three cases passed alone and one failed in company.
 
-import { focaveisNoDom, initFocusTrap } from '@the-inclusionist/engine/ui/focus-trap.js';
+import { focusablesInDom, initFocusTrap } from '@the-inclusionist/engine/ui/focus-trap.js';
 
 export interface DialogPorts {
   readonly doc: Document;
@@ -52,9 +52,9 @@ export function createDialog(ports: DialogPorts): Dialog {
    * scale. The port exists for exactly this.
    */
   const trap = initFocusTrap({
-    overlayDeCima: () => (open ? panel : null),
-    focoAtual: () => doc.activeElement,
-    focaveisDe: focaveisNoDom,
+    topOverlay: () => (open ? panel : null),
+    currentFocus: () => doc.activeElement,
+    focusablesIn: focusablesInDom,
     win: doc,
   });
   trap.attach();

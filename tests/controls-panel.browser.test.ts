@@ -51,6 +51,13 @@ function forgetKeyboards(): void {
   for (const seats of [1, 2] as const) {
     for (const seat of [0, 1]) localStorage.removeItem(keymapKeyFor(seat, seats));
   }
+  // ⚠️ AND THE ENGINE'S OWN KEYBOARD KEY, FROM 11.0. The engine stores its remappable scheme under
+  //    `inclusionist.kbcontrols.v3`; a case that remaps a key goes through the engine's panel (and only
+  //    there), so leaked state is in the engine's store. Measured 2026-10-02: without this line twenty
+  //    cases cascade with `TypeError: keys is not iterable` in `vocabulary-migration` the moment the next
+  //    test's boot reads a scheme the first test's remap had partially rewritten. The key name is the one
+  //    `app/js/input/keyboard.ts:14` declares, pinned here because the engine's export list does not share it.
+  localStorage.removeItem('inclusionist.kbcontrols.v3');
 }
 
 
@@ -301,7 +308,7 @@ describe('reading the rows', () => {
   //    with no way to tell which was which. A screen labels SLOTS, not verbs.
   it('[Zero] no two rows carry the same name', () => {
     open();
-    const names = changeButtons().map((b) => b.closest('.ctrl-row')?.querySelector('.ctrl-nome')?.textContent ?? '');
+    const names = changeButtons().map((b) => b.closest('.ctrl-row')?.querySelector('strong')?.textContent ?? '');
 
     expect(new Set(names).size, names.join(' | ')).toBe(names.length);
   });

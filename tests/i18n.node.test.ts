@@ -24,10 +24,18 @@ const ROOT = 'app/js';
  * tables" defect this project keeps meeting, in the one place whose whole job is to catch it.
  *
  * `[,)]` at the end so that `t('hud.ball.with', { club })` counts: a key with parameters is still a key.
+ *
+ * ⚠️ AND AN OPTIONAL `x.` PREFIX, BECAUSE THE KEYS MOVED AND THIS GATE'S SELF-CHECK CAUGHT IT. Engine
+ * 11.0 removed the module-level `t`, so every call site became `motor.t('...')`; the pattern excluded a
+ * leading dot on purpose (to pass over `lq.t()`), and the count fell from 43 to 5 in one refactor. The
+ * second gate below is what said so - which is the whole reason it exists - and it reported a stopped scan
+ * instead of letting the orphan gate above announce coverage of five keys as if it were coverage of all.
+ * A member call with a QUOTED first argument is a translation; `lq.t()` has no argument and still cannot
+ * match.
  * Safe to share between the two gates because both read it with `matchAll`, which takes its own copy
  * rather than carrying `lastIndex` from one call to the next.
  */
-const ASKED_KEY = /(?:^|[^A-Za-z0-9_$.])t\(\s*(?:'([^'\n]+)'|`([^`\n$]+)`)\s*[,)]/g;
+const ASKED_KEY = /(?:^|[^A-Za-z0-9_$.])(?:[A-Za-z_$][\w$]*\.)?t\(\s*(?:'([^'\n]+)'|`([^`\n$]+)`)\s*[,)]/g;
 
 const codes = Object.keys(DICTS) as (keyof typeof DICTS)[];
 
@@ -117,9 +125,21 @@ describe('the three dictionaries', () => {
   });
 
   // ⚠️ AND THE REGEX IS ITSELF GATED, because a pattern that matches nothing makes the gate above pass by
-  //    finding no orphans - the purest form of a gate that cannot fail. Forty-three is the measured count;
-  //    if a refactor moves the keys somewhere this pattern cannot see, this goes red and says so rather
-  //    than letting the gate above report coverage it no longer has.
+  //    finding no orphans - the purest form of a gate that cannot fail. If a refactor moves the keys
+  //    somewhere this pattern cannot see, this goes red and says so rather than letting the gate above
+  //    report coverage it no longer has.
+  //
+  // ⚠️ THE FLOOR WAS 40 AGAINST 43 KEYS AND IS NOW 30 AGAINST 36, AND BOTH MOVES WERE EARNED. The engine
+  //    11.0 migration moved every call to `motor.t(...)`, which this gate caught by falling to 5 - that is
+  //    the catch it was written for. The pattern was widened to see a member call, and the count then
+  //    settled at 36 rather than 43: `input/preset` used to ask `t('act.up')` for twenty-three words and
+  //    now DECLARES `labelKey: 'act.up'` instead, so those keys are no longer `t()` call sites at all.
+  //
+  //    ⚠️ AND THAT IS NOT LOST COVERAGE, WHICH IS THE ONLY REASON THE FLOOR MAY DROP. Those twenty-three
+  //    are gated harder than before, by `tests/preset`'s own dictionary gate, which reads `labelKey` and
+  //    `hintKey` directly instead of inferring them from a call. A floor lowered because the population
+  //    genuinely shrank is honest; a floor lowered to make a red gate green is how a gate stops meaning
+  //    anything, so the number moved only after the keys were followed to where they went.
   it('[Zero] and the pattern still finds the keys, or the gate above proves nothing', () => {
     const asked = ASKED_KEY;
     const found = new Set<string>();
@@ -131,7 +151,7 @@ describe('the three dictionaries', () => {
       }
     }
 
-    expect(found.size, 'the key scan stopped finding keys').toBeGreaterThanOrEqual(40);
+    expect(found.size, 'the key scan stopped finding keys').toBeGreaterThanOrEqual(30);
   });
 
   it('[Right] every dictionary is handed to the engine, not just the first', () => {

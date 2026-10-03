@@ -228,7 +228,7 @@ export function createDeclaration(o: Observed): GameDeclaration {
      * setting of ours under which football stops holding keys, so there is none under which the toggle
      * would be handed to her for nothing.
      */
-    seguraTeclas(): boolean {
+    holdsKeys(): boolean {
       return true;
     },
 

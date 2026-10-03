@@ -3,11 +3,16 @@
 //
 // ⚠️ THE ENGINE'S `PARALLAX` TABLE HAS `fy: 0` ON EVERY LAYER. That is correct for the platformer, whose
 // camera barely pans vertically, and wrong for a broadcast camera whose whole character is depth panning.
-// So this game supplies its own layers and uses the engine's PURE `posicoesParallax` to place them - which
-// is the difference between reusing a calculation and inheriting a decision.
+// So this game supplies its own layers and uses a PURE calculation to place them - which is the difference
+// between reusing a calculation and inheriting a decision.
+//
+// ⚠️ AND IN 11.0 THE LENDER CLOSED, WHICH SETTLED THE SENTENCE ABOVE. `render/parallax` left the engine for
+// `game-platformer` at the v9.0.0 fork point, so the calculation is now `parallaxPositions` in this game's
+// own `render/stadium-layers` - twelve lines of the module's 239, because the rest was that other game's
+// scenery. The decision was always ours; only the arithmetic was ever borrowed, and now it is here too.
 import { describe, expect, it } from 'vitest';
-import { posicoesParallax } from '@the-inclusionist/engine/render/parallax.js';
-import { STADIUM_LAYERS, crowdBands } from '../app/js/render/stadium-layers.ts';
+
+import { STADIUM_LAYERS, crowdBands, parallaxPositions } from '../app/js/render/stadium-layers.ts';
 
 describe('the layers', () => {
   it('[Many] three of them, from the sky to the hoardings', () => {
@@ -38,8 +43,8 @@ describe('the layers', () => {
 
 describe('placing them', () => {
   it('[Right] moving the camera moves every layer, by different amounts', () => {
-    const at0 = posicoesParallax(0, 0, STADIUM_LAYERS);
-    const at100 = posicoesParallax(100, 40, STADIUM_LAYERS);
+    const at0 = parallaxPositions(0, 0, STADIUM_LAYERS);
+    const at100 = parallaxPositions(100, 40, STADIUM_LAYERS);
 
     const moved = at0.map((p, i) => Math.abs(at100[i].tileX - p.tileX));
     expect(moved[0]).toBeGreaterThan(0);
@@ -50,8 +55,8 @@ describe('placing them', () => {
   //    operating system for less motion has already answered; asking her again in our settings would be a
   //    second place for one preference to live, and the two would disagree.
   it('[Zero] under reduced motion the vertical drift stops entirely', () => {
-    const moving = posicoesParallax(100, 40, STADIUM_LAYERS, false);
-    const still = posicoesParallax(100, 40, STADIUM_LAYERS, true);
+    const moving = parallaxPositions(100, 40, STADIUM_LAYERS, false);
+    const still = parallaxPositions(100, 40, STADIUM_LAYERS, true);
 
     expect(moving.some((p) => p.tileY !== 0)).toBe(true);
     expect(still.every((p) => p.tileY === 0)).toBe(true);

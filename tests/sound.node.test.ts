@@ -19,6 +19,7 @@ import type { RuleEvent } from '../app/js/rules/events.ts';
 function ports(over: Partial<SoundPorts> = {}) {
   const captions: string[] = [];
   const base: SoundPorts = {
+    t: (key: string) => key,
     // No Web Audio at all is the DEFAULT here, because it is the honest default of a school machine with
     // audio blocked - and because a test that needed a real context would be a browser test that still
     // could not hear.

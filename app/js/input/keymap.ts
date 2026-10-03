@@ -48,7 +48,6 @@
 
 import { ACTIONS, type Action } from '@the-inclusionist/engine/core/actions.js';
 import { KEYBOARD_SOLO } from '@the-inclusionist/engine/input/default-bindings.js';
-import { kJogo } from '@the-inclusionist/engine/platform/storage.js';
 
 /** Which physical key codes reach each position. An empty list is a position no key reaches. */
 export type Keymap = Record<string, string[]>;
@@ -149,15 +148,26 @@ export interface KeymapStore {
 /**
  * Where the map lives.
  *
- * ⚠️ NAMESPACED BY GAME, because two games in one browser profile share a `localStorage` and the engine's
- * own `kJogo` exists for exactly this - the record says an unnamespaced key had one game overwriting
- * another's settings with no error anywhere.
+ * ⚠️ NAMESPACED BY GAME, because two games in one browser profile share a `localStorage` - the record
+ * says an unnamespaced key had one game overwriting another's settings with no error anywhere.
+ *
+ * ⚠️ THE HELPER WAS THE ENGINE'S `kJogo` UNTIL 11.0, and it is three lines here now rather than an import.
+ * The engine's own note at v9.0.0 said why it could leave: «Quem sabe o próprio id é o JOGO, que o passa como
+ * constante sua; o ADR-0080 proíbe a ENGINE de o saber, não o jogo.» The scope convention it belongs to is
+ * still the engine's and still documented on `platform/storage`: `incl.<game>.*` is what belongs to THIS
+ * game, beside the child's shared `incl_*` that follows them between games.
+ *
+ * ⚠️ AND THE STRING IS REPRODUCED EXACTLY - `'incl.' + game + '.' + name` - because a child's stored
+ * remap is on the other side of it. A tidier key would silently forget the binding of whoever needed the
+ * panel most, which is the one person this file exists for.
  *
  * ⚠️ AND PERSISTING THIS IS ALLOWED WHERE PERSISTING A SCORE IS NOT (ADR-0037). A key map is a fact about
  * the DEVICE and about a body; it is not a fact about a child, and forgetting it every session would make
  * the panel useless to the person who most needs it.
  */
-export const KEYMAP_KEY = kJogo('soccer', 'keymap');
+const gameKey = (name: string): string => `incl.soccer.${name}`;
+
+export const KEYMAP_KEY = gameKey('keymap');
 
 /** Is this a list of key codes? A stored value is untrusted input, and half a map is worse than none. */
 function codeList(v: unknown): string[] | null {
@@ -201,7 +211,7 @@ export function saveKeymap(store: KeymapStore, map: Keymap, seat = 0, seats: Sea
  * change; only the pair is new.
  */
 export function keymapKeyFor(seat: number, seats: Seating): string {
-  return seats === 1 ? KEYMAP_KEY : kJogo('soccer', `keymap.duo${seat}`);
+  return seats === 1 ? KEYMAP_KEY : gameKey(`keymap.duo${seat}`);
 }
 
 /** Forget the child's map. The caller is expected to replace what it holds with `defaultKeymap()`. */

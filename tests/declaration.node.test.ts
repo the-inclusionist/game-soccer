@@ -450,7 +450,7 @@ describe('how many positions this game holds at once', () => {
     //    direction in every route this game has, and sprint is a hold by definition. A version of this
     //    that tracked `holdsAtOnce` down to "false" would hand a child the toggle and no reason for it.
     for (const mode of CHARGE_MODES) {
-      expect(observing({ charge: () => mode }).d.seguraTeclas(), `${mode} says nothing is held`).toBe(true);
+      expect(observing({ charge: () => mode }).d.holdsKeys(), `${mode} says nothing is held`).toBe(true);
     }
   });
 

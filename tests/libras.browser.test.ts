@@ -17,8 +17,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bootar } from '../app/js/boot/main.ts';
 import { msToTicks, ticks } from './helpers/ticks.ts';
-import { t } from '@the-inclusionist/engine/core/i18n.js';
-import { toggleLibras, vlibrasOpen } from '@the-inclusionist/engine/ui/vlibras.js';
 
 const SHELL_SRC = await import('./boot.browser.test.ts?raw');
 const SHELL = (() => {
@@ -37,7 +35,7 @@ beforeEach(() => {
   //    (`store.getBool('incl_libras', false)`), so clearing the key afterwards changes what a future
   //    import would see and nothing about the module that is already loaded. The only handle on it is the
   //    toggle itself.
-  if (vlibrasOpen()) toggleLibras();
+  if (booted?.motor.deafMode.isOn()) booted.motor.deafMode.toggle();
   document.body.innerHTML = SHELL;
 });
 
@@ -69,7 +67,7 @@ describe('turning the mode on', () => {
 
     toggle().click();
 
-    expect(vlibrasOpen()).toBe(true);
+    expect(booted!.motor.deafMode.isOn()).toBe(true);
     expect(toggle().getAttribute('aria-pressed')).toBe('true');
   });
 
@@ -79,7 +77,7 @@ describe('turning the mode on', () => {
     toggle().click();
     toggle().click();
 
-    expect(vlibrasOpen()).toBe(false);
+    expect(booted!.motor.deafMode.isOn()).toBe(false);
     expect(toggle().getAttribute('aria-pressed')).toBe('false');
   });
 
@@ -94,7 +92,7 @@ describe('turning the mode on', () => {
 
     toggle().click();
 
-    expect(vlibrasOpen()).toBe(true);
+    expect(booted!.motor.deafMode.isOn()).toBe(true);
   });
 
   it('[Right] the choice survives a reboot, because it is about a body and not a session', () => {
@@ -160,6 +158,6 @@ describe('what it is given to translate', () => {
   it('[Right] the control names the mode in the child language', () => {
     booted = bootar(document, window);
 
-    expect(toggle().textContent).toBe(t('libras.open'));
+    expect(toggle().textContent).toBe(booted!.motor.t('libras.open'));
   });
 });

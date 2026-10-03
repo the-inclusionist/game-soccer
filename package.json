@@ -54,7 +54,7 @@
     "⚠️ AND WHETHER THE CLAIM WAS EVER TRUE IS NOT KNOWN, which is said rather than guessed: it may have been accurate against 7.0.1 and gone stale when ADR-0094 moved the import, or it may have been wrong when written. Either way a claim about somebody else's package needs re-reading every time the dependency moves, which is the rule `docs/ENGINE-AUDIT.md` already states and this line was outside of."
   ],
   "dependencies": {
-    "@the-inclusionist/engine": "^9.0.0",
+    "@the-inclusionist/engine": "^11.0.0",
     "pixi.js": "7.4.2"
   },
   "devDependencies": {

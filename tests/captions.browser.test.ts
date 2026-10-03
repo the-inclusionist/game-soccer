@@ -18,8 +18,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { bootar } from '../app/js/boot/main.ts';
 import { until } from './helpers/ticks.ts';
 import { msToTicks, ticks } from './helpers/ticks.ts';
-import { t } from '@the-inclusionist/engine/core/i18n.js';
-import { setCaptionsOnValue, captionsOn } from '@the-inclusionist/engine/core/state.js';
+import { createSettingsStore } from '@the-inclusionist/engine/core/state.js';
+import { createStorage } from '@the-inclusionist/engine/platform/storage.js';
+import { KEYS } from '@the-inclusionist/engine/platform/storage-keys.js';
 
 const SHELL_SRC = await import('./boot.browser.test.ts?raw');
 const SHELL = (() => {
@@ -29,12 +30,26 @@ const SHELL = (() => {
 })();
 
 let booted: ReturnType<typeof bootar> = null;
-const wasOn = captionsOn;
+
+/**
+ * ⚠️ THE PRE-BOOT STORE RESTORES THE CAPTIONS SETTING EVERY TEST, same story as `tests/boot.browser`.
+ * The module-level `captionsOn`/`setCaptionsOnValue` were removed in engine 10.0, which left this file
+ * holding them for the one job it needs them for: capturing a value at module load and restoring it
+ * before each test, so the suite does not leave an off/on choice persisted after the run.
+ */
+const prebootSettings = createSettingsStore({
+  ...createStorage(window.localStorage),
+  KEYS,
+});
+const setCaptions = (v: boolean): void => {
+  (booted?.motor.settings ?? prebootSettings).setCaptionsOnValue(v);
+};
+const wasOn = prebootSettings.captionsOn;
 
 beforeEach(() => {
   booted?.stop();
   booted = null;
-  setCaptionsOnValue(wasOn);
+  setCaptions(wasOn);
   document.body.innerHTML = SHELL;
 });
 
@@ -114,7 +129,7 @@ describe('what a deaf child reads', () => {
     //    narrates, not a thing that flashes and is replaced. A `MutationObserver` cannot see the
     //    intermediate value either, and an assertion about the order between them would be an assertion
     //    about something no eye and no test can observe.
-    expect(sentence, 'the narration is only the earcon label').not.toBe(t('cue.goalFor'));
+    expect(sentence, 'the narration is only the earcon label').not.toBe(booted!.motor.t('cue.goalFor'));
     expect(seen.said[seen.said.length - 1]).toBe(sentence);
   });
 
@@ -133,7 +148,7 @@ describe('what a deaf child reads', () => {
   //    menu; a game that honoured it for earcons and ignored it for sentences would give her a control
   //    that half works, which is worse than one that does not exist.
   it('[Zero] with captions switched off, nothing is written to the screen', async () => {
-    setCaptionsOnValue(false);
+    setCaptions(false);
     booted = bootar(document, window);
     scoreAGoal();
 

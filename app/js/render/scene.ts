@@ -21,10 +21,9 @@
 //      a low-vision child has to be able to find it at all.
 
 import * as PIXI from 'pixi.js';
-import { Z } from '@the-inclusionist/engine/core/layers.js';
-import { criarCamera, type CameraObj } from '@the-inclusionist/engine/render/camera.js';
-import { posicoesParallax } from '@the-inclusionist/engine/render/parallax.js';
-import { STADIUM_LAYERS, crowdBands } from './stadium-layers.ts';
+import { Z } from './layers.ts';
+import { createCamera, type CameraObj } from './camera.ts';
+import { STADIUM_LAYERS, crowdBands, parallaxPositions } from './stadium-layers.ts';
 import { SQUAD_SIZE, shirtOf } from '../sim/ids.ts';
 import { kitFor } from '../teams/kits.ts';
 import type { Fixture } from '../teams/clubs.ts';
@@ -488,7 +487,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
   // different texture per body per tick.
   let shirts = fixture;
 
-  const camera: CameraObj = criarCamera(
+  const camera: CameraObj = createCamera(
     { w: WORLD_PX.w, h: WORLD_PX.h },
     { w: LOGICAL.w, h: LOGICAL.h },
     { w: 48, h: 40 },
@@ -521,7 +520,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
       smooth.x += (lead.x - smooth.x) * SMOOTH;
       smooth.y += (lead.y - BALL_SITS_LOW_BY - smooth.y) * SMOOTH * VERTICAL_GAIN;
 
-      const cam = camera.seguir(smooth.x, smooth.y);
+      const cam = camera.follow(smooth.x, smooth.y);
       const camX = Math.round(cam.camX);
       const camY = Math.round(cam.camY);
       world.position.set(-camX, -camY);
@@ -529,7 +528,7 @@ export function createScene(host: HTMLElement, fixture: Fixture): Scene {
       // ⚠️ FED THE ROUNDED CAMERA, the same one the world gets. A background placed from the unrounded
       //    value would drift a fraction of a pixel against a world that had been snapped, and NEAREST
       //    sampling turns that into a shimmer along the horizon.
-      const spots = posicoesParallax(camX, camY, STADIUM_LAYERS, reducedMotion());
+      const spots = parallaxPositions(camX, camY, STADIUM_LAYERS, reducedMotion());
       const sprites = [sky, far, near];
       for (let i = 0; i < sprites.length; i++) {
         sprites[i].tilePosition.set(Math.round(spots[i].tileX), Math.round(spots[i].tileY));

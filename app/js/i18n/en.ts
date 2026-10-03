@@ -1,5 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 export const en = {
+  // The eleven accommodations this game offers (`app/js/accommodations.ts`). The engine draws the rows;
+  // these are the names a child reads in them. Literal on purpose, and the Dev's to correct.
+  'accom.cameraSway': 'Camera sway',
+  'accom.hints': 'Hints',
+  'accom.timingWindow': 'Timing window',
+  'accom.aimAssist': 'Aim assist',
+  'accom.repeatedInput': 'Repeated presses',
+  'accom.intensity': 'Pressing intensity',
+  'accom.characterMotion': 'Player motion',
+  'accom.contrastOutlines': 'Outlines',
+  'accom.ownerColors': 'Your colour',
+  'accom.detectionLeniency': 'Touch leniency',
+  'accom.easyMode': 'Easy mode',
   'game.title': 'Soccer',
   'name.ball': 'the ball',
   'name.goal': 'the goal',

@@ -27,6 +27,45 @@ export const STADIUM_LAYERS: readonly StadiumLayer[] = Object.freeze([
   { key: 'near', factor: 0.52, fy: 0.21 },
 ]);
 
+/** Where one layer's tiling origin sits for a camera at `camX`/`camY`. */
+export interface ParallaxSpot {
+  readonly x: number;
+  readonly y: number;
+  readonly tileX: number;
+  readonly tileY: number;
+}
+
+/**
+ * Place the layers for a camera. Four multiplications, and no canvas.
+ *
+ * ⚠️ THIS WAS THE ENGINE'S `posicoesParallax` UNTIL 11.0, which sent `render/parallax` to `game-platformer`
+ * at the v9.0.0 fork point along with twenty-five other modules. The original is at the tag:
+ *
+ *     git -C ../the-inclusionist-engine show v9.0.0:app/js/render/parallax.ts
+ *
+ * ⚠️ AND ONLY THE CALCULATION CAME, which is what the header above already said was borrowed. That module
+ * is 239 lines and most of them are a platformer's scenery - `CenarioTema`, `TemaMorros`, `TemaPredios`,
+ * `FaixaDePredios`, a tiling-sprite port - and it reaches for `LOGICAL_W`/`LOGICAL_H` that this game does
+ * not use. Twelve lines answer the question this game asks; the other two hundred answer another game's.
+ *
+ * ⚠️ `reduced` ZEROES THE DRIFT RATHER THAN SLOWING IT, which is the whole accommodation: a child who asked
+ * for less motion gets a stand that does not move at all, not one that moves gently. The layers still draw,
+ * so the depth cue of three distinct bands survives - what goes is the movement, not the stadium.
+ */
+export function parallaxPositions(
+  camX: number,
+  camY: number,
+  layers: readonly StadiumLayer[] = STADIUM_LAYERS,
+  reduced = false,
+): ParallaxSpot[] {
+  return layers.map((p) => ({
+    x: camX,
+    y: camY,
+    tileX: reduced ? 0 : -camX * p.factor,
+    tileY: reduced ? 0 : -camY * p.fy,
+  }));
+}
+
 const clamp255 = (v: number): number => (v < 0 ? 0 : v > 255 ? 255 : Math.round(v));
 
 /**
