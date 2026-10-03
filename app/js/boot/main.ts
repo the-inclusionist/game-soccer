@@ -1212,6 +1212,15 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
       doc.removeEventListener('keydown', routeToPanel, true);
       controls?.destroy();
       assistsPanel?.destroy();
+      // ⚠️ AND THE ENGINE'S OWN LISTENERS COME OFF TOO, which is what engine 10.0 formalised as
+      //    `Engine.dispose`. The engine installs several `win.addEventListener('keydown', ..., true)` in
+      //    capture (menu-nav, focus-trap, shell, pause-by-select, pause-by-start) and a pad-polling rAF,
+      //    none of which this file can enumerate without reaching into the engine. Measured 2026-10-02:
+      //    without this line a second boot's gamepad poll races the first's, two capture-phase menu-nav
+      //    listeners both consume keys, and `tests/boot.browser` had the sonar test fail in-suite while
+      //    passing alone - the pollution signature. The call is new to this file; `Booted.stop` already
+      //    stops THIS game's state, now it also stops the engine's.
+      motor.dispose();
     },
   };
 }

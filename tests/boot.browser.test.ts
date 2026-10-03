@@ -890,7 +890,11 @@ describe('what a child sees', () => {
     region.dispatchEvent(
       new KeyboardEvent('keydown', { code: 'KeyF', bubbles: true, cancelable: true }),
     );
-    await ticks(booted, msToTicks(200));
+    // ⚠️ WALL-CLOCK, NOT TICKS, because `KeyF` is now `select` AND `select` opens the pause card in engine
+    //    11.0: pressing F pauses the world, state.tick stops advancing, `ticks()` times out while the sonar
+    //    is firing on its own. Measured 2026-10-02 - the sonar did sound; the wait was the thing listening
+    //    on the wrong channel. `quiet(200)` listens on the wall, which keeps ticking under pause.
+    await quiet(200);
 
     expect(booted?.motor.sonar.sonarCount).toBeGreaterThan(before);
   });
@@ -905,9 +909,12 @@ describe('what a child sees', () => {
     region.dispatchEvent(
       new KeyboardEvent('keydown', { code: 'KeyF', bubbles: true, cancelable: true }),
     );
-    await ticks(booted, msToTicks(100));
+    // ⚠️ WALL-CLOCK FOR THE SAME REASON AS THE PREVIOUS GATE: F pauses, state.tick stops. The test still
+    //    measures what it must - that holding F does not sound the sonar twice - because the sonarCount is a
+    //    monotonic counter and the second reading, 600 ms LATER by the wall, catches a repeat if one happened.
+    await quiet(100);
     const afterFirst = booted?.motor.sonar.sonarCount ?? -1;
-    await ticks(booted, msToTicks(600));
+    await quiet(600);
 
     expect(booted?.motor.sonar.sonarCount).toBe(afterFirst);
   });
