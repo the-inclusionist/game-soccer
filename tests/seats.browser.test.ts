@@ -232,7 +232,7 @@ describe('remembering each keyboard', () => {
     const button = document.querySelector(`#ctrl-list button[data-act="${act}"]`) as HTMLButtonElement;
     button.click();
     document.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
-    (document.querySelector('#ctrl-close') as HTMLButtonElement).click();
+    (document.querySelector('#kb-close') as HTMLButtonElement).click();
   };
 
   it('[Right] a change made with two children playing does not follow her back to playing alone', () => {

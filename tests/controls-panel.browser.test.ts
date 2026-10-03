@@ -96,13 +96,13 @@ describe('opening the screen', () => {
   it('[Interface] and the way out takes focus, so nobody is trapped in a dialog they opened', () => {
     open();
 
-    expect(document.activeElement).toBe(document.querySelector('#ctrl-close'));
+    expect(document.activeElement).toBe(document.querySelector('#kb-close'));
   });
 
   it('[Right] closing gives focus back to the control that opened it', () => {
     open();
 
-    (document.querySelector('#ctrl-close') as HTMLButtonElement).click();
+    (document.querySelector('#kb-close') as HTMLButtonElement).click();
 
     expect((document.querySelector('#controls-panel') as HTMLElement).hidden).toBe(true);
     expect(document.activeElement).toBe(document.querySelector('#open-controls'));
@@ -164,7 +164,7 @@ describe('what a screen reader hears', () => {
   it('[Right] the visible row names the control in this game words too', () => {
     open();
 
-    const listed = document.querySelector('#ctrl-list')?.textContent ?? '';
+    const listed = document.querySelector('#controls-panel #ctrl-list')?.textContent ?? '';
 
     expect(listed).toContain('Conter');
     expect(listed).toContain('Chutar');
@@ -186,7 +186,7 @@ describe('changing a key', () => {
 
     remap('leftShoulder', 'KeyZ');
 
-    expect(document.querySelector('#ctrl-list')?.textContent).toContain('Z');
+    expect(document.querySelector('#controls-panel #ctrl-list')?.textContent).toContain('Z');
     expect(booted!.keymap().leftShoulder).toEqual(['KeyZ']);
   });
 
@@ -232,7 +232,7 @@ describe('changing a key', () => {
     open();
     remap('leftShoulder', 'KeyZ');
 
-    (document.querySelector('#ctrl-reset') as HTMLButtonElement).click();
+    (document.querySelector('#controls-panel #ctrl-reset') as HTMLButtonElement).click();
 
     expect(booted!.keymap().leftShoulder).not.toContain('KeyZ');
     expect(booted!.keymap().up).toContain('KeyW');
@@ -291,12 +291,12 @@ describe('reading the rows', () => {
 
     expect(rowText('leftShoulder')).toContain('7');
     expect(rowText('leftShoulder')).not.toContain('Digit');
-    expect(document.querySelector('#ctrl-list')?.textContent).not.toContain('Digit');
+    expect(document.querySelector('#controls-panel #ctrl-list')?.textContent).not.toContain('Digit');
   });
 
   it('[Right] and the four arrows are four different arrows, not the same sideways one', () => {
     open();
-    const listed = document.querySelector('#ctrl-list')?.textContent ?? '';
+    const listed = document.querySelector('#controls-panel #ctrl-list')?.textContent ?? '';
 
     // The engine writes all four as the horizontal double arrow, on the screen whose entire job is saying
     // which key goes which way.
@@ -474,7 +474,7 @@ describe('two keyboards on one screen', () => {
 
     tabs()[1].click();
 
-    const listed = document.querySelector('#ctrl-list')?.textContent ?? '';
+    const listed = document.querySelector('#controls-panel #ctrl-list')?.textContent ?? '';
     // The second seat moves with the arrows and the first one does not, which is the whole difference.
     expect(listed).toContain('↑');
     expect(listed).not.toContain('W');
@@ -533,7 +533,7 @@ describe('two keyboards on one screen', () => {
     tabs()[1].click();
     remapHere('leftShoulder', 'KeyM');
 
-    (document.querySelector('#ctrl-reset') as HTMLButtonElement).click();
+    (document.querySelector('#controls-panel #ctrl-reset') as HTMLButtonElement).click();
 
     expect(booted!.keymap(1).leftShoulder, 'hers was not restored').not.toEqual(['KeyM']);
     expect(booted!.keymap(0).leftShoulder, 'his was restored as well').toEqual(['KeyN']);

@@ -184,6 +184,11 @@ body {
   padding: 1px 6px;
   border: 1px solid #8fa08b;
   border-radius: 3px;
+  /* ⚠️ THE PANEL'S --ink IS A VERY DARK GREEN (line 12), which hides a `kbd` whose text inherits it.
+   * Measured 2026-10-02 via axe: `color-contrast: <kbd>Espaco</kbd>` — black on near-black. The engine
+   * token for a surface's reading colour is `--ink-soft` (#cdd6f2); using it keeps the key legible
+   * against the panel's dark-green background. Same reason as the `.mode-btn` rule above. */
+  color: var(--ink-soft);
   font-family: ui-monospace, monospace;
   font-size: 15px;
 }
@@ -224,4 +229,19 @@ body {
   font-size: 15px;
   line-height: 1.4;
   color: #cfe0cb;
+}
+
+/* ⚠️ ENGINE 11.0'S `.mode-btn` USES `color:var(--ink)` and this game overrides `--ink` to a very dark
+ * green (line 12 above) for the pitch and HUD, which drops `.mode-btn` text from ~13:1 against the
+ * dark-blue `--panel` to ~2.5:1 — WCAG failure. Measured 2026-10-02 via axe:
+ *   `color-contrast: <button class="mode-btn" data-seat="0" ...>Jogador 1</button>`
+ *
+ * Both pressed and unpressed buttons need legible text. The engine's token for a surface's text that
+ * reads AGAINST the panel is `--ink-soft` (#cdd6f2), which contrasts well with --panel (#1b2440) and is
+ * what the engine itself paints the button border with. Using it as the text colour too fixes the
+ * contrast and keeps the single visual intent of the engine's token: "soft ink is the panel surface's
+ * reading colour".
+ */
+.mode-btn {
+  color: var(--ink-soft);
 }

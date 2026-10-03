@@ -625,11 +625,11 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
 
   const openLabel = doc.querySelector<HTMLElement>('#open-controls');
   if (openLabel !== null) openLabel.textContent = motor.t('keys.open');
-  const ctrlTitle = doc.querySelector<HTMLElement>('#ctrl-title');
+  const ctrlTitle = doc.querySelector<HTMLElement>('#kb-title');
   if (ctrlTitle !== null) ctrlTitle.textContent = motor.t('keys.title');
   const ctrlReset = doc.querySelector<HTMLElement>('#ctrl-reset');
   if (ctrlReset !== null) ctrlReset.textContent = motor.t('keys.reset');
-  const ctrlClose = doc.querySelector<HTMLElement>('#ctrl-close');
+  const ctrlClose = doc.querySelector<HTMLElement>('#kb-close');
   if (ctrlClose !== null) ctrlClose.textContent = motor.t('keys.close');
 
   const controls = createControlsPanel({

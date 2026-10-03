@@ -137,7 +137,7 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
   const mapOf = (seat: number): Keymap => ports.maps()[seat] ?? ports.maps()[0];
   const panel = doc.querySelector<HTMLElement>('#controls-panel');
   const opener = doc.querySelector<HTMLButtonElement>('#open-controls');
-  const closeBtn = doc.querySelector<HTMLButtonElement>('#ctrl-close');
+  const closeBtn = doc.querySelector<HTMLButtonElement>('#kb-close');
   const resetBtn = doc.querySelector<HTMLButtonElement>('#ctrl-reset');
   if (panel === null || opener === null || closeBtn === null || resetBtn === null) return null;
 
@@ -238,7 +238,17 @@ export function createControlsPanel(ports: ControlsPanelPorts): ControlsPanel | 
 
   const api = initSettingsControls({
     t: ports.t,
-    $: (<T extends Element>(sel: string) => doc.querySelector(sel) as T | null) as never,
+    // ⚠️ SCOPED FOR THE TWO IDS THAT COLLIDE WITH THE ENGINE'S PARALLEL PANEL, document for the rest.
+    //    Engine 11.0 auto-mounts a `.overlay#ctrl` with its own `#ctrl-list` and `#ctrl-reset` and the engine's
+    //    OWN `initSettingsControls` (inside `createGame`) writes rows there — but only lazily, when the
+    //    panel opens. For OUR panel to be filled, OUR init must target OUR list.
+    //
+    //    Measured 2026-10-02: broader scopes break the panel's queries that legitimately reach the host
+    //    document — the live regions, the opener, etc. So the scope is narrow: only the two colliding IDs.
+    $: (<T extends Element>(sel: string) =>
+      (sel === '#ctrl-list' || sel === '#ctrl-reset'
+        ? panel.querySelector(sel)
+        : doc.querySelector(sel)) as T | null) as never,
     gameActions: () => WORLD_POSITIONS.map((action) => ({ action, label: labelOf(action) })),
     srSay: ports.srSay,
     srAlert: ports.srAlert,

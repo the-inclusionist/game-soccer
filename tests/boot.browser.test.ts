@@ -98,13 +98,13 @@ const SHELL = `
       </div>
     </div>
 
-    <div id="controls-panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="ctrl-title" hidden>
-      <h2 id="ctrl-title">Teclado</h2>
+    <div id="controls-panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="kb-title" hidden>
+      <h2 id="kb-title">Teclado</h2>
       <div id="ctrl-players"></div>
       <div id="ctrl-list"></div>
       <div class="panel__actions">
         <button id="ctrl-reset" type="button">Restaurar padroes</button>
-        <button id="ctrl-close" type="button">Fechar</button>
+        <button id="kb-close" type="button">Fechar</button>
       </div>
     </div>
     <div id="end-panel" role="group" aria-labelledby="end-title" hidden>
