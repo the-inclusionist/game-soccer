@@ -356,7 +356,15 @@ and `alcanceDoModo` are all exported), while **contrast** is three repainted pal
 7:1 ratios across kits, pitch and crests — real render work against a measurable target, for which
 `teams/clubs` already owns `LUMA_GAP` and a luminance comparison.
 
-### 11. The accessibility bar's navigation exists inside `createGame` and no game can reach it
+### 11. The accessibility bar's navigation exists inside `createGame` and no game can reach it — CLOSED in 11.0.0
+
+📌 **MARKED CLOSED, measured 2026-10-02.** Engine 11.0 fixed this the way the finding predicted — the way
+finding 10 was fixed. `Engine` now returns `nav: MenuNavApi`, and the API gained the four members this
+finding said no game could reach: `underCursor(playerIndex)`, `itemNames(playerIndex)`, `pointAt(name,
+playerIndex)` and `navIntent(playerIndex, keys)`. Reading them is the game's work; the engine hands back
+the same instance it already built, so «two instances, two answers» stops being a shape. The sections
+below are kept for the record of what the problem looked like before 11.0, because that is what
+finding 10's own closure note did too.
 
 ADR-0044 item 7 is the directional driving the quick accessibility bar instead of the character.
 `CreateGameOptions` asks the GAME for it — `naBarraDe?(i)` and `navBar?(i, k)` — and its own note says
