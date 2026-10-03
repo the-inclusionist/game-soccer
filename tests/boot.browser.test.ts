@@ -357,9 +357,19 @@ describe('the pause', () => {
       booted = bootar(document, window);
       await ticks(booted, 5);
 
-      // One clean edge: down, polled, up. The engine acts on the EDGE, not on the hold.
+      // ⚠️ TWO EDGES, NOT ONE, SINCE ENGINE 11.0. The first START edge of a newly-connected pad
+      //    assigns the seat (`takeSeat` in `input/gamepad.ts`), and that frame RETURNS before `playRound`
+      //    answers `pauseEdge`. So the pad is seated by the first down, and the second down is what the
+      //    engine's `startForSeat` sees as the pause-opener. Measured 2026-10-02 with a side-effect
+      //    counter on `setPhase`: without this release-and-press, setPhase('paused') was never called.
+      //    The pair of edges is clean - down, polled, up, down - and the engine acts on each edge
+      //    separately.
       held = true;
       await waitFor(() => booted!.state.tick === booted!.state.tick, 'a poll');
+      await quiet(120);
+      held = false;
+      await quiet(120);
+      held = true;
       await quiet(120);
       held = false;
       await quiet(120);

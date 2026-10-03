@@ -304,6 +304,14 @@ export function bootar(doc: Document = document, win: Window = window): Booted |
     // ⚠️ REQUIRED AND COMPLETE (ADR-0153). See `app/js/accommodations.ts` for the eleven this game
     //    offers, the seven it refuses, and why the refusals are two different kinds of "no".
     accommodations: ACCOMMODATIONS,
+    // ⚠️ ONE PLAYER DECLARED, so the engine's gamepad reader has a seat to put a pad on. Measured
+    //    2026-10-02: `tests/boot.browser`'s START-pause gate stayed red at 38-vs-24 ticks even with
+    //    `setPhase` wired, because with no `players` the engine's `takeSeat` found no free slot, the pad
+    //    stayed `f.owner < 0`, `playRound` was never reached, and `startForSeat` never called `setPhase`.
+    //    An empty keyscheme is honest here: this game reads the keyboard through its own
+    //    `region.addEventListener`, not through the engine's keyboard runtime, so the engine's keyboard
+    //    scheme is unused BY US - the field has to be present (the type requires it) and empty.
+    players: [{ ctrl: {} as never }],
     declines: {
       // ⚠️ `semAssistenteDePad` WAS DECLARED HERE AND ENGINE 11.0 REMOVED THE FIELD, so the decline is gone
       //    rather than renamed. ADR-0231's reason, in the engine's own words beside the interface: «the wizard
